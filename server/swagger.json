@@ -1,0 +1,816 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Kattraan LMS API",
+    "version": "2.0.0",
+    "description": "Comprehensive API documentation for Kattraan LMS.\n\n**Authentication**:\nThis API uses **HttpOnly Cookies** for authentication (`accessToken` and `refreshToken`).\n\n**Security Features**:\n- UUID-based role system (roles are NOT exposed in responses)\n- Token rotation on refresh\n- Session management (max 3 concurrent sessions)\n- Token blacklisting on logout\n- Rate limiting on auth endpoints\n\n**Important**: To test protected endpoints, you must first call `/auth/login`. The browser will automatically attach cookies to subsequent requests."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000/api",
+      "description": "Local (port 5000)"
+    },
+    {
+      "url": "http://localhost:5001/api",
+      "description": "Local (port 5001, default)"
+    }
+  ],
+  "tags": [
+    { "name": "Auth", "description": "Authentication and User Management" },
+    { "name": "Users", "description": "User profile and admin user management" },
+    { "name": "Courses", "description": "Course CRUD and listing" },
+    { "name": "Sections", "description": "Course sections" },
+    { "name": "Chapters", "description": "Section chapters" },
+    { "name": "Contents", "description": "Chapter contents (video, article, quiz, etc.)" },
+    { "name": "Media", "description": "File upload and management" },
+    { "name": "Comments", "description": "Course comments" },
+    { "name": "Reviews", "description": "Course reviews" },
+    { "name": "Instructor", "description": "Legacy instructor paths (see Courses for REST)" },
+    { "name": "Learner", "description": "Legacy learner paths (see Courses for REST)" }
+  ],
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Register a new user",
+        "description": "Creates a new user account. User is automatically assigned 'learner' role (UUID-based). Client cannot specify roles.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["userName", "userEmail", "password"],
+                "properties": {
+                  "userName": { "type": "string", "example": "John Doe" },
+                  "userEmail": { "type": "string", "format": "email", "example": "john.doe@gmail.com", "description": "Must be @gmail.com" },
+                  "password": { "type": "string", "format": "password", "minLength": 8, "example": "SecurePass@123", "description": "Min 8 chars with uppercase, lowercase, numbers, special chars" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { 
+            "description": "User created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Registered successfully" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request – validation error, duplicate email, non-Gmail, or weak password",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": false },
+                    "message": { "type": "string", "example": "Only @gmail.com email addresses are allowed." }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Login user and set HttpOnly cookies",
+        "description": "Authenticates user and sets `accessToken` (15min) and `refreshToken` (7days) cookies. Role information is NOT included in response for security.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["userEmail", "password"],
+                "properties": {
+                  "userEmail": { "type": "string", "format": "email", "example": "john.doe@gmail.com" },
+                  "password": { "type": "string", "format": "password", "example": "SecurePass@123" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful. Cookies set with HttpOnly, Secure, SameSite=Strict flags.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Login successful" },
+                    "user": { 
+                      "type": "object",
+                      "description": "User profile (excludes: password, sessions, roles, tokens)",
+                      "properties": {
+                        "_id": { "type": "string" },
+                        "userName": { "type": "string" },
+                        "userEmail": { "type": "string" },
+                        "status": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request – missing email or password",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": false },
+                    "message": { "type": "string", "example": "Email and password required" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized – invalid credentials or user not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": false },
+                    "message": { "type": "string", "example": "Invalid credentials" }
+                  }
+                }
+              }
+            }
+          },
+          "429": { "description": "Too many login attempts (rate limited)" }
+        }
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Refresh access token",
+        "description": "Uses `refreshToken` cookie to issue new tokens. Implements token rotation - both access and refresh tokens are replaced.",
+        "responses": {
+          "200": { 
+            "description": "Tokens refreshed successfully. New cookies set.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Token refreshed" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "No refresh token provided" },
+          "403": { "description": "Invalid or expired refresh token" }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Logout from current device",
+        "description": "Clears cookies, removes session from database, and blacklists access token.",
+        "responses": {
+          "200": { 
+            "description": "Logged out successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Logged out successfully" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/logout-all": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Logout from all devices",
+        "description": "Invalidates all active sessions for the user. Requires authentication.",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { 
+            "description": "Logged out from all devices",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Logged out from all devices" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Not authenticated" }
+        }
+      }
+    },
+    "/auth/check-auth": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Get current user profile (protected)",
+        "description": "Returns authenticated user's profile. Requires Bearer JWT or cookie. Excludes sensitive fields (password, sessions, tokens).",
+        "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "User is authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Authenticated user!" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "user": {
+                          "type": "object",
+                          "description": "User profile without sensitive data",
+                          "properties": {
+                            "_id": { "type": "string", "example": "507f1f77bcf86cd799439011" },
+                            "userName": { "type": "string", "example": "John Doe" },
+                            "userEmail": { "type": "string", "example": "john.doe@gmail.com" },
+                            "status": { "type": "string", "example": "active" },
+                            "roles": { "type": "array", "items": { "type": "string" }, "example": ["learner"] }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized – no token, expired, tampered, or revoked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": false },
+                    "message": { "type": "string", "example": "User is not authenticated" }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden – valid token but insufficient role (if role-check applied)"
+          }
+        }
+      }
+    },
+    "/auth/become-instructor": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Upgrade account to instructor",
+        "description": "Adds instructor role to user account and sets status to 'pending_enrollment'.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userEmail": { "type": "string", "example": "john.doe@gmail.com" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Role updated to instructor" }
+        }
+      }
+    },
+    "/auth/submit-enrollment": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Submit instructor enrollment details",
+        "description": "Submit bio, experience, and expertise for instructor approval. Requires authentication.",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "bio": { "type": "string" },
+                  "experience": { "type": "string" },
+                  "expertise": { "type": "string" },
+                  "linkedin": { "type": "string" },
+                  "website": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Enrollment submitted, status set to 'pending_approval'" }
+        }
+      }
+    },
+    "/auth/admin-approve": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Approve/Reject instructor (Admin only)",
+        "description": "Admin endpoint to approve or reject instructor enrollment.",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userId": { "type": "string" },
+                  "action": { "type": "string", "enum": ["approve", "reject"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Action completed" }
+        }
+      }
+    },
+    "/auth/forgot-password": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Request password reset",
+        "description": "Sends password reset email with token (valid 1 hour).",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userEmail": { "type": "string", "example": "john.doe@gmail.com" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Password reset email sent (or user not found - same response for security)" }
+        }
+      }
+    },
+    "/auth/reset-password": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Reset password with token",
+        "description": "Reset password using token from email.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": { "type": "string" },
+                  "newPassword": { "type": "string", "minLength": 8 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Password reset successfully" },
+          "400": { "description": "Invalid or expired token" }
+        }
+      }
+    },
+    "/auth/google/one-tap": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Google One Tap login",
+        "description": "Authenticate using Google ID token. Creates new user if not exists.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id_token": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Google login successful, cookies set" }
+        }
+      }
+    },
+    "/auth/become-learner": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Add learner role to current user",
+        "description": "Authenticated user adds learner role. Requires authentication.",
+        "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "Role added successfully" },
+          "401": { "description": "Not authenticated" }
+        }
+      }
+    },
+    "/media/upload": {
+      "post": {
+        "tags": ["Media"],
+        "summary": "Upload a file",
+        "responses": {
+          "200": { "description": "File uploaded" }
+        }
+      }
+    },
+    "/media/delete/{key}": {
+      "delete": {
+        "tags": ["Media"],
+        "summary": "Delete a file",
+        "parameters": [
+          { "name": "key", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "File deleted" }
+        }
+      }
+    },
+    "/media/bulk-upload": {
+      "post": {
+        "tags": ["Media"],
+        "summary": "Bulk upload files",
+        "description": "Upload up to 10 files. Requires instructor or admin.",
+        "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": { "type": "object", "properties": { "files": { "type": "array", "items": { "type": "string", "format": "binary" } } } }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Files uploaded" },
+          "400": { "description": "No files provided" },
+          "401": { "description": "Not authenticated" }
+        }
+      }
+    },
+    "/users/me": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Get current user profile",
+        "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "Current user profile" },
+          "401": { "description": "Not authenticated" }
+        }
+      }
+    },
+    "/users": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "List all users (admin only)",
+        "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }],
+        "parameters": [
+          { "name": "status", "in": "query", "schema": { "type": "string" }, "description": "Filter by status" }
+        ],
+        "responses": {
+          "200": { "description": "List of users" },
+          "401": { "description": "Not authenticated" },
+          "403": { "description": "Forbidden – admin only" }
+        }
+      }
+    },
+    "/users/{id}": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Get user by ID",
+        "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "User details" },
+          "401": { "description": "Not authenticated" },
+          "404": { "description": "User not found" }
+        }
+      },
+      "put": {
+        "tags": ["Users"],
+        "summary": "Update user by ID",
+        "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object" } } } },
+        "responses": {
+          "200": { "description": "User updated" },
+          "401": { "description": "Not authenticated" },
+          "404": { "description": "User not found" }
+        }
+      },
+      "delete": {
+        "tags": ["Users"],
+        "summary": "Soft delete user (admin only)",
+        "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "User archived" },
+          "401": { "description": "Not authenticated" },
+          "403": { "description": "Forbidden – admin only" },
+          "404": { "description": "User not found" }
+        }
+      }
+    },
+    "/courses": {
+      "get": {
+        "tags": ["Courses"],
+        "summary": "List all courses (or instructor's courses)",
+        "description": "GET /courses – all courses (learner/instructor/admin). GET /courses/instructor – only current instructor's courses.",
+        "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }],
+        "responses": { "200": { "description": "List of courses" }, "401": { "description": "Not authenticated" } }
+      },
+      "post": {
+        "tags": ["Courses"],
+        "summary": "Create a course",
+        "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }],
+        "responses": { "201": { "description": "Course created" }, "401": { "description": "Not authenticated" }, "403": { "description": "Instructor or admin only" } }
+      }
+    },
+    "/courses/instructor": {
+      "get": {
+        "tags": ["Courses"],
+        "summary": "Get current instructor's courses",
+        "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }],
+        "responses": { "200": { "description": "Instructor courses" }, "401": { "description": "Not authenticated" }, "403": { "description": "Instructor or admin only" } }
+      }
+    },
+    "/courses/clone/{id}": {
+      "post": {
+        "tags": ["Courses"],
+        "summary": "Clone a course",
+        "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }],
+        "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "201": { "description": "Course cloned" }, "401": { "description": "Not authenticated" }, "403": { "description": "Instructor or admin only" }, "404": { "description": "Course not found" } }
+      }
+    },
+    "/courses/{id}": {
+      "get": {
+        "tags": ["Courses"],
+        "summary": "Get course by ID (with sections, chapters, contents)",
+        "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }],
+        "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "Course details" }, "401": { "description": "Not authenticated" }, "404": { "description": "Not found" } }
+      },
+      "put": {
+        "tags": ["Courses"],
+        "summary": "Update course",
+        "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }],
+        "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "Course updated" }, "401": { "description": "Not authenticated" }, "403": { "description": "Instructor or admin only" }, "404": { "description": "Not found" } }
+      },
+      "delete": {
+        "tags": ["Courses"],
+        "summary": "Delete course",
+        "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }],
+        "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "Course deleted" }, "401": { "description": "Not authenticated" }, "403": { "description": "Instructor or admin only" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/sections": {
+      "get": { "tags": ["Sections"], "summary": "List sections (optional query: course)", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "course", "in": "query", "schema": { "type": "string" } } ], "responses": { "200": { "description": "List of sections" } } },
+      "post": { "tags": ["Sections"], "summary": "Create section", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "responses": { "201": { "description": "Section created" } } }
+    },
+    "/sections/{id}": {
+      "get": { "tags": ["Sections"], "summary": "Get section by ID", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ], "responses": { "200": { "description": "Section details" }, "404": { "description": "Not found" } } },
+      "put": { "tags": ["Sections"], "summary": "Update section", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ], "responses": { "200": { "description": "Section updated" }, "404": { "description": "Not found" } } },
+      "delete": { "tags": ["Sections"], "summary": "Delete section", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ], "responses": { "200": { "description": "Section deleted" }, "404": { "description": "Not found" } } }
+    },
+    "/chapters": {
+      "get": { "tags": ["Chapters"], "summary": "List chapters", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "section", "in": "query", "schema": { "type": "string" } } ], "responses": { "200": { "description": "List of chapters" } } },
+      "post": { "tags": ["Chapters"], "summary": "Create chapter", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "responses": { "201": { "description": "Chapter created" } } }
+    },
+    "/chapters/{id}": {
+      "get": { "tags": ["Chapters"], "summary": "Get chapter by ID", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ], "responses": { "200": { "description": "Chapter details" }, "404": { "description": "Not found" } } },
+      "put": { "tags": ["Chapters"], "summary": "Update chapter", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ], "responses": { "200": { "description": "Chapter updated" }, "404": { "description": "Not found" } } },
+      "delete": { "tags": ["Chapters"], "summary": "Delete chapter", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ], "responses": { "200": { "description": "Chapter deleted" }, "404": { "description": "Not found" } } }
+    },
+    "/contents": {
+      "get": { "tags": ["Contents"], "summary": "List contents", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "responses": { "200": { "description": "List of contents" } } },
+      "post": { "tags": ["Contents"], "summary": "Create content", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "responses": { "201": { "description": "Content created" } } }
+    },
+    "/contents/{id}": {
+      "get": { "tags": ["Contents"], "summary": "Get content by ID", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ], "responses": { "200": { "description": "Content details" }, "404": { "description": "Not found" } } },
+      "put": { "tags": ["Contents"], "summary": "Update content", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ], "responses": { "200": { "description": "Content updated" }, "404": { "description": "Not found" } } },
+      "delete": { "tags": ["Contents"], "summary": "Delete content", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ], "responses": { "200": { "description": "Content deleted" }, "404": { "description": "Not found" } } }
+    },
+    "/videocontents": {
+      "get": { "tags": ["Contents"], "summary": "List video contents", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "responses": { "200": { "description": "List" } } },
+      "post": { "tags": ["Contents"], "summary": "Create video content", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "responses": { "201": { "description": "Created" } } }
+    },
+    "/videocontents/{id}": {
+      "get": { "tags": ["Contents"], "summary": "Get video content", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ], "responses": { "200": { "description": "Video content" }, "404": { "description": "Not found" } } },
+      "put": { "tags": ["Contents"], "summary": "Update video content", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ], "responses": { "200": { "description": "Updated" }, "404": { "description": "Not found" } } },
+      "delete": { "tags": ["Contents"], "summary": "Delete video content", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ], "responses": { "200": { "description": "Deleted" }, "404": { "description": "Not found" } } }
+    },
+    "/quizcontents": {
+      "get": { "tags": ["Contents"], "summary": "List quiz contents", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "responses": { "200": { "description": "List" } } },
+      "post": { "tags": ["Contents"], "summary": "Create quiz content", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "responses": { "201": { "description": "Created" } } }
+    },
+    "/quizcontents/{id}": {
+      "get": { "tags": ["Contents"], "summary": "Get quiz content", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ], "responses": { "200": { "description": "Quiz content" }, "404": { "description": "Not found" } } },
+      "put": { "tags": ["Contents"], "summary": "Update quiz content", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ], "responses": { "200": { "description": "Updated" }, "404": { "description": "Not found" } } },
+      "delete": { "tags": ["Contents"], "summary": "Delete quiz content", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ], "responses": { "200": { "description": "Deleted" }, "404": { "description": "Not found" } } }
+    },
+    "/resourcecontents": {
+      "get": { "tags": ["Contents"], "summary": "List resource contents", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "responses": { "200": { "description": "List" } } },
+      "post": { "tags": ["Contents"], "summary": "Create resource content", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "responses": { "201": { "description": "Created" } } }
+    },
+    "/resourcecontents/{id}": {
+      "get": { "tags": ["Contents"], "summary": "Get resource content", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ], "responses": { "200": { "description": "Resource content" }, "404": { "description": "Not found" } } },
+      "put": { "tags": ["Contents"], "summary": "Update resource content", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ], "responses": { "200": { "description": "Updated" }, "404": { "description": "Not found" } } },
+      "delete": { "tags": ["Contents"], "summary": "Delete resource content", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ], "responses": { "200": { "description": "Deleted" }, "404": { "description": "Not found" } } }
+    },
+    "/articlecontents": {
+      "get": { "tags": ["Contents"], "summary": "List article contents", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "responses": { "200": { "description": "List" } } },
+      "post": { "tags": ["Contents"], "summary": "Create article content", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "responses": { "201": { "description": "Created" } } }
+    },
+    "/articlecontents/{id}": {
+      "get": { "tags": ["Contents"], "summary": "Get article content", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ], "responses": { "200": { "description": "Article content" }, "404": { "description": "Not found" } } },
+      "put": { "tags": ["Contents"], "summary": "Update article content", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ], "responses": { "200": { "description": "Updated" }, "404": { "description": "Not found" } } },
+      "delete": { "tags": ["Contents"], "summary": "Delete article content", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ], "responses": { "200": { "description": "Deleted" }, "404": { "description": "Not found" } } }
+    },
+    "/audiocontents": {
+      "get": { "tags": ["Contents"], "summary": "List audio contents", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "responses": { "200": { "description": "List" } } },
+      "post": { "tags": ["Contents"], "summary": "Create audio content", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "responses": { "201": { "description": "Created" } } }
+    },
+    "/audiocontents/{id}": {
+      "get": { "tags": ["Contents"], "summary": "Get audio content", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ], "responses": { "200": { "description": "Audio content" }, "404": { "description": "Not found" } } },
+      "put": { "tags": ["Contents"], "summary": "Update audio content", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ], "responses": { "200": { "description": "Updated" }, "404": { "description": "Not found" } } },
+      "delete": { "tags": ["Contents"], "summary": "Delete audio content", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ], "responses": { "200": { "description": "Deleted" }, "404": { "description": "Not found" } } }
+    },
+    "/imagecontents": {
+      "get": { "tags": ["Contents"], "summary": "List image contents", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "responses": { "200": { "description": "List" } } },
+      "post": { "tags": ["Contents"], "summary": "Create image content", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "responses": { "201": { "description": "Created" } } }
+    },
+    "/imagecontents/{id}": {
+      "get": { "tags": ["Contents"], "summary": "Get image content", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ], "responses": { "200": { "description": "Image content" }, "404": { "description": "Not found" } } },
+      "put": { "tags": ["Contents"], "summary": "Update image content", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ], "responses": { "200": { "description": "Updated" }, "404": { "description": "Not found" } } },
+      "delete": { "tags": ["Contents"], "summary": "Delete image content", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ], "responses": { "200": { "description": "Deleted" }, "404": { "description": "Not found" } } }
+    },
+    "/comments": {
+      "get": { "tags": ["Comments"], "summary": "List comments", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "responses": { "200": { "description": "List" } } },
+      "post": { "tags": ["Comments"], "summary": "Create comment", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "responses": { "201": { "description": "Created" } } }
+    },
+    "/comments/{id}": {
+      "get": { "tags": ["Comments"], "summary": "Get comment", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ], "responses": { "200": { "description": "Comment" }, "404": { "description": "Not found" } } },
+      "put": { "tags": ["Comments"], "summary": "Update comment", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ], "responses": { "200": { "description": "Updated" }, "404": { "description": "Not found" } } },
+      "delete": { "tags": ["Comments"], "summary": "Delete comment (admin)", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ], "responses": { "200": { "description": "Deleted" }, "403": { "description": "Admin only" }, "404": { "description": "Not found" } } }
+    },
+    "/coursereviews": {
+      "get": { "tags": ["Reviews"], "summary": "List course reviews", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "responses": { "200": { "description": "List" } } },
+      "post": { "tags": ["Reviews"], "summary": "Create course review", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "responses": { "201": { "description": "Created" } } }
+    },
+    "/coursereviews/{id}": {
+      "get": { "tags": ["Reviews"], "summary": "Get course review", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ], "responses": { "200": { "description": "Review" }, "404": { "description": "Not found" } } },
+      "put": { "tags": ["Reviews"], "summary": "Update course review", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ], "responses": { "200": { "description": "Updated" }, "404": { "description": "Not found" } } },
+      "delete": { "tags": ["Reviews"], "summary": "Delete course review (admin)", "security": [{ "bearerAuth": [] }, { "cookieAuth": [] }], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } } ], "responses": { "200": { "description": "Deleted" }, "403": { "description": "Admin only" }, "404": { "description": "Not found" } } }
+    },
+    "/instructor/course/get": {
+      "get": {
+        "tags": ["Instructor"],
+        "summary": "Get all courses for instructor",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "Courses retrieved" }
+        }
+      }
+    },
+    "/instructor/course/add": {
+      "post": {
+        "tags": ["Instructor"],
+        "summary": "Create a new course",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "Course created" }
+        }
+      }
+    },
+    "/instructor/course/get/details/{id}": {
+      "get": {
+        "tags": ["Instructor"],
+        "summary": "Get course details",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Course details retrieved" }
+        }
+      }
+    },
+    "/instructor/course/update/{id}": {
+      "put": {
+        "tags": ["Instructor"],
+        "summary": "Update a course",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Course updated" }
+        }
+      }
+    },
+    "/learner/course/get": {
+      "get": {
+        "tags": ["Learner"],
+        "summary": "Get all published courses",
+        "responses": {
+          "200": { "description": "List of courses" }
+        }
+      }
+    },
+    "/learner/course/get/details/{courseId}": {
+      "get": {
+        "tags": ["Learner"],
+        "summary": "Get course details for learner",
+        "parameters": [
+          { "name": "courseId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Course details" }
+        }
+      }
+    },
+    "/learner/order/create": {
+      "post": {
+        "tags": ["Learner"],
+        "summary": "Create payment order",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "Order created" }
+        }
+      }
+    },
+    "/learner/courses-bought/get/{learnerId}": {
+      "get": {
+        "tags": ["Learner"],
+        "summary": "Get purchased courses",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "learnerId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Purchased courses list" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT access token (HS256). Use: Authorization: Bearer <token>"
+      },
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "accessToken",
+        "description": "HttpOnly cookie containing JWT access token"
+      }
+    }
+  }
+}

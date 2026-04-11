@@ -1,0 +1,4 @@
+node_modules/
+
+# Uploaded media (keep local only; do not commit to Git)
+server/uploads/

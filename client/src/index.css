@@ -1,0 +1,453 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Tailwind v4 Design Tokens */
+@theme {
+  --color-primary-dark: #090c03;
+  --color-primary-purple: #9e30ff;
+  --color-primary-pink: #ff3fb4;
+  /* Brand gradient: orange → pink (for primary buttons, CTAs) */
+  --color-gradient-start: #ff8c42;
+  --color-gradient-end: #ff3fb4;
+  --color-obsidian: #0c091a;
+  --color-muted-white: rgba(255, 255, 255, 0.7);
+  --color-subtle-white: rgba(255, 255, 255, 0.4);
+
+  --font-sans: "Satoshi", sans-serif;
+  --font-satoshi: "Satoshi", sans-serif;
+
+  --shadow-pink-glow: 0 0 50px rgba(232, 121, 249, 0.4);
+  --shadow-btn-gradient: 0 10px 20px rgba(255, 63, 180, 0.25);
+}
+
+/* Base styles */
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900 dark:bg-primary-dark dark:text-white font-sans antialiased transition-colors duration-300;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Professional Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #0c091a;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    border: 2px solid #0c091a;
+    /* Creates padding effect */
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+}
+
+/* Utilities */
+@layer utilities {
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-pink via-primary-purple to-primary-pink;
+  }
+
+  /* Brand gradient text (same stops as .btn-gradient — orange → pink) */
+  .text-gradient-brand {
+    color: transparent;
+    background: linear-gradient(to right, var(--color-gradient-start), var(--color-gradient-end));
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+
+  /* Orange → purple (softer than orange → pink; profiles, secondary headlines) */
+  .text-gradient-brand-purple {
+    color: transparent;
+    background: linear-gradient(135deg, var(--color-gradient-start), var(--color-primary-purple));
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+
+  /* Solid horizontal brand gradient (badges, fills, progress) */
+  .bg-gradient-brand {
+    background: linear-gradient(to right, var(--color-gradient-start), var(--color-gradient-end));
+  }
+
+  .bg-gradient-brand-diag {
+    background: linear-gradient(135deg, var(--color-gradient-start), var(--color-gradient-end));
+  }
+
+  /* Soft decorative glows (course details, cards) */
+  .bg-brand-glow-soft {
+    background: radial-gradient(
+      circle at 30% 40%,
+      rgba(255, 140, 66, 0.22) 0%,
+      transparent 62%
+    );
+  }
+
+  .bg-brand-glow-soft-end {
+    background: radial-gradient(
+      circle at 70% 55%,
+      rgba(255, 63, 180, 0.14) 0%,
+      rgba(158, 48, 255, 0.1) 42%,
+      transparent 65%
+    );
+  }
+
+  /* Frosted panel tint aligned to brand */
+  .surface-glass-brand {
+    background: linear-gradient(
+      88.36deg,
+      rgba(255, 140, 66, 0.16) -2.8%,
+      rgba(255, 63, 180, 0.12) 94.13%
+    );
+  }
+
+  /* Circular avatar ring (gradient border on dark fill) */
+  .ring-avatar-brand {
+    border: 2px solid transparent;
+    background:
+      linear-gradient(rgb(255 255 255 / 0.05), rgb(255 255 255 / 0.05)) padding-box,
+      linear-gradient(135deg, var(--color-gradient-start), var(--color-gradient-end)) border-box;
+    border-radius: 9999px;
+  }
+
+  .shadow-brand-badge {
+    box-shadow:
+      0 8px 28px rgba(255, 140, 66, 0.18),
+      0 4px 16px rgba(255, 63, 180, 0.12);
+  }
+
+  /* Primary CTA button: orange-to-pink gradient (brand style) */
+  .btn-gradient {
+    background: linear-gradient(to right, var(--color-gradient-start), var(--color-gradient-end));
+    color: white;
+    box-shadow: var(--shadow-btn-gradient);
+    transition: opacity 0.2s, box-shadow 0.2s;
+  }
+  .btn-gradient:hover {
+    opacity: 0.95;
+    box-shadow: 0 12px 24px rgba(255, 63, 180, 0.35);
+  }
+  .btn-gradient:active {
+    transform: scale(0.98);
+  }
+
+  /* Sidebar active link: same brand gradient (centralized) */
+  .sidebar-link-active {
+    background: linear-gradient(to right, var(--color-gradient-start), var(--color-gradient-end));
+    color: white;
+    border: 0;
+  }
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(-20px);
+    }
+  }
+
+  @keyframes float-slow {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(-15px);
+    }
+  }
+
+  @keyframes float-delayed {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-float-slow {
+    animation: float-slow 8s ease-in-out infinite;
+  }
+
+  .animate-float-delayed {
+    animation: float-delayed 7s ease-in-out infinite;
+    animation-delay: 2s;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* For Firefox */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+  }
+
+  @keyframes blob-bounce {
+    0%,
+    100% {
+      transform: translate(0, 0) scale(1);
+    }
+
+    33% {
+      transform: translate(30px, -50px) scale(1.1);
+    }
+
+    66% {
+      transform: translate(-20px, 20px) scale(0.9);
+    }
+  }
+
+  .animate-blob {
+    animation: blob-bounce 25s infinite alternate;
+  }
+
+  .animate-pulse-slow {
+    animation: pulse 8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes marquee {
+    0% {
+      transform: translateX(0);
+    }
+
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  .animate-marquee {
+    display: flex;
+    width: max-content;
+    animation: marquee 30s linear infinite;
+  }
+
+  .animate-marquee:hover {
+    animation-play-state: paused;
+  }
+
+  @keyframes marquee-reverse {
+    0% {
+      transform: translateX(-50%);
+    }
+
+    100% {
+      transform: translateX(0);
+    }
+  }
+
+  .animate-marquee-reverse {
+    display: flex;
+    width: max-content;
+    animation: marquee-reverse 35s linear infinite;
+  }
+
+  .animate-marquee-reverse:hover {
+    animation-play-state: paused;
+  }
+
+  @keyframes marquee-slow {
+    0% {
+      transform: translateX(0);
+    }
+
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  .animate-marquee-slow {
+    display: flex;
+    width: max-content;
+    animation: marquee-slow 60s linear infinite;
+  }
+
+  .animate-marquee-slow:hover {
+    animation-play-state: paused;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-white/10 rounded-full hover:bg-white/20 transition-all;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   react-datepicker theme (Kattraan)
+   Used in instructor Live Sessions schedule modal.
+   Theme-aware: light defaults + dark overrides (scoped under .dark).
+   ───────────────────────────────────────────────────────────────────────────── */
+.kattraan-react-datepicker-popper {
+  z-index: 500;
+}
+
+/* Base container */
+.react-datepicker {
+  background: transparent;
+  border: none;
+}
+
+/* Light theme (default) */
+.kattraan-react-datepicker {
+  border: 1px solid rgba(17, 24, 39, 0.12);
+  background: #ffffff;
+  color: rgba(17, 24, 39, 0.95);
+  border-radius: 16px;
+  overflow: hidden;
+  font-family: var(--font-satoshi, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
+}
+
+.react-datepicker__header {
+  background: rgba(17, 24, 39, 0.03);
+  border-bottom: 1px solid rgba(17, 24, 39, 0.10);
+}
+
+.react-datepicker__current-month,
+.react-datepicker-time__header,
+.react-datepicker__day-name {
+  color: rgba(17, 24, 39, 0.75);
+  font-weight: 800;
+}
+
+.react-datepicker__day,
+.react-datepicker__time-list-item {
+  color: rgba(17, 24, 39, 0.9);
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.react-datepicker__day:hover,
+.react-datepicker__time-list-item:hover {
+  background: rgba(17, 24, 39, 0.06);
+}
+
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected,
+.react-datepicker__time-list-item--selected {
+  background: linear-gradient(135deg, var(--color-gradient-start), var(--color-gradient-end));
+  color: white;
+}
+
+.react-datepicker__triangle {
+  display: none;
+}
+
+.react-datepicker__time-container {
+  border-left: 1px solid rgba(17, 24, 39, 0.10);
+  background: #ffffff;
+}
+
+.react-datepicker__time,
+.react-datepicker__time-box,
+.react-datepicker__time-list {
+  background: #ffffff !important;
+}
+
+.react-datepicker__header--time {
+  background: rgba(17, 24, 39, 0.03) !important;
+  border-bottom: 1px solid rgba(17, 24, 39, 0.10) !important;
+}
+
+.react-datepicker__time-list {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(17, 24, 39, 0.25) transparent;
+}
+
+.react-datepicker__time-list::-webkit-scrollbar {
+  width: 8px;
+}
+.react-datepicker__time-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.react-datepicker__time-list::-webkit-scrollbar-thumb {
+  background: rgba(17, 24, 39, 0.18);
+  border-radius: 999px;
+}
+.react-datepicker__time-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(17, 24, 39, 0.25);
+}
+
+/* Dark theme overrides */
+.dark .kattraan-react-datepicker {
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: #141414;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.dark .react-datepicker__header {
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dark .react-datepicker__current-month,
+.dark .react-datepicker-time__header,
+.dark .react-datepicker__day-name {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.dark .react-datepicker__day,
+.dark .react-datepicker__time-list-item {
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.dark .react-datepicker__day:hover,
+.dark .react-datepicker__time-list-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dark .react-datepicker__time-container {
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  background: #141414;
+}
+
+.dark .react-datepicker__time,
+.dark .react-datepicker__time-box,
+.dark .react-datepicker__time-list {
+  background: #141414 !important;
+}
+
+.dark .react-datepicker__header--time {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10) !important;
+}
+
+.dark .react-datepicker__time-list {
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+
+.dark .react-datepicker__time-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+}
+.dark .react-datepicker__time-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}

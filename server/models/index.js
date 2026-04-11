@@ -1,0 +1,15 @@
+module.exports = {
+  Course: require("./Course"),
+  Section: require("./Section"),
+  Chapter: require("./Chapter"),
+  Content: require("./Content"),
+  VideoContent: require("./VideoContent"),
+  ArticleContent: require("./ArticleContent"),
+  QuizContent: require("./QuizContent"),
+  ImageContent: require("./ImageContent"),
+  AudioContent: require("./AudioContent"),
+  ResourceContent: require("./ResourceContent"),
+  CourseReview: require("./CourseReview"),
+  CourseVersion: require("./CourseVersion"),
+  Comment: require("./Comment"),
+};
