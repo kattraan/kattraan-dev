@@ -1,6 +1,6 @@
-import { useState, useCallback, useRef } from 'react';
-import courseService from '@/features/courses/services/courseService';
-import { uploadVideoDirect } from '@/features/courses/services/videoUploadService';
+import { useState, useCallback, useRef } from "react";
+import courseService from "@/features/courses/services/courseService";
+import { uploadVideoDirect } from "@/features/courses/services/videoUploadService";
 
 /**
  * Get video duration in seconds from a File using the browser's video element.
@@ -8,11 +8,11 @@ import { uploadVideoDirect } from '@/features/courses/services/videoUploadServic
  * @returns {Promise<number>} duration in seconds
  */
 function getVideoDuration(file) {
-  if (!file || !file.type.startsWith('video/')) return Promise.resolve(0);
+  if (!file || !file.type.startsWith("video/")) return Promise.resolve(0);
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
-    const video = document.createElement('video');
-    video.preload = 'metadata';
+    const video = document.createElement("video");
+    video.preload = "metadata";
     video.onloadedmetadata = () => {
       URL.revokeObjectURL(url);
       resolve(Math.round(video.duration));
@@ -54,16 +54,22 @@ export function useVideoUpload(courseId, { onUploadComplete, onError }) {
         delete next[key];
         return next;
       }
-      const updates = typeof updatesOrFn === 'function' ? updatesOrFn(prev[key] || {}) : updatesOrFn;
+      const updates =
+        typeof updatesOrFn === "function"
+          ? updatesOrFn(prev[key] || {})
+          : updatesOrFn;
       next[key] = { ...(prev[key] || {}), ...updates };
       return next;
     });
   }, []);
 
-  const clearUpload = useCallback((key) => {
-    setStateForKey(key, null);
-    pendingPayloadRef.current[key] = null;
-  }, [setStateForKey]);
+  const clearUpload = useCallback(
+    (key) => {
+      setStateForKey(key, null);
+      pendingPayloadRef.current[key] = null;
+    },
+    [setStateForKey],
+  );
 
   const runUpload = useCallback(
     async (key, payload) => {
@@ -74,6 +80,10 @@ export function useVideoUpload(courseId, { onUploadComplete, onError }) {
         title,
         description,
         resourceFiles,
+        engagementTemplateId,
+        engagementTemplateName,
+        engagementTemplateLabels,
+        engagementTemplateEmojis,
         chapterId,
         existingContent,
       } = payload;
@@ -81,14 +91,20 @@ export function useVideoUpload(courseId, { onUploadComplete, onError }) {
       const isEditing = !!existingContent?._id;
       const hasVideo = !!videoFile;
 
+      const resolvedTitle =
+        title || existingContent?.title || "Chapter Video";
+
       if (!hasVideo && !isEditing) {
-        setStateForKey(key, { status: 'error', error: 'No video file selected' });
-        onError?.(new Error('No video file'), key);
+        setStateForKey(key, {
+          status: "error",
+          error: "No video file selected",
+        });
+        onError?.(new Error("No video file"), key);
         return;
       }
 
-      let videoUrl = existingContent?.videoUrl || '';
-      let thumbnailValue = existingContent?.thumbnail || '';
+      let videoUrl = existingContent?.videoUrl || "";
+      let thumbnailValue = existingContent?.thumbnail || "";
       let durationSeconds = existingContent?.duration ?? 0;
 
       try {
@@ -102,31 +118,35 @@ export function useVideoUpload(courseId, { onUploadComplete, onError }) {
         if (videoFile) {
           setStateForKey(key, {
             progress: 0,
-            status: 'uploading',
-            title: title || videoFile.name || 'Video',
+            status: "uploading",
+            title: resolvedTitle,
           });
 
           const useDirectUpload = !isEditing;
           if (useDirectUpload) {
             const res = await uploadVideoDirect(videoFile, {
               chapterId,
-              title: title || videoFile.name || 'Untitled Video',
+              title: resolvedTitle,
               description,
               courseId,
               onProgress: (percent) => {
                 setStateForKey(key, (prev) => ({
                   ...prev,
                   // Guard against late progress events overriding a completed state.
-                  progress: prev?.status === 'complete' ? 100 : Math.min(100, percent),
+                  progress:
+                    prev?.status === "complete" ? 100 : Math.min(100, percent),
                   status:
-                    prev?.status === 'complete' || prev?.status === 'error'
+                    prev?.status === "complete" || prev?.status === "error"
                       ? prev.status
-                      : (percent >= 100 ? 'processing' : 'uploading'),
+                      : percent >= 100
+                        ? "processing"
+                        : "uploading",
                 }));
               },
             });
-            if (!res?.success || !res?.data) throw new Error('Video upload failed');
-            setStateForKey(key, { progress: 100, status: 'complete' });
+            if (!res?.success || !res?.data)
+              throw new Error("Video upload failed");
+            setStateForKey(key, { progress: 100, status: "complete" });
             onUploadComplete(
               {
                 contentId: res.data._id,
@@ -135,7 +155,7 @@ export function useVideoUpload(courseId, { onUploadComplete, onError }) {
                 isHlsCreate: true,
                 key,
               },
-              () => clearUpload(key)
+              () => clearUpload(key),
             );
             return;
           }
@@ -147,25 +167,32 @@ export function useVideoUpload(courseId, { onUploadComplete, onError }) {
               setStateForKey(key, (prev) => ({
                 ...prev,
                 // Guard against late progress events overriding a completed state.
-                progress: prev?.status === 'complete' ? 100 : Math.min(100, percent),
+                progress:
+                  prev?.status === "complete" ? 100 : Math.min(100, percent),
                 status:
-                  prev?.status === 'complete' || prev?.status === 'error'
+                  prev?.status === "complete" || prev?.status === "error"
                     ? prev.status
-                    : (percent >= 100 ? 'processing' : 'uploading'),
+                    : percent >= 100
+                      ? "processing"
+                      : "uploading",
               }));
-            }
+            },
           );
 
-          if (!videoUploadRes?.success) throw new Error('Video upload failed');
+          if (!videoUploadRes?.success) throw new Error("Video upload failed");
           videoUrl = videoUploadRes.data?.url || videoUrl;
         }
 
-        setStateForKey(key, { progress: 100, status: 'processing' });
+        setStateForKey(key, { progress: 100, status: "processing" });
 
         if (thumbnailFile) {
           try {
-            const thumbRes = await courseService.uploadMedia(thumbnailFile, courseId);
-            if (thumbRes?.success) thumbnailValue = thumbRes.data?.url || thumbnailValue;
+            const thumbRes = await courseService.uploadMedia(
+              thumbnailFile,
+              courseId,
+            );
+            if (thumbRes?.success)
+              thumbnailValue = thumbRes.data?.url || thumbnailValue;
           } catch {
             // non-fatal
           }
@@ -193,19 +220,41 @@ export function useVideoUpload(courseId, { onUploadComplete, onError }) {
         const mainSubtitle = subtitles?.find((s) => s.file);
         const contentData = {
           chapter: chapterId,
-          type: 'video',
-          title: title || videoFile?.name || existingContent?.title || 'Untitled Video',
-          description: description || '',
+          type: "video",
+          title: resolvedTitle,
+          description: description || "",
           videoUrl,
           thumbnail: thumbnailValue,
           duration: durationSeconds,
           resources: [...existingResources, ...newResources],
+          engagementTemplateId:
+            engagementTemplateId ||
+            existingContent?.engagementTemplateId ||
+            existingContent?.metadata?.engagementTemplateId ||
+            "",
           metadata: {
-            fileName: videoFile?.name || existingContent?.metadata?.fileName || '',
-            fileSize: videoFile?.size || existingContent?.metadata?.fileSize || 0,
+            fileName: "",
+            fileSize:
+              videoFile?.size || existingContent?.metadata?.fileSize || 0,
             hasSubtitle: !!mainSubtitle,
-            subtitleName: mainSubtitle?.file?.name || '',
+            subtitleName: mainSubtitle?.file?.name || "",
             languages: subtitles?.map((s) => s.language) || [],
+            engagementTemplateId:
+              engagementTemplateId ||
+              existingContent?.metadata?.engagementTemplateId ||
+              "",
+            engagementTemplateName:
+              engagementTemplateName ||
+              existingContent?.metadata?.engagementTemplateName ||
+              "",
+            engagementTemplateLabels:
+              engagementTemplateLabels?.length
+                ? engagementTemplateLabels
+                : existingContent?.metadata?.engagementTemplateLabels || [],
+            engagementTemplateEmojis:
+              engagementTemplateEmojis?.length
+                ? engagementTemplateEmojis
+                : existingContent?.metadata?.engagementTemplateEmojis || [],
           },
         };
 
@@ -216,19 +265,19 @@ export function useVideoUpload(courseId, { onUploadComplete, onError }) {
             isEditing,
             key,
           },
-          () => clearUpload(key)
+          () => clearUpload(key),
         );
-        setStateForKey(key, { progress: 100, status: 'complete' });
+        setStateForKey(key, { progress: 100, status: "complete" });
       } catch (err) {
         setStateForKey(key, {
-          status: 'error',
-          error: err?.message || 'Upload failed',
+          status: "error",
+          error: err?.message || "Upload failed",
           progress: 0,
         });
         onError?.(err, key);
       }
     },
-    [courseId, setStateForKey, onUploadComplete, onError, clearUpload]
+    [courseId, setStateForKey, onUploadComplete, onError, clearUpload],
   );
 
   const startUpload = useCallback(
@@ -238,17 +287,21 @@ export function useVideoUpload(courseId, { onUploadComplete, onError }) {
       pendingPayloadRef.current[key] = payload;
       runUpload(key, payload);
     },
-    [getKey, runUpload]
+    [getKey, runUpload],
   );
 
   const retryUpload = useCallback(
     (key) => {
       const payload = pendingPayloadRef.current[key];
       if (!payload) return;
-      setStateForKey(key, { progress: 0, status: 'uploading', error: undefined });
+      setStateForKey(key, {
+        progress: 0,
+        status: "uploading",
+        error: undefined,
+      });
       runUpload(key, payload);
     },
-    [setStateForKey, runUpload]
+    [setStateForKey, runUpload],
   );
 
   return {

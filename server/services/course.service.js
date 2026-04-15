@@ -1,5 +1,5 @@
-const Course = require('../models/Course');
-const Chapter = require('../models/Chapter');
+const Course = require("../models/Course");
+const Chapter = require("../models/Chapter");
 
 /**
  * Fetch a slim course document suitable for the learner watch-page sidebar.
@@ -12,18 +12,18 @@ const Chapter = require('../models/Chapter');
  */
 async function getCourseOverview(courseId) {
   const course = await Course.findById(courseId)
-    .populate('createdBy', 'userName enrollmentData')
+    .populate("createdBy", "userName enrollmentData")
     .populate({
-      path: 'sections',
+      path: "sections",
       match: { isDeleted: false },
       populate: {
-        path: 'chapters',
+        path: "chapters",
         match: { isDeleted: false },
-        select: '_id title order description section',
+        select: "_id title order description section",
         populate: {
-          path: 'contents',
+          path: "contents",
           match: { isDeleted: false },
-          select: '_id type duration order metadata',
+          select: "_id type duration order metadata",
         },
       },
     })
@@ -43,18 +43,18 @@ async function getCourseOverview(courseId) {
  */
 async function getChapterWithContent(chapterId) {
   const chapter = await Chapter.findById(chapterId)
-    .populate({ path: 'contents', match: { isDeleted: false } })
+    .populate({ path: "contents", match: { isDeleted: false } })
     .lean();
 
   if (!chapter) return null;
 
   if (Array.isArray(chapter.contents)) {
     chapter.contents = chapter.contents.map((content) => {
-      if (content.type === 'video') {
+      if (content.type === "video") {
         const { bunnyVideoId, ...rest } = content;
         return rest;
       }
-      if (content.type === 'quiz' && Array.isArray(content.questions)) {
+      if (content.type === "quiz" && Array.isArray(content.questions)) {
         return {
           ...content,
           questions: content.questions.map((q) => {

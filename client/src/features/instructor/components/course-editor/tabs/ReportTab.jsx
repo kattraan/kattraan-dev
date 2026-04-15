@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { User, Search, Download, ArrowUpDown } from 'lucide-react';
+import { User, Search, Download, AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react';
 import { Card, Button, Input, ContentCard } from '@/components/ui';
 import apiClient from '@/api/apiClient';
 
@@ -12,6 +12,12 @@ const BUCKET_LABELS = [
   '100%',
 ];
 const BUCKET_KEYS = ['0-1%', '1-25%', '26-50%', '51-75%', '76-99%', '100%'];
+const REPORT_TABS = [
+  { value: 'Engagement Analytics', label: 'Chapter Engagement' },
+  { value: 'Course Completion', label: 'Course Completion' },
+  { value: 'Chapter Completion', label: 'Chapter Completion' },
+  { value: 'Leaderboard', label: 'Leaderboard' },
+];
 
 function formatDate(d) {
   if (!d) return '—';
@@ -41,6 +47,10 @@ const ReportTab = ({ courseId, activeReportSubTab, setActiveReportSubTab }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [leaderboardSearch, setLeaderboardSearch] = useState('');
+  const [engagementChapterFilter, setEngagementChapterFilter] = useState('');
+  const [engagementFrom, setEngagementFrom] = useState('');
+  const [engagementTo, setEngagementTo] = useState('');
+  const [expandedInsightSections, setExpandedInsightSections] = useState({});
 
   useEffect(() => {
     if (!courseId) {
@@ -51,8 +61,21 @@ const ReportTab = ({ courseId, activeReportSubTab, setActiveReportSubTab }) => {
     let cancelled = false;
     setLoading(true);
     setError(null);
+    const params = new URLSearchParams();
+    if (activeReportSubTab === 'Engagement Analytics') {
+      if (engagementChapterFilter) params.set('chapterId', engagementChapterFilter);
+      if (engagementFrom) {
+        const fromDate = new Date(`${engagementFrom}T00:00:00`);
+        params.set('from', fromDate.toISOString());
+      }
+      if (engagementTo) {
+        const toDate = new Date(`${engagementTo}T23:59:59`);
+        params.set('to', toDate.toISOString());
+      }
+    }
+    const queryString = params.toString();
     apiClient
-      .get(`/courses/${courseId}/analytics`)
+      .get(`/courses/${courseId}/analytics${queryString ? `?${queryString}` : ''}`)
       .then((res) => {
         if (!cancelled) setAnalytics(res.data?.data || null);
       })
@@ -64,13 +87,39 @@ const ReportTab = ({ courseId, activeReportSubTab, setActiveReportSubTab }) => {
         if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [courseId]);
+  }, [courseId, activeReportSubTab, engagementChapterFilter, engagementFrom, engagementTo]);
 
   const totalLearners = analytics?.totalLearners ?? 0;
   const completionDistribution = analytics?.completionDistribution ?? {};
   const averageCompletionRate = analytics?.averageCompletionRate ?? 0;
   const chapterCompletion = analytics?.chapterCompletion ?? [];
   const leaderboard = analytics?.leaderboard ?? [];
+  const engagementAnalytics = analytics?.engagementAnalytics ?? null;
+  const engagementChapterOptions = engagementAnalytics?.perChapter ?? [];
+  const videoInsightsBySection = useMemo(() => {
+    const rows = engagementAnalytics?.perVideo || [];
+    const groupedMap = new Map();
+    rows.forEach((row) => {
+      const sectionId = row.sectionId || 'unsectioned';
+      const sectionTitle = row.sectionTitle || 'Other lessons';
+      if (!groupedMap.has(sectionId)) {
+        groupedMap.set(sectionId, { sectionId, sectionTitle, rows: [] });
+      }
+      groupedMap.get(sectionId).rows.push(row);
+    });
+    return [...groupedMap.values()];
+  }, [engagementAnalytics?.perVideo]);
+
+  useEffect(() => {
+    if (videoInsightsBySection.length === 0) return;
+    setExpandedInsightSections((prev) => {
+      const next = { ...prev };
+      videoInsightsBySection.forEach((section) => {
+        if (next[section.sectionId] == null) next[section.sectionId] = true;
+      });
+      return next;
+    });
+  }, [videoInsightsBySection]);
 
   const filteredLeaderboard = useMemo(() => {
     const q = leaderboardSearch.toLowerCase().trim();
@@ -117,17 +166,17 @@ const ReportTab = ({ courseId, activeReportSubTab, setActiveReportSubTab }) => {
       >
         <Card className="rounded-[24px] overflow-hidden bg-white dark:bg-transparent border-none dark:border-white/5 shadow-sm dark:shadow-none transition-colors duration-300">
           <div className="flex items-center gap-1 p-2 bg-gray-50 dark:bg-white/[0.02] border-b border-gray-200 dark:border-white/5 transition-colors duration-300">
-            {['Course Completion', 'Chapter Completion', 'Leaderboard'].map((tab) => (
+            {REPORT_TABS.map((tab) => (
               <button
-                key={tab}
-                onClick={() => setActiveReportSubTab(tab)}
+                key={tab.value}
+                onClick={() => setActiveReportSubTab(tab.value)}
                 className={`px-6 py-2 rounded-xl text-sm font-bold transition-all duration-300 ${
-                  activeReportSubTab === tab
+                  activeReportSubTab === tab.value
                     ? 'bg-white dark:bg-[#2D2D2D] text-gray-900 dark:text-white shadow-sm dark:shadow-lg border border-gray-200 dark:border-transparent'
                     : 'text-gray-500 dark:text-white/40 hover:text-gray-900 dark:hover:text-white/60'
                 }`}
               >
-                {tab}
+                {tab.label}
               </button>
             ))}
           </div>
@@ -374,6 +423,184 @@ const ReportTab = ({ courseId, activeReportSubTab, setActiveReportSubTab }) => {
                       </div>
                     )}
                   </Card>
+                </div>
+              )}
+
+              {activeReportSubTab === 'Engagement Analytics' && (
+                <div className="p-8 space-y-6 animate-in slide-in-from-bottom-2">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div>
+                      <h2 className="text-[17px] font-black text-gray-900 dark:text-white transition-colors duration-300">
+                        Engagement Analytics
+                      </h2>
+                      <p className="text-[12px] text-gray-500 dark:text-white/40 font-medium transition-colors duration-300">
+                        Learner understanding insights from micro-feedback.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <select
+                        value={engagementChapterFilter}
+                        onChange={(e) => setEngagementChapterFilter(e.target.value)}
+                        className="h-10 rounded-lg border border-gray-300 dark:border-white/15 bg-white dark:bg-[#1b1b1b] px-3 text-sm"
+                      >
+                        <option value="">All chapters</option>
+                        {engagementChapterOptions.map((ch) => (
+                          <option key={ch.chapterId} value={ch.chapterId}>
+                            {ch.chapterTitle}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="date"
+                        value={engagementFrom}
+                        onChange={(e) => setEngagementFrom(e.target.value)}
+                        className="h-10 rounded-lg border border-gray-300 dark:border-white/15 bg-white dark:bg-[#1b1b1b] px-3 text-sm text-gray-900 dark:text-white [color-scheme:light] dark:[color-scheme:dark]"
+                        title="From date"
+                      />
+                      <input
+                        type="date"
+                        value={engagementTo}
+                        onChange={(e) => setEngagementTo(e.target.value)}
+                        className="h-10 rounded-lg border border-gray-300 dark:border-white/15 bg-white dark:bg-[#1b1b1b] px-3 text-sm text-gray-900 dark:text-white [color-scheme:light] dark:[color-scheme:dark]"
+                        title="To date"
+                      />
+                    </div>
+                  </div>
+
+                  {!engagementAnalytics || engagementAnalytics.totalResponses === 0 ? (
+                    <Card className="p-10 text-center border border-dashed border-gray-300 dark:border-white/10">
+                      <p className="text-sm text-gray-500 dark:text-white/50">
+                        No engagement responses yet. Once learners complete videos and submit quick feedback, insights will appear here.
+                      </p>
+                    </Card>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Card className="p-4">
+                          <p className="text-xs text-gray-500 dark:text-white/40">Total responses</p>
+                          <p className="text-2xl font-black text-gray-900 dark:text-white mt-1">
+                            {engagementAnalytics.totalResponses}
+                          </p>
+                        </Card>
+                        <Card className="p-4">
+                          <p className="text-xs text-gray-500 dark:text-white/40">Average understanding score</p>
+                          <p className="text-2xl font-black text-gray-900 dark:text-white mt-1">
+                            {engagementAnalytics.averageScore} / 5
+                          </p>
+                        </Card>
+                        <Card className="p-4">
+                          <p className="text-xs text-gray-500 dark:text-white/40">Low-performing videos</p>
+                          <p className="text-2xl font-black text-gray-900 dark:text-white mt-1">
+                            {(engagementAnalytics.lowPerformingVideos || []).length}
+                          </p>
+                        </Card>
+                      </div>
+
+                      <Card className="p-5 space-y-3">
+                        <p className="text-sm font-bold text-gray-900 dark:text-white">Response Distribution</p>
+                        {[1, 2, 3, 4, 5].map((level) => {
+                          const count = engagementAnalytics.distribution?.[level] || 0;
+                          const total = engagementAnalytics.totalResponses || 1;
+                          const width = Math.round((count / total) * 100);
+                          return (
+                            <div key={level} className="space-y-1">
+                              <div className="flex items-center justify-between text-xs text-gray-600 dark:text-white/60">
+                                <span>{"⭐".repeat(level)}</span>
+                                <span>{count} responses ({width}%)</span>
+                              </div>
+                              <div className="h-2 rounded-full bg-gray-100 dark:bg-white/10 overflow-hidden">
+                                <div className="h-full bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4]" style={{ width: `${width}%` }} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </Card>
+
+                      <Card className="p-5">
+                        <p className="text-sm font-bold text-gray-900 dark:text-white mb-3">Video-level insights</p>
+                        <div className="space-y-3 max-h-[320px] overflow-y-auto pr-1">
+                          {videoInsightsBySection.map((section) => (
+                            <div
+                              key={section.sectionId}
+                              className="border border-gray-200 dark:border-white/10 rounded-xl"
+                            >
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setExpandedInsightSections((prev) => ({
+                                    ...prev,
+                                    [section.sectionId]: !prev[section.sectionId],
+                                  }))
+                                }
+                                className="w-full px-3 py-2.5 flex items-center justify-between gap-2"
+                              >
+                                <span className="text-sm font-semibold text-gray-900 dark:text-white text-left">
+                                  {section.sectionTitle}
+                                </span>
+                                <span className="inline-flex items-center gap-2 text-xs text-gray-500 dark:text-white/50">
+                                  {section.rows.length} chapter{section.rows.length === 1 ? '' : 's'}
+                                  {expandedInsightSections[section.sectionId] ? (
+                                    <ChevronDown size={15} />
+                                  ) : (
+                                    <ChevronRight size={15} />
+                                  )}
+                                </span>
+                              </button>
+                              {expandedInsightSections[section.sectionId] && (
+                                <div className="border-t border-gray-100 dark:border-white/10 divide-y divide-gray-100 dark:divide-white/10">
+                                  {section.rows.map((row) => (
+                                    <div key={row.contentId} className="p-3">
+                                      <div className="flex items-center justify-between gap-3">
+                                        <div>
+                                          <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                            {row.chapterTitle || 'Untitled chapter'}
+                                          </p>
+                                          <p className="text-xs text-gray-500 dark:text-white/40">Chapter</p>
+                                        </div>
+                                        <div className="text-right">
+                                          <p className="text-sm font-bold text-primary-pink">{row.averageScore} / 5</p>
+                                          <p className="text-xs text-gray-500 dark:text-white/40">{row.totalResponses} responses</p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </Card>
+
+                      {(engagementAnalytics.lowPerformingVideos || []).length > 0 && (
+                        <Card className="p-5 border border-amber-200 dark:border-amber-500/20">
+                          <p className="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                            <AlertTriangle size={16} className="text-amber-500" />
+                            Low-performing videos
+                          </p>
+                          <div className="space-y-2">
+                            {engagementAnalytics.lowPerformingVideos.map((video) => (
+                              <p key={video.contentId} className="text-xs text-gray-700 dark:text-white/70">
+                                {video.chapterTitle || 'Untitled chapter'}: {video.lowConfusionShare}% selected low-understanding ratings.
+                              </p>
+                            ))}
+                          </div>
+                        </Card>
+                      )}
+
+                      {(engagementAnalytics.smartInsights || []).length > 0 && (
+                        <Card className="p-5">
+                          <p className="text-sm font-bold text-gray-900 dark:text-white mb-2">Smart insights</p>
+                          <ul className="space-y-1">
+                            {engagementAnalytics.smartInsights.map((insight, idx) => (
+                              <li key={idx} className="text-xs text-gray-600 dark:text-white/60">
+                                • {insight}
+                              </li>
+                            ))}
+                          </ul>
+                        </Card>
+                      )}
+                    </>
+                  )}
                 </div>
               )}
             </>

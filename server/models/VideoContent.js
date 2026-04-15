@@ -15,12 +15,15 @@ const VideoContentSchema = new mongoose.Schema({
   thumbnail: { type: String }, // video preview image URL
   comments: [{ type: mongoose.Schema.Types.ObjectId, ref: "Comment" }],
   // Lesson-level resources (files/links) from "Upload resources" – shown in watch page Resources tab
-  resources: [{
-    title: { type: String },
-    url: { type: String },
-    fileType: { type: String },
-    fileSize: { type: Number },
-  }],
+  resources: [
+    {
+      title: { type: String },
+      url: { type: String },
+      fileType: { type: String },
+      fileSize: { type: Number },
+    },
+  ],
+  engagementTemplateId: { type: String, default: "" },
 });
 
 module.exports = Content.discriminator("video", VideoContentSchema);

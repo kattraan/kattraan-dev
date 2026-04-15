@@ -172,7 +172,7 @@ const MyCoursesFeature = () => {
                                         size="sm"
                                         className="flex-grow rounded-lg text-xs font-semibold border-primary-pink/35 text-transparent bg-clip-text [background-image:linear-gradient(to_right,#FF8C42,#FF3FB4)] bg-transparent hover:bg-transparent hover:text-transparent hover:bg-clip-text hover:[background-image:linear-gradient(to_right,#FF8C42,#FF3FB4)] shadow-none transition-all py-1.5 px-4 dark:border-0 dark:text-white dark:bg-clip-border dark:[background-image:none] dark:!bg-gradient-to-r dark:!from-[#FF8C42] dark:!to-[#FF3FB4] dark:hover:!bg-gradient-to-r dark:hover:!from-[#FF8C42] dark:hover:!to-[#FF3FB4] dark:hover:opacity-90 dark:shadow-sm"
                                     >
-                                        Edit Course
+                                        Edit & Manage
                                     </Button>
                                     <div className="relative">
                                         <Button 

@@ -42,6 +42,25 @@ const CourseSchema = new mongoose.Schema({
       durationMinutes: { type: Number, default: 60, min: 5, max: 480 },
     },
   ],
+  chapterEngagementTemplates: [
+    {
+      _id: { type: String, required: true },
+      name: { type: String, required: true, trim: true },
+      description: { type: String, default: "", trim: true },
+      labels: {
+        type: [String],
+        default: [
+          "Totally lost",
+          "Very confusing",
+          "Partly clear",
+          "Mostly clear",
+          "Crystal clear",
+        ],
+      },
+      createdAt: { type: Date, default: Date.now },
+      updatedAt: { type: Date, default: Date.now },
+    },
+  ],
   ...AuditFields,
   ...SoftDelete,
 });

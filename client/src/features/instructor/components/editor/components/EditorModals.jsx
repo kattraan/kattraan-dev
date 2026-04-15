@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   CourseViewPreview,
   QuizModal,
@@ -6,8 +6,8 @@ import {
   ResourceUploadModal,
   ArticleModal,
   LinkModal,
-} from '@/features/instructor/components/course-editor';
-import { useEditorContext } from '../context/EditorContext';
+} from "@/features/instructor/components/course-editor";
+import { useEditorContext } from "../context/EditorContext";
 
 const EditorModals = React.memo(function EditorModals() {
   const {
@@ -27,6 +27,8 @@ const EditorModals = React.memo(function EditorModals() {
     handleSaveVideo,
     isSaving,
     editingVideoContent,
+    uploadingChapterTitle,
+    engagementTemplates,
     resourceUploadContent,
     closeResourceUpload,
     handleSaveResources,
@@ -52,13 +54,19 @@ const EditorModals = React.memo(function EditorModals() {
         chapterName={quizChapterName}
         preferredAssessmentMode={quizPreferredAssessmentMode}
       />
-      <CourseViewPreview isOpen={showCoursePreview} onClose={closeCoursePreview} courseData={courseDetails} />
+      <CourseViewPreview
+        isOpen={showCoursePreview}
+        onClose={closeCoursePreview}
+        courseData={courseDetails}
+      />
       <VideoUploadModal
         isOpen={isVideoModalOpen}
         onClose={closeVideoModal}
         onSave={handleSaveVideo}
         isSaving={isSaving}
         existingContent={editingVideoContent}
+        chapterTitle={uploadingChapterTitle}
+        templates={engagementTemplates || []}
       />
       <ResourceUploadModal
         isOpen={!!resourceUploadContent}

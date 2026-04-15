@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo,
+} from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { ChevronLeft, ChevronRight, Maximize2, Minimize2 } from "lucide-react";
@@ -15,6 +21,7 @@ import { ROUTES } from "@/config/routes";
 import { useVideoProgress } from "@/hooks/useVideoProgress";
 import { getCourseProgress } from "@/features/learner/services/courseProgressService";
 import { getAssignmentRowByContentId } from "@/features/learner/services/learnerAssignmentsService";
+import { submitChapterEngagementFeedback } from "@/features/learner/services/chapterEngagementService";
 
 const SIDEBAR_BREAKPOINT = 768;
 const NEXT_LESSON_COUNTDOWN_SEC = 5;
@@ -96,8 +103,11 @@ export default function CourseWatchPage() {
   const [isTheaterMode, setIsTheaterMode] = useState(false);
   const [playerSize, setPlayerSize] = useState("normal"); // 'reduced' | 'normal' | 'extended'
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [engagementPrompt, setEngagementPrompt] = useState(null);
+  const [isSubmittingEngagement, setIsSubmittingEngagement] = useState(false);
   const profileRef = useRef(null);
   const activeChapterNodeRef = useRef(null);
+  const promptedFeedbackRef = useRef(new Set());
   /** @type {[Record<string, { scorePercent: number|null, passed: boolean, attempted: boolean }>, Function]} */
   const [quizChapterSummaries, setQuizChapterSummaries] = useState({});
 
@@ -218,12 +228,7 @@ export default function CourseWatchPage() {
         "Allow pop-ups for this site to open your certificate, then try again.",
       );
     }
-  }, [
-    isCourseComplete,
-    courseData?.title,
-    learnerDisplayName,
-    toast,
-  ]);
+  }, [isCourseComplete, courseData?.title, learnerDisplayName, toast]);
 
   useEffect(() => {
     if (!isTheaterMode) setIsSidebarCollapsed(defaultCollapsed);
@@ -337,7 +342,10 @@ export default function CourseWatchPage() {
         const overviewResult = settled[0];
         const progressResult = shouldUseLearnerProgressApis
           ? settled[1]
-          : { status: "fulfilled", value: { chapterProgress: [], overallPercentage: 0 } };
+          : {
+              status: "fulfilled",
+              value: { chapterProgress: [], overallPercentage: 0 },
+            };
 
         const prog =
           progressResult.status === "fulfilled"
@@ -465,15 +473,7 @@ export default function CourseWatchPage() {
     [setSearchParams],
   );
 
-  const handleVideoEnded = useCallback(() => {
-    if (chapterId && playback.duration > 0) {
-      saveProgress({
-        chapterId,
-        currentTime: playback.duration,
-        duration: playback.duration,
-        watchedPercentage: 100,
-      });
-    }
+  const showUpNextOverlay = useCallback(() => {
     const next = getNextChapter(courseData, activeChapter);
     if (next) {
       setNextOverlay({
@@ -483,7 +483,90 @@ export default function CourseWatchPage() {
     } else {
       setNextOverlay({ completed: true });
     }
-  }, [courseData, activeChapter, chapterId, playback.duration, saveProgress]);
+  }, [courseData, activeChapter]);
+
+  const handleVideoEnded = useCallback(() => {
+    if (chapterId && playback.duration > 0) {
+      saveProgress({
+        chapterId,
+        currentTime: playback.duration,
+        duration: playback.duration,
+        watchedPercentage: 100,
+      });
+    }
+
+    const activeVideo = (chapterPayload?.contents || []).find(
+      (content) => content.type === "video",
+    );
+    const templateId =
+      activeVideo?.engagementTemplateId ||
+      activeVideo?.metadata?.engagementTemplateId ||
+      "";
+    const templateName = activeVideo?.metadata?.engagementTemplateName || "";
+    const templateLabels = activeVideo?.metadata?.engagementTemplateLabels || [];
+    const templateEmojis = activeVideo?.metadata?.engagementTemplateEmojis || [];
+    const videoId = activeVideo?._id || activeVideo?.id;
+    const promptKey = `${courseId}:${videoId || "none"}`;
+
+    if (
+      shouldUseLearnerProgressApis &&
+      templateId &&
+      videoId &&
+      !promptedFeedbackRef.current.has(promptKey)
+    ) {
+      promptedFeedbackRef.current.add(promptKey);
+      setEngagementPrompt({
+        courseId,
+        chapterId,
+        contentId: videoId,
+        templateId,
+        templateName: templateName || "Quick understanding check",
+        labels: Array.isArray(templateLabels) ? templateLabels : [],
+        emojis: Array.isArray(templateEmojis) ? templateEmojis : [],
+      });
+      return;
+    }
+    showUpNextOverlay();
+  }, [
+    chapterId,
+    playback.duration,
+    saveProgress,
+    chapterPayload?.contents,
+    courseId,
+    shouldUseLearnerProgressApis,
+    showUpNextOverlay,
+  ]);
+
+  const handleSubmitEngagement = useCallback(
+    async (rating) => {
+      if (!engagementPrompt) return;
+      try {
+        setIsSubmittingEngagement(true);
+        await submitChapterEngagementFeedback({
+          courseId: engagementPrompt.courseId,
+          chapterId: engagementPrompt.chapterId,
+          contentId: engagementPrompt.contentId,
+          templateId: engagementPrompt.templateId,
+          rating,
+        });
+      } catch (err) {
+        toast.error(
+          "Feedback not saved",
+          err?.response?.data?.message || "Please try again.",
+        );
+      } finally {
+        setIsSubmittingEngagement(false);
+        setEngagementPrompt(null);
+        showUpNextOverlay();
+      }
+    },
+    [engagementPrompt, showUpNextOverlay, toast],
+  );
+
+  const handleSkipEngagement = useCallback(() => {
+    setEngagementPrompt(null);
+    showUpNextOverlay();
+  }, [showUpNextOverlay]);
 
   useEffect(() => {
     if (!nextOverlay?.nextChapter || nextOverlay.completed) return;
@@ -587,65 +670,65 @@ export default function CourseWatchPage() {
           >
             {/* Top right: video size (hidden for quiz-only chapters) */}
             {!showQuizPanel && (
-            <div className="absolute top-2 right-2 z-[25] pointer-events-none">
-              <div className="pointer-events-auto">
-                {playerSize === "extended" ? (
-                  <button
-                    type="button"
-                    onClick={handleReducePlayer}
-                    className="w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white transition-colors"
-                    aria-label="Reduce video size"
-                    title="Reduce"
-                  >
-                    <Minimize2 size={20} />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleExtendPlayer}
-                    className="w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white transition-colors"
-                    aria-label="Extend video size"
-                    title="Extend"
-                  >
-                    <Maximize2 size={20} />
-                  </button>
-                )}
+              <div className="absolute top-2 right-2 z-[25] pointer-events-none">
+                <div className="pointer-events-auto">
+                  {playerSize === "extended" ? (
+                    <button
+                      type="button"
+                      onClick={handleReducePlayer}
+                      className="w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white transition-colors"
+                      aria-label="Reduce video size"
+                      title="Reduce"
+                    >
+                      <Minimize2 size={20} />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleExtendPlayer}
+                      className="w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white transition-colors"
+                      aria-label="Extend video size"
+                      title="Extend"
+                    >
+                      <Maximize2 size={20} />
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
             )}
 
             {/* Chapter prev/next hidden during quiz/assignment (use sidebar) — avoids overlap with results UI */}
             {!showQuizPanel && (
               <>
-            <div className="absolute left-0 top-0 bottom-0 z-[25] pointer-events-none flex items-center pl-2">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  prevChapter && handleChapterSelect(prevChapter);
-                }}
-                disabled={!prevChapter}
-                className="pointer-events-auto w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center text-white transition-colors"
-                aria-label="Previous lesson"
-              >
-                <ChevronLeft size={24} />
-              </button>
-            </div>
+                <div className="absolute left-0 top-0 bottom-0 z-[25] pointer-events-none flex items-center pl-2">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      prevChapter && handleChapterSelect(prevChapter);
+                    }}
+                    disabled={!prevChapter}
+                    className="pointer-events-auto w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center text-white transition-colors"
+                    aria-label="Previous lesson"
+                  >
+                    <ChevronLeft size={24} />
+                  </button>
+                </div>
 
-            <div className="absolute right-0 top-0 bottom-0 z-[25] pointer-events-none flex items-center pr-2">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  nextChapter && handleChapterSelect(nextChapter);
-                }}
-                disabled={!nextChapter}
-                className="pointer-events-auto w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center text-white transition-colors"
-                aria-label="Next lesson"
-              >
-                <ChevronRight size={24} />
-              </button>
-            </div>
+                <div className="absolute right-0 top-0 bottom-0 z-[25] pointer-events-none flex items-center pr-2">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      nextChapter && handleChapterSelect(nextChapter);
+                    }}
+                    disabled={!nextChapter}
+                    className="pointer-events-auto w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center text-white transition-colors"
+                    aria-label="Next lesson"
+                  >
+                    <ChevronRight size={24} />
+                  </button>
+                </div>
               </>
             )}
 
@@ -666,18 +749,18 @@ export default function CourseWatchPage() {
                   onQuizSubmitted={handleQuizSubmittedForSidebar}
                 />
               ) : (
-              <LMSVideoPlayer
-                activeChapter={chapterPayload}
-                posterUrl={courseData.image || courseData.thumbnail}
-                autoPlay={false}
-                initialTime={initialTime}
-                isCompleted={isCompleted}
-                onPlaybackStateChange={setPlayback}
-                onEnded={handleVideoEnded}
-                onTheaterModeToggle={handleTheaterModeToggle}
-                isTheaterMode={isTheaterMode}
-                className={playerSize === "extended" ? "" : "max-h-[72vh]"}
-              />
+                <LMSVideoPlayer
+                  activeChapter={chapterPayload}
+                  posterUrl={courseData.image || courseData.thumbnail}
+                  autoPlay={false}
+                  initialTime={initialTime}
+                  isCompleted={isCompleted}
+                  onPlaybackStateChange={setPlayback}
+                  onEnded={handleVideoEnded}
+                  onTheaterModeToggle={handleTheaterModeToggle}
+                  isTheaterMode={isTheaterMode}
+                  className={playerSize === "extended" ? "" : "max-h-[72vh]"}
+                />
               )}
               {nextOverlay?.nextChapter && (
                 <div className="absolute inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-30 p-6">
@@ -771,6 +854,46 @@ export default function CourseWatchPage() {
                   </div>
                 </div>
               )}
+              {engagementPrompt && (
+                <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-30 p-6">
+                  <div className="bg-white dark:bg-[#181818] rounded-2xl p-6 max-w-md w-full border border-gray-200 dark:border-white/10 shadow-2xl">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-pink mb-2">
+                      Chapter Engagement
+                    </p>
+                    <h3 className="text-lg font-black text-gray-900 dark:text-white">
+                      {engagementPrompt.templateName || "Quick feedback"}
+                    </h3>
+                    <div className="mt-5 space-y-2">
+                      {[1, 2, 3, 4, 5].map((rating) => (
+                        <button
+                          key={rating}
+                          type="button"
+                          disabled={isSubmittingEngagement}
+                          onClick={() => handleSubmitEngagement(rating)}
+                          className="w-full text-left rounded-xl border border-gray-200 dark:border-white/10 px-4 py-3 hover:border-primary-pink/50 hover:bg-primary-pink/5 transition-all"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                              {engagementPrompt.emojis?.[rating - 1] || "⭐"}
+                            </span>
+                            <span className="text-xs text-gray-600 dark:text-white/60">
+                              {engagementPrompt.labels?.[rating - 1] || ""}
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      disabled={isSubmittingEngagement}
+                      onClick={handleSkipEngagement}
+                      className="mt-4 text-xs font-semibold text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white"
+                    >
+                      Skip for now
+                    </button>
+                  </div>
+                </div>
+              )}
               {nextOverlay?.completed && (
                 <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-30 gap-5 p-6">
                   <div className="w-16 h-16 rounded-full bg-primary-pink/20 border border-primary-pink/30 flex items-center justify-center mb-1">
@@ -819,18 +942,18 @@ export default function CourseWatchPage() {
             </div>
           </div>
           {showContentTabsBelowPlayer && (
-          <div
-            className={
-              playerSize === "reduced" ? "max-w-4xl mx-auto w-full" : ""
-            }
-          >
-            <CourseViewPreviewContentTabs
-              activeChapter={activeChapterContent || activeChapter}
-              activeTab={activeTab}
-              setActiveTab={setActiveTab}
-              courseId={courseId}
-            />
-          </div>
+            <div
+              className={
+                playerSize === "reduced" ? "max-w-4xl mx-auto w-full" : ""
+              }
+            >
+              <CourseViewPreviewContentTabs
+                activeChapter={activeChapterContent || activeChapter}
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                courseId={courseId}
+              />
+            </div>
           )}
         </main>
         <CourseViewPreviewSidebar

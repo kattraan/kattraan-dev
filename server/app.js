@@ -9,7 +9,6 @@ const cookieParser = require("cookie-parser");
 const passport = require("passport");
 require("./config/passport-setup"); // Load passport config
 
-
 // Routes
 const authRoutes = require("./routes/auth-routes/index");
 const courseRoutes = require("./routes/course-routes");
@@ -20,15 +19,17 @@ const adminRoutes = require("./routes/admin-routes");
 const learnerCourseProgressRoutes = require("./routes/learner-routes/course-progress-routes");
 const learnerCoursesRoutes = require("./routes/learner-routes/learner-courses-routes");
 const learnerAssignmentsRoutes = require("./routes/learner-routes/learner-assignments-routes");
-const userRoutes = require('./routes/users-routes/users-routes');
-const instructorLearnersRoutes = require('./routes/instructor-routes/learners.routes');
-const instructorStatsRoutes = require('./routes/instructor-routes/stats.routes');
-const exchangeRoutes = require('./routes/exchange-routes/exchange.routes');
-const razorpayRoutes = require('./routes/payment-routes/razorpay.routes');
-const cartRoutes = require('./routes/cart-routes/cart.routes');
-const videoRoutes = require('./routes/video-routes/video.routes');
-const webhooksRoutes = require('./routes/webhooks/bunnyStream.routes');
-const csrfProtection = require('./middleware/csrf');
+const learnerChapterEngagementRoutes = require("./routes/learner-routes/chapter-engagement-routes");
+const userRoutes = require("./routes/users-routes/users-routes");
+const instructorLearnersRoutes = require("./routes/instructor-routes/learners.routes");
+const instructorStatsRoutes = require("./routes/instructor-routes/stats.routes");
+const instructorChapterEngagementTemplateRoutes = require("./routes/instructor-routes/chapter-engagement-templates.routes");
+const exchangeRoutes = require("./routes/exchange-routes/exchange.routes");
+const razorpayRoutes = require("./routes/payment-routes/razorpay.routes");
+const cartRoutes = require("./routes/cart-routes/cart.routes");
+const videoRoutes = require("./routes/video-routes/video.routes");
+const webhooksRoutes = require("./routes/webhooks/bunnyStream.routes");
+const csrfProtection = require("./middleware/csrf");
 
 const app = express();
 app.use(express.json());
@@ -38,7 +39,7 @@ app.use(
   helmet({
     crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
     crossOriginEmbedderPolicy: false,
-  })
+  }),
 );
 app.use(morgan("dev"));
 app.use(express.json());
@@ -50,7 +51,10 @@ app.use(passport.initialize());
 app.use(csrfProtection);
 
 // Serve client assets for Swagger UI (Kattraan logo) from single source of truth
-app.use("/docs-assets", express.static(path.join(__dirname, "../client/src/assets")));
+app.use(
+  "/docs-assets",
+  express.static(path.join(__dirname, "../client/src/assets")),
+);
 
 // Swagger Docs – Kattraan branding (logo + brand colors)
 const swaggerOptions = {
@@ -108,8 +112,11 @@ const swaggerOptions = {
     tryItOutEnabled: true,
   },
 };
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument, swaggerOptions));
-
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerDocument, swaggerOptions),
+);
 
 // // CORS
 // app.use(
@@ -134,9 +141,15 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument, swaggerOp
 
 // CORS: require CLIENT_URL in production so we never fall back to localhost
 const isProduction = process.env.NODE_ENV === "production";
-const clientOrigin = process.env.CLIENT_URL || (isProduction ? null : "http://localhost:5173");
-if (isProduction && (!clientOrigin || clientOrigin === "http://localhost:5173")) {
-  throw new Error("CLIENT_URL must be set in production (e.g. https://your-app.com). Do not use localhost.");
+const clientOrigin =
+  process.env.CLIENT_URL || (isProduction ? null : "http://localhost:5173");
+if (
+  isProduction &&
+  (!clientOrigin || clientOrigin === "http://localhost:5173")
+) {
+  throw new Error(
+    "CLIENT_URL must be set in production (e.g. https://your-app.com). Do not use localhost.",
+  );
 }
 app.use(
   cors({
@@ -144,7 +157,7 @@ app.use(
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-  })
+  }),
 );
 app.options("*", cors());
 
@@ -156,14 +169,19 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/learner/course-progress", learnerCourseProgressRoutes);
 app.use("/api/learner/courses", learnerCoursesRoutes);
 app.use("/api/learner/assignments", learnerAssignmentsRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/instructor/learners', instructorLearnersRoutes);
-app.use('/api/instructor/stats', instructorStatsRoutes);
-app.use('/api/exchange-rates', exchangeRoutes);
-app.use('/api/payment/razorpay', razorpayRoutes);
-app.use('/api/cart', cartRoutes);
-app.use('/api/videos', videoRoutes);
-app.use('/api/webhooks', webhooksRoutes);
+app.use("/api/learner/chapter-engagement", learnerChapterEngagementRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/instructor/learners", instructorLearnersRoutes);
+app.use("/api/instructor/stats", instructorStatsRoutes);
+app.use(
+  "/api/instructor/chapter-engagement/templates",
+  instructorChapterEngagementTemplateRoutes,
+);
+app.use("/api/exchange-rates", exchangeRoutes);
+app.use("/api/payment/razorpay", razorpayRoutes);
+app.use("/api/cart", cartRoutes);
+app.use("/api/videos", videoRoutes);
+app.use("/api/webhooks", webhooksRoutes);
 
 // 404 Handler
 app.use((req, res) => {
@@ -175,9 +193,12 @@ app.use((err, req, res, next) => {
   const status = err.status || err.statusCode || 500;
   const isProduction = process.env.NODE_ENV === "production";
   console.error("Global Error:", err.stack || err.message);
-  const message = status < 500
-    ? (err.message || "Bad request")
-    : (isProduction ? "Something went wrong. Please try again later." : (err.message || "Something went wrong"));
+  const message =
+    status < 500
+      ? err.message || "Bad request"
+      : isProduction
+        ? "Something went wrong. Please try again later."
+        : err.message || "Something went wrong";
   res.status(status).json({
     success: false,
     message,

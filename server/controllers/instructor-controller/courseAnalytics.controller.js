@@ -2,6 +2,8 @@ const Course = require('../../models/Course');
 const LearnerCourses = require('../../models/LearnerCourses');
 const CourseProgress = require('../../models/CourseProgress');
 const User = require('../../models/User');
+const ChapterEngagementFeedback = require('../../models/ChapterEngagementFeedback');
+const Content = require('../../models/Content');
 
 const COMPLETION_BUCKETS = [
   { key: '0-1%', min: 0, max: 1 },
@@ -29,6 +31,7 @@ function bucketForPercent(pct) {
 async function getCourseAnalytics(req, res) {
   try {
     const courseId = req.params.id;
+    const { chapterId, from, to } = req.query;
 
     const course = await Course.findOne({ _id: courseId, isDeleted: false })
       .populate({
@@ -47,7 +50,15 @@ async function getCourseAnalytics(req, res) {
     }
 
     const sectionList = course.sections || [];
-    const chapters = sectionList.flatMap((s) => (s.chapters || []).map((ch) => ({ id: ch._id.toString(), title: ch.title, order: ch.order })));
+    const chapters = sectionList.flatMap((s) =>
+      (s.chapters || []).map((ch) => ({
+        id: ch._id.toString(),
+        title: ch.title,
+        order: ch.order,
+        sectionId: s._id?.toString() || '',
+        sectionTitle: s.title || 'Untitled section',
+      })),
+    );
     const totalChapters = chapters.length;
 
     const learnerDocs = await LearnerCourses.find({ 'courses.courseId': courseId })
@@ -156,6 +167,138 @@ async function getCourseAnalytics(req, res) {
       };
     });
 
+    const chapterIdFilter = chapterId ? String(chapterId) : null;
+    const createdAtFilter = {};
+    if (from) createdAtFilter.$gte = new Date(from);
+    if (to) createdAtFilter.$lte = new Date(to);
+
+    const feedbackMatch = { courseId };
+    if (chapterIdFilter) feedbackMatch.chapterId = chapterIdFilter;
+    if (Object.keys(createdAtFilter).length > 0) {
+      feedbackMatch.createdAt = createdAtFilter;
+    }
+
+    const feedbackDocs = await ChapterEngagementFeedback.find(feedbackMatch)
+      .select('chapterId contentId rating createdAt')
+      .lean();
+
+    const videoContentIds = [...new Set(feedbackDocs.map((d) => d.contentId?.toString()).filter(Boolean))];
+    const videoContentMap = {};
+    if (videoContentIds.length > 0) {
+      const videoDocs = await Content.find({ _id: { $in: videoContentIds }, type: 'video' })
+        .select('_id chapter title')
+        .lean();
+      videoDocs.forEach((v) => {
+        videoContentMap[v._id.toString()] = v;
+      });
+    }
+
+    const chapterTitleMap = {};
+    const chapterSectionMap = {};
+    chapters.forEach((c) => {
+      chapterTitleMap[c.id] = c.title;
+      chapterSectionMap[c.id] = {
+        sectionId: c.sectionId || '',
+        sectionTitle: c.sectionTitle || 'Untitled section',
+      };
+    });
+
+    const perVideoMap = new Map();
+    const perChapterMap = new Map();
+    const dailyTrendMap = new Map();
+    const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+
+    feedbackDocs.forEach((doc) => {
+      const rating = Number(doc.rating || 0);
+      const cId = doc.contentId?.toString();
+      const chId = doc.chapterId?.toString();
+      if (!rating || !cId || !chId) return;
+      if (distribution[rating] != null) distribution[rating] += 1;
+
+      if (!perVideoMap.has(cId)) {
+        perVideoMap.set(cId, { contentId: cId, chapterId: chId, totalScore: 0, totalResponses: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } });
+      }
+      const videoBucket = perVideoMap.get(cId);
+      videoBucket.totalScore += rating;
+      videoBucket.totalResponses += 1;
+      videoBucket.distribution[rating] += 1;
+
+      if (!perChapterMap.has(chId)) {
+        perChapterMap.set(chId, { chapterId: chId, totalScore: 0, totalResponses: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } });
+      }
+      const chapterBucket = perChapterMap.get(chId);
+      chapterBucket.totalScore += rating;
+      chapterBucket.totalResponses += 1;
+      chapterBucket.distribution[rating] += 1;
+
+      const dayKey = new Date(doc.createdAt).toISOString().slice(0, 10);
+      if (!dailyTrendMap.has(dayKey)) {
+        dailyTrendMap.set(dayKey, { date: dayKey, totalScore: 0, totalResponses: 0 });
+      }
+      const dayBucket = dailyTrendMap.get(dayKey);
+      dayBucket.totalScore += rating;
+      dayBucket.totalResponses += 1;
+    });
+
+    const perVideo = [...perVideoMap.values()].map((row) => {
+      const videoMeta = videoContentMap[row.contentId] || {};
+      const lowConfusionShare = row.totalResponses > 0
+        ? Math.round((((row.distribution[1] || 0) + (row.distribution[2] || 0)) / row.totalResponses) * 100)
+        : 0;
+      return {
+        contentId: row.contentId,
+        chapterId: row.chapterId,
+        chapterTitle: chapterTitleMap[row.chapterId] || 'Untitled chapter',
+        sectionId: chapterSectionMap[row.chapterId]?.sectionId || '',
+        sectionTitle: chapterSectionMap[row.chapterId]?.sectionTitle || 'Untitled section',
+        videoTitle: videoMeta.title || 'Untitled video',
+        averageScore: row.totalResponses > 0 ? Number((row.totalScore / row.totalResponses).toFixed(2)) : 0,
+        totalResponses: row.totalResponses,
+        distribution: row.distribution,
+        lowConfusionShare,
+      };
+    });
+
+    const perChapter = [...perChapterMap.values()].map((row) => ({
+      chapterId: row.chapterId,
+      chapterTitle: chapterTitleMap[row.chapterId] || 'Untitled chapter',
+      averageScore: row.totalResponses > 0 ? Number((row.totalScore / row.totalResponses).toFixed(2)) : 0,
+      totalResponses: row.totalResponses,
+      distribution: row.distribution,
+    }));
+
+    const totalResponses = feedbackDocs.length;
+    const averageScore = totalResponses > 0
+      ? Number((feedbackDocs.reduce((sum, item) => sum + Number(item.rating || 0), 0) / totalResponses).toFixed(2))
+      : 0;
+
+    const lowPerformingVideos = perVideo
+      .filter((v) => v.lowConfusionShare >= 35 || v.averageScore <= 2.7)
+      .sort((a, b) => b.lowConfusionShare - a.lowConfusionShare)
+      .slice(0, 5);
+
+    const courseAverage = perChapter.length > 0
+      ? Number((perChapter.reduce((sum, ch) => sum + ch.averageScore, 0) / perChapter.length).toFixed(2))
+      : 0;
+
+    const smartInsights = [];
+    if (lowPerformingVideos[0]) {
+      smartInsights.push(`${lowPerformingVideos[0].lowConfusionShare}% of learners found "${lowPerformingVideos[0].videoTitle}" confusing.`);
+    }
+    perChapter.forEach((ch) => {
+      if (courseAverage > 0 && ch.averageScore < courseAverage - 0.4) {
+        smartInsights.push(`"${ch.chapterTitle}" is below the course average understanding level.`);
+      }
+    });
+
+    const trend = [...dailyTrendMap.values()]
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map((d) => ({
+        date: d.date,
+        averageScore: d.totalResponses > 0 ? Number((d.totalScore / d.totalResponses).toFixed(2)) : 0,
+        totalResponses: d.totalResponses,
+      }));
+
     res.json({
       success: true,
       data: {
@@ -165,6 +308,21 @@ async function getCourseAnalytics(req, res) {
         averageCompletionRate,
         chapterCompletion,
         leaderboard: leaderboardWithUsers,
+        engagementAnalytics: {
+          totalResponses,
+          averageScore,
+          distribution,
+          perVideo,
+          perChapter,
+          lowPerformingVideos,
+          trend,
+          smartInsights,
+          suggestions: [
+            'Re-record this video with clearer pacing',
+            'Add examples or visuals in confusing sections',
+            'Simplify explanation and break into shorter steps',
+          ],
+        },
       },
     });
   } catch (err) {
