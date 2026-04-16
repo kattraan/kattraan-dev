@@ -2,8 +2,7 @@ const crypto = require('crypto');
 const razorpay = require('../../helpers/razorpay');
 const Course = require('../../models/Course');
 const Order = require('../../models/Order');
-const LearnerCourses = require('../../models/LearnerCourses');
-const Chapter = require('../../models/Chapter');
+const { fulfillCoursePurchase } = require('../../services/razorpayFulfillment.service');
 
 /**
  * POST /api/payment/razorpay/create-order
@@ -35,7 +34,6 @@ async function createOrder(req, res) {
       return res.status(400).json({ success: false, message: 'This course is free — use the enroll endpoint instead' });
     }
 
-    // Razorpay amount is in the smallest currency unit (paise for INR)
     const amountPaise = Math.round(priceINR * 100);
 
     const razorpayOrder = await razorpay.orders.create({
@@ -69,13 +67,8 @@ async function createOrder(req, res) {
 
 /**
  * POST /api/payment/razorpay/verify
- * Verifies the Razorpay payment signature, creates an Order record,
- * and enrolls the user in the course.
- *
- * Body: {
- *   razorpay_order_id, razorpay_payment_id, razorpay_signature,
- *   courseId, displayCurrency?, displayAmount?
- * }
+ * Verifies the Razorpay payment signature, validates order against DB course price,
+ * then enrolls and creates an Order (idempotent on payment id).
  */
 async function verifyPayment(req, res) {
   try {
@@ -93,7 +86,18 @@ async function verifyPayment(req, res) {
       return res.status(400).json({ success: false, message: 'Missing required payment fields' });
     }
 
-    // Verify HMAC signature
+    const existingOrder = await Order.findOne({ paymentId: razorpay_payment_id }).lean();
+    if (existingOrder) {
+      if (String(existingOrder.userId) !== userId) {
+        return res.status(403).json({ success: false, message: 'Payment is associated with another account' });
+      }
+      return res.json({
+        success: true,
+        message: 'Payment already verified',
+        orderId: existingOrder._id,
+      });
+    }
+
     const expectedSignature = crypto
       .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
@@ -103,70 +107,58 @@ async function verifyPayment(req, res) {
       return res.status(400).json({ success: false, message: 'Payment verification failed: invalid signature' });
     }
 
-    // Fetch course details
-    const course = await Course.findById(courseId)
-      .populate('createdBy', 'userName _id')
-      .lean();
-    if (!course) {
+    let rzOrder;
+    try {
+      rzOrder = await razorpay.orders.fetch(razorpay_order_id);
+    } catch (e) {
+      console.error('[Razorpay] verify fetch order:', e.message);
+      return res.status(400).json({ success: false, message: 'Could not load payment order' });
+    }
+
+    const notes = rzOrder.notes || {};
+    if (String(notes.userId || '') !== userId) {
+      return res.status(400).json({ success: false, message: 'Order does not belong to this account' });
+    }
+    if (String(notes.courseId || '') !== String(courseId)) {
+      return res.status(400).json({ success: false, message: 'Order does not match this course' });
+    }
+
+    const course = await Course.findById(courseId).lean();
+    if (!course || course.isDeleted) {
       return res.status(404).json({ success: false, message: 'Course not found' });
     }
-
-    // Check if already enrolled (idempotency)
-    let learnerDoc = await LearnerCourses.findOne({ userId });
-    if (!learnerDoc) {
-      learnerDoc = new LearnerCourses({ userId, courses: [] });
-    }
-    const alreadyEnrolled = learnerDoc.courses.some(
-      (c) => c.courseId && c.courseId.toString() === courseId.toString()
-    );
-
-    if (!alreadyEnrolled) {
-      const sectionIds = (course.sections || []).map((s) => s && s.toString()).filter(Boolean);
-      const totalLessons = sectionIds.length
-        ? await Chapter.countDocuments({ section: { $in: sectionIds }, isDeleted: { $ne: true } })
-        : 0;
-
-      const instructorName = course.createdBy?.userName || 'Instructor';
-      learnerDoc.courses.push({
-        courseId: course._id.toString(),
-        title: course.title || 'Untitled Course',
-        instructorId: course.createdBy?._id?.toString() || '',
-        instructorName,
-        dateOfPurchase: new Date(),
-        courseImage: course.thumbnail || '',
-        totalLessons,
-      });
-      await learnerDoc.save();
-      await Course.findByIdAndUpdate(courseId, { $inc: { learners: 1 } });
+    if (course.status !== 'published') {
+      return res.status(400).json({ success: false, message: 'Course is not available for purchase' });
     }
 
-    // Save order record
-    const order = new Order({
+    const priceINR = Number(course.price) || 0;
+    if (priceINR === 0) {
+      return res.status(400).json({ success: false, message: 'This course is free — use the enroll endpoint instead' });
+    }
+
+    const expectedPaise = Math.round(priceINR * 100);
+    if (Number(rzOrder.amount) !== expectedPaise || rzOrder.currency !== 'INR') {
+      return res.status(400).json({ success: false, message: 'Order amount does not match course price' });
+    }
+
+    const { order } = await fulfillCoursePurchase({
       userId,
-      userName: req.user.userName || req.user.name || '',
-      userEmail: req.user.email || '',
-      orderStatus: 'confirmed',
-      paymentMethod: 'razorpay',
-      paymentStatus: 'paid',
-      orderDate: new Date(),
+      courseId,
       paymentId: razorpay_payment_id,
-      payerId: razorpay_order_id,
-      instructorId: course.createdBy?._id?.toString() || '',
-      instructorName: course.createdBy?.userName || 'Instructor',
-      courseImage: course.thumbnail || '',
-      courseTitle: course.title || '',
-      courseId: course._id.toString(),
-      coursePricing: Number(course.price) || 0,
-      currency: 'INR',
-      displayAmount: displayAmount || Number(course.price) || 0,
-      displayCurrency: displayCurrency || 'INR',
+      razorpayOrderId: razorpay_order_id,
+      displayCurrency,
+      displayAmount,
     });
-    await order.save();
 
-    res.json({ success: true, message: 'Payment verified and enrollment confirmed', orderId: order._id });
+    res.json({
+      success: true,
+      message: 'Payment verified and enrollment confirmed',
+      orderId: order._id,
+    });
   } catch (err) {
     console.error('[Razorpay] verify error:', err);
-    res.status(500).json({ success: false, message: err.message || 'Payment verification failed' });
+    const status = err.statusCode && err.statusCode < 500 ? err.statusCode : 500;
+    res.status(status).json({ success: false, message: err.message || 'Payment verification failed' });
   }
 }
 

@@ -8,7 +8,7 @@ const OrderSchema = new mongoose.Schema({
   paymentMethod: String,
   paymentStatus: String,
   orderDate: Date,
-  paymentId: String,
+  paymentId: { type: String, index: true, unique: true, sparse: true },
   payerId: String,
   instructorId: String,
   instructorName: String,

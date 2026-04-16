@@ -37,7 +37,7 @@ export default function CheckoutPage() {
       .finally(() => setLoading(false));
   }, [courseId]);
 
-  // Load Razorpay script once
+  // Preload Razorpay Checkout script (opened only after load succeeds in handlePayment)
   useEffect(() => {
     if (document.getElementById('razorpay-script')) return;
     const script = document.createElement('script');
@@ -57,6 +57,31 @@ export default function CheckoutPage() {
     setError(null);
 
     try {
+      await new Promise((resolve, reject) => {
+        if (typeof window !== 'undefined' && window.Razorpay) {
+          resolve();
+          return;
+        }
+        const existing = document.getElementById('razorpay-script');
+        if (existing) {
+          if (window.Razorpay) {
+            resolve();
+            return;
+          }
+          existing.addEventListener('load', () => {
+            if (window.Razorpay) resolve();
+            else reject(new Error('Payment widget failed to initialize. Refresh and try again.'));
+          }, { once: true });
+          existing.addEventListener(
+            'error',
+            () => reject(new Error('Could not load payment widget. Check your connection and try again.')),
+            { once: true },
+          );
+          return;
+        }
+        reject(new Error('Payment widget is not ready. Refresh the page and try again.'));
+      });
+
       // Step 1: Create Razorpay order on server
       const displayAmt = convertFromINR(course.price);
       const { data } = await apiClient.post('/payment/razorpay/create-order', {
@@ -102,7 +127,11 @@ export default function CheckoutPage() {
               throw new Error(verifyRes.data.message || 'Verification failed');
             }
           } catch (err) {
-            setError(err?.response?.data?.message || err.message || 'Payment verification failed');
+            const msg =
+              err?.response?.data?.message ||
+              err.message ||
+              'Payment verification failed. If money was debited, your enrollment will update shortly — check My Courses.';
+            setError(msg);
           } finally {
             setPaying(false);
           }

@@ -29,9 +29,18 @@ const razorpayRoutes = require("./routes/payment-routes/razorpay.routes");
 const cartRoutes = require("./routes/cart-routes/cart.routes");
 const videoRoutes = require("./routes/video-routes/video.routes");
 const webhooksRoutes = require("./routes/webhooks/bunnyStream.routes");
+const razorpayWebhookRoutes = require("./routes/webhooks/razorpay.routes");
 const csrfProtection = require("./middleware/csrf");
 
 const app = express();
+
+// Razorpay webhooks must use raw body for signature verification (before express.json)
+app.use(
+  "/api/webhooks/razorpay",
+  express.raw({ type: () => true, limit: "1mb" }),
+  razorpayWebhookRoutes,
+);
+
 app.use(express.json());
 
 // Middleware
@@ -42,7 +51,6 @@ app.use(
   }),
 );
 app.use(morgan("dev"));
-app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(passport.initialize());

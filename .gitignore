@@ -1,4 +1,10 @@
 node_modules/
 
+# Environment and secrets (never commit real values)
+.env
+server/.env
+.env.local
+.env.production
+
 # Uploaded media (keep local only; do not commit to Git)
 server/uploads/
