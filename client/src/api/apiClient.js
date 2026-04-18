@@ -2,6 +2,14 @@ import axios from 'axios';
 import { clearSessionAndRedirectToLogin } from '@/utils/authHelpers';
 import { attachApiMessage } from '@/utils/apiErrorMessages';
 
+/** Ensures base URL matches server mounts (`/api/auth`, `/api/...`). Host-only values get `/api` appended. */
+function normalizeApiBaseUrl(raw) {
+    if (!raw || typeof raw !== 'string') return raw;
+    const trimmed = raw.trim().replace(/\/+$/, '');
+    if (trimmed.endsWith('/api')) return trimmed;
+    return `${trimmed}/api`;
+}
+
 const isProduction = import.meta.env.MODE === 'production';
 const apiUrl = import.meta.env.VITE_API_URL;
 
@@ -11,7 +19,7 @@ if (isProduction && (apiUrl === undefined || apiUrl === '')) {
     );
 }
 
-const baseURL = apiUrl || 'http://localhost:5000/api';
+const baseURL = apiUrl ? normalizeApiBaseUrl(apiUrl) : 'http://localhost:5000/api';
 
 /**
  * Production-ready Axios instance with:
