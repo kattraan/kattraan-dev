@@ -13,6 +13,10 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const { validatePasswordStrength } = require("../../helpers/passwordValidator");
 const Blacklist = require("../../models/Blacklist");
 const AuditLog = require("../../models/AuditLog");
+const {
+  getAuthCookieSameSite,
+  getAuthCookieSecure,
+} = require("../../config/authCookies");
 
 // Helper to log user activity
 const logAudit = async (userId, action, req, details = {}) => {
@@ -273,24 +277,22 @@ const loginUser = async (req, res) => {
 
     const safeProfile = await getSafeProfile(user);
 
-    // Set Cookies
-    const isProduction = process.env.NODE_ENV === "production";
-
-    // In development, use Lax so cookies are sent when frontend (e.g. :5173) and API (:5000) differ by port
-    const sameSite = isProduction ? "Strict" : "Lax";
-    // Refresh Token Cookie
+    // Set Cookies (SameSite=None when SPA and API are on different hosts — e.g. Vercel + Render)
+    const sameSite = getAuthCookieSameSite();
+    const secure = getAuthCookieSecure();
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: isProduction,
+      secure,
       sameSite,
+      path: "/",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    // Access Token Cookie
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
-      secure: isProduction,
+      secure,
       sameSite,
+      path: "/",
       maxAge: 15 * 60 * 1000, // 15 mins
     });
 
@@ -386,21 +388,21 @@ const refreshAccessToken = async (req, res) => {
     // Log refresh
     // await logAudit(user._id, 'REFRESH_TOKEN', req); 
 
-    // 3. Set new cookies
-    const isProduction = process.env.NODE_ENV === "production";
-
-    const sameSite = isProduction ? "Strict" : "Lax";
+    const sameSite = getAuthCookieSameSite();
+    const secure = getAuthCookieSecure();
     res.cookie("refreshToken", newRefreshToken, {
       httpOnly: true,
-      secure: isProduction,
+      secure,
       sameSite,
+      path: "/",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     res.cookie("accessToken", newAccessToken, {
       httpOnly: true,
-      secure: isProduction,
+      secure,
       sameSite,
+      path: "/",
       maxAge: 15 * 60 * 1000,
     });
 
@@ -461,9 +463,20 @@ const logoutUser = async (req, res) => {
       }
     }
 
-    const sameSite = process.env.NODE_ENV === "production" ? "Strict" : "Lax";
-    res.clearCookie("refreshToken", { httpOnly: true, sameSite, secure: process.env.NODE_ENV === "production" });
-    res.clearCookie("accessToken", { httpOnly: true, sameSite, secure: process.env.NODE_ENV === "production" });
+    const sameSite = getAuthCookieSameSite();
+    const secure = getAuthCookieSecure();
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      sameSite,
+      secure,
+      path: "/",
+    });
+    res.clearCookie("accessToken", {
+      httpOnly: true,
+      sameSite,
+      secure,
+      path: "/",
+    });
 
     if (refreshToken) {
       try {
@@ -525,8 +538,20 @@ const logoutAll = async (req, res) => {
       } catch (e) { /* ignore duplicate key error if any */ }
     }
 
-    res.clearCookie("refreshToken");
-    res.clearCookie("accessToken");
+    const sameSite = getAuthCookieSameSite();
+    const secure = getAuthCookieSecure();
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      sameSite,
+      secure,
+      path: "/",
+    });
+    res.clearCookie("accessToken", {
+      httpOnly: true,
+      sameSite,
+      secure,
+      path: "/",
+    });
 
     res.json({ success: true, message: "Logged out from all devices" });
   } catch (err) {
@@ -695,20 +720,21 @@ const googleCallback = async (req, res) => {
 
     await user.save();
 
-    const sameSite = process.env.NODE_ENV === "production" ? "Strict" : "Lax";
-    // 4) Set Refresh Token Cookie
+    const sameSite = getAuthCookieSameSite();
+    const secure = getAuthCookieSecure();
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure,
       sameSite,
+      path: "/",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    // 5) Set Access Token Cookie
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure,
       sameSite,
+      path: "/",
       maxAge: 15 * 60 * 1000,
     });
 
@@ -818,20 +844,21 @@ const googleOneTapLogin = async (req, res) => {
 
     await user.save();
 
-    const sameSite = process.env.NODE_ENV === "production" ? "Strict" : "Lax";
-    // 5. Send Cookies
+    const sameSite = getAuthCookieSameSite();
+    const secure = getAuthCookieSecure();
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure,
       sameSite,
+      path: "/",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    // Add Access Token Cookie
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure,
       sameSite,
+      path: "/",
       maxAge: 15 * 60 * 1000,
     });
 
