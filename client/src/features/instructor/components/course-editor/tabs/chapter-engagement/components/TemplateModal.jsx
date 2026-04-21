@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Sparkles } from "lucide-react";
-import EmojiPicker, { Theme } from "emoji-picker-react";
+import EmojiPicker from "emoji-picker-react";
 import { Button } from "@/components/ui";
 
 const TemplateModal = ({
@@ -114,7 +114,7 @@ const TemplateModal = ({
                       skinTonesDisabled
                       searchDisabled={false}
                       previewConfig={{ showPreview: false }}
-                      theme={isDarkMode ? Theme.DARK : Theme.LIGHT}
+                      theme={isDarkMode ? "dark" : "light"}
                       width={320}
                       height={260}
                       onEmojiClick={(emojiData) => {
