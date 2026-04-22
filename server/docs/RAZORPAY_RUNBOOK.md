@@ -9,6 +9,7 @@ Internal reference for payments, webhooks, refunds, and reconciliation.
 | Create order | `POST /api/payment/razorpay/create-order` (authenticated) |
 | Client verify | `POST /api/payment/razorpay/verify` (authenticated) |
 | Webhook | `POST /api/webhooks/razorpay` (public; HMAC verified) |
+| Webhook alias | `POST /api/payments/webhook` (compatibility alias; same handler) |
 | `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` | Dashboard → API Keys (test vs live) |
 | `RAZORPAY_WEBHOOK_SECRET` | Dashboard → Webhooks → endpoint signing secret |
 
@@ -16,7 +17,8 @@ Webhook body must stay **raw** for signature verification (already wired in `app
 
 ## Dashboard: webhook configuration
 
-1. URL: `https://<your-production-api-host>/api/webhooks/razorpay`
+1. URL (preferred): `https://<your-production-api-host>/api/webhooks/razorpay`
+   - Compatibility alias also works: `https://<your-production-api-host>/api/payments/webhook`
 2. Active events:
    - **`payment.captured`** — enrolls learner and creates an `Order` (idempotent on `paymentId`).
    - **`payment.failed`** — **no DB change**; server logs a structured line (`[Razorpay webhook] payment.failed`) for support and analytics.

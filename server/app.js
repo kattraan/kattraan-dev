@@ -40,6 +40,12 @@ app.use(
   express.raw({ type: () => true, limit: "1mb" }),
   razorpayWebhookRoutes,
 );
+// Backward-compatible alias to avoid losing events if dashboard uses older path.
+app.use(
+  "/api/payments/webhook",
+  express.raw({ type: () => true, limit: "1mb" }),
+  razorpayWebhookRoutes,
+);
 
 app.use(express.json());
 
