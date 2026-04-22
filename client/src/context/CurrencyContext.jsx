@@ -3,7 +3,17 @@ import { detectUserCurrency, convertFromINR, formatPrice, CURRENCY_SYMBOLS, CURR
 
 const CurrencyContext = createContext(null);
 
-const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/exchange-rates`;
+// function normalizeApiBaseUrl(raw) {
+//   if (!raw || typeof raw !== 'string') return raw;
+//   const trimmed = raw.trim().replace(/\/+$/, '');
+//   if (trimmed.endsWith('/api')) return trimmed;
+//   return `${trimmed}/api`;
+// }
+//
+// const API_BASE_URL = import.meta.env.VITE_API_URL
+//   ? normalizeApiBaseUrl(import.meta.env.VITE_API_URL)
+//   : 'http://localhost:5000/api';
+// const API_URL = `${API_BASE_URL}/exchange-rates`;
 
 export function CurrencyProvider({ children }) {
   const [rates, setRates] = useState({});
@@ -12,33 +22,37 @@ export function CurrencyProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let cancelled = false;
-    async function fetchRates() {
-      try {
-        const res = await fetch(API_URL);
-        const data = await res.json();
-        if (!cancelled && data.success) {
-          setRates(data.rates || {});
-          setSupportedCurrencies(data.supportedCurrencies || ['INR']);
-          // Detect user's currency after we know which ones are supported
-          const detected = detectUserCurrency(data.supportedCurrencies || []);
-          // Restore from localStorage if user previously selected one
-          const saved = localStorage.getItem('kattraan_currency');
-          if (saved && (data.supportedCurrencies || []).includes(saved)) {
-            setUserCurrency(saved);
-          } else {
-            setUserCurrency(detected);
-          }
-        }
-      } catch (err) {
-        console.warn('[Currency] Failed to fetch rates, using INR fallback');
-        setRates({ INR: 1 });
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    fetchRates();
-    return () => { cancelled = true; };
+    // let cancelled = false;
+    // async function fetchRates() {
+    //   try {
+    //     const res = await fetch(API_URL);
+    //     const data = await res.json();
+    //     if (!cancelled && data.success) {
+    //       setRates(data.rates || {});
+    //       setSupportedCurrencies(data.supportedCurrencies || ['INR']);
+    //       // Detect user's currency after we know which ones are supported
+    //       const detected = detectUserCurrency(data.supportedCurrencies || []);
+    //       // Restore from localStorage if user previously selected one
+    //       const saved = localStorage.getItem('kattraan_currency');
+    //       if (saved && (data.supportedCurrencies || []).includes(saved)) {
+    //         setUserCurrency(saved);
+    //       } else {
+    //         setUserCurrency(detected);
+    //       }
+    //     }
+    //   } catch (err) {
+    //     console.warn('[Currency] Failed to fetch rates, using INR fallback');
+    //     setRates({ INR: 1 });
+    //   } finally {
+    //     if (!cancelled) setLoading(false);
+    //   }
+    // }
+    // fetchRates();
+    setRates({ INR: 1 });
+    setSupportedCurrencies(['INR']);
+    setUserCurrency('INR');
+    setLoading(false);
+    return () => {};
   }, []);
 
   const changeCurrency = useCallback((code) => {

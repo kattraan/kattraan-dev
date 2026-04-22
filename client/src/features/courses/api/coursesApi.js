@@ -4,8 +4,17 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
  * RTK Query API for courses. Use for reads (getCourseById, getInstructorCourses);
  * mutations can stay in thunks until fully migrated.
  */
+function normalizeApiBaseUrl(raw) {
+  if (!raw || typeof raw !== 'string') return raw;
+  const trimmed = raw.trim().replace(/\/+$/, '');
+  if (trimmed.endsWith('/api')) return trimmed;
+  return `${trimmed}/api`;
+}
+
 const baseQuery = fetchBaseQuery({
-  baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  baseUrl: import.meta.env.VITE_API_URL
+    ? normalizeApiBaseUrl(import.meta.env.VITE_API_URL)
+    : 'http://localhost:5000/api',
   credentials: 'include',
   prepareHeaders: (headers) => {
     headers.set('Content-Type', 'application/json');
