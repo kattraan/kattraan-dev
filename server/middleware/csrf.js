@@ -19,8 +19,9 @@ const isProduction = process.env.NODE_ENV === 'production';
 function csrfProtection(req, res, next) {
   if (SAFE_METHODS.has(req.method)) return next();
 
-  // Webhooks are called by external services (e.g. Bunny Stream); skip Origin check
+  // Webhooks are called by external services (e.g. Bunny, Razorpay); skip Origin check
   if (req.path && req.path.startsWith('/api/webhooks')) return next();
+  if (req.path === '/api/payments/webhook') return next();
 
   const origin = req.headers.origin;
 
