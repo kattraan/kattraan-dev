@@ -1,7 +1,7 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const router = express.Router();
-const { createOrder, verifyPayment } = require('../../controllers/payment-controller/razorpay.controller');
+const { createOrder, verifyPayment, getPaymentMode } = require('../../controllers/payment-controller/razorpay.controller');
 const authenticate = require('../../middleware/auth-middleware');
 
 const isDev = process.env.NODE_ENV !== 'production';
@@ -35,6 +35,12 @@ const verifyLimiter = isDev
         });
       },
     });
+
+/**
+ * GET /api/payment/razorpay/mode
+ * Test vs live hint for checkout UI (no secrets exposed).
+ */
+router.get('/mode', getPaymentMode);
 
 /**
  * POST /api/payment/razorpay/create-order

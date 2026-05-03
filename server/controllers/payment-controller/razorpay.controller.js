@@ -174,4 +174,14 @@ async function verifyPayment(req, res) {
   }
 }
 
-module.exports = { createOrder, verifyPayment };
+/**
+ * GET /api/payment/razorpay/mode
+ * Public: whether checkout is using Razorpay test keys (for UI test-payment hints only).
+ */
+function getPaymentMode(_req, res) {
+  const keyId = (process.env.RAZORPAY_KEY_ID || '').trim();
+  const testMode = keyId.startsWith('rzp_test_');
+  res.json({ success: true, testMode });
+}
+
+module.exports = { createOrder, verifyPayment, getPaymentMode };

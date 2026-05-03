@@ -1,7 +1,16 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { ShieldCheck, Lock, ArrowLeft, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import {
+  ShieldCheck,
+  Lock,
+  ArrowLeft,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+  Info,
+  Copy,
+} from 'lucide-react';
 import apiClient from '@/api/apiClient';
 import { useCurrency } from '@/context/CurrencyContext';
 import { ROUTES } from '@/config/routes';
@@ -16,13 +25,17 @@ export default function CheckoutPage() {
   const navigate = useNavigate();
   const toast = useToast();
   const user = useSelector((state) => state.auth?.user);
-  const { formatPrice, formatINR, userCurrency, convertFromINR, rates } = useCurrency();
+  const { formatPrice, formatINR, userCurrency, convertFromINR } = useCurrency();
 
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState(null);
   const [paid, setPaid] = useState(false);
+  const [razorpayTestMode, setRazorpayTestMode] = useState(false);
+
+  const RAZORPAY_TEST_DOCS =
+    'https://razorpay.com/docs/payments/payments/test-card-upi-details/';
 
   // Load course details
   useEffect(() => {
@@ -36,6 +49,13 @@ export default function CheckoutPage() {
       .catch(() => setError('Failed to load course details. Please go back and try again.'))
       .finally(() => setLoading(false));
   }, [courseId]);
+
+  useEffect(() => {
+    apiClient
+      .get('/payment/razorpay/mode')
+      .then((res) => setRazorpayTestMode(!!res.data?.testMode))
+      .catch(() => setRazorpayTestMode(false));
+  }, []);
 
   // Preload Razorpay Checkout script (opened only after load succeeds in handlePayment)
   useEffect(() => {
@@ -105,7 +125,8 @@ export default function CheckoutPage() {
         order_id: orderId,
         prefill: {
           name: user?.userName || user?.name || '',
-          email: user?.email || '',
+          email: user?.userEmail || user?.email || '',
+          ...(razorpayTestMode ? { vpa: 'success@razorpay' } : {}),
         },
         notes: { courseId },
         theme: { color: '#c1269d' },
@@ -155,7 +176,19 @@ export default function CheckoutPage() {
       setError(err?.response?.data?.message || err.message || 'Something went wrong');
       setPaying(false);
     }
-  }, [course, courseId, paying, userCurrency, convertFromINR, user, toast]);
+  }, [course, courseId, paying, userCurrency, convertFromINR, user, toast, razorpayTestMode]);
+
+  const copyRazorpayTestVpa = useCallback(
+    async (vpa) => {
+      try {
+        await navigator.clipboard.writeText(vpa);
+        toast?.success(`Copied ${vpa}`);
+      } catch {
+        toast?.info(vpa);
+      }
+    },
+    [toast],
+  );
 
   // ─── Paid success screen ─────────────────────────────────────────────────
   if (paid) {
@@ -270,6 +303,50 @@ export default function CheckoutPage() {
           <div className="mb-6 flex gap-3 items-start p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-300 text-sm">
             <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
             <span>{error}</span>
+          </div>
+        )}
+
+        {razorpayTestMode && (
+          <div className="mb-6 flex gap-3 items-start p-4 bg-amber-500/10 border border-amber-500/35 rounded-xl text-amber-100/95 text-sm">
+            <Info className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-400" />
+            <div className="space-y-3 min-w-0">
+              <p className="font-semibold text-amber-200">Razorpay test mode</p>
+              <p className="text-white/80 text-xs leading-relaxed">
+                Do not scan the test UPI QR with PhonePe, Google Pay, or Paytm — it will show an invalid UPI ID. Open{' '}
+                <strong className="text-white">UPI</strong> and use the ID field (or rely on the pre-filled test ID in
+                the checkout).
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => copyRazorpayTestVpa('success@razorpay')}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/15 text-xs font-mono text-white border border-white/15"
+                >
+                  <Copy className="w-3 h-3" />
+                  success@razorpay
+                </button>
+                <button
+                  type="button"
+                  onClick={() => copyRazorpayTestVpa('failure@razorpay')}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/15 text-xs font-mono text-white border border-white/15"
+                >
+                  <Copy className="w-3 h-3" />
+                  failure@razorpay
+                </button>
+              </div>
+              <p className="text-white/70 text-xs leading-relaxed">
+                Or use <strong className="text-white">Card</strong> with Razorpay&apos;s test card numbers —{' '}
+                <a
+                  href={RAZORPAY_TEST_DOCS}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#ff8ec4] hover:underline"
+                >
+                  official test card &amp; UPI list
+                </a>
+                .
+              </p>
+            </div>
           </div>
         )}
 
