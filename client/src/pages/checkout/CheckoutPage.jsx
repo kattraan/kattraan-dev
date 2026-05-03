@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   AlertCircle,
   Info,
-  Copy,
 } from 'lucide-react';
 import apiClient from '@/api/apiClient';
 import { useCurrency } from '@/context/CurrencyContext';
@@ -126,8 +125,19 @@ export default function CheckoutPage() {
         prefill: {
           name: user?.userName || user?.name || '',
           email: user?.userEmail || user?.email || '',
-          ...(razorpayTestMode ? { vpa: 'success@razorpay' } : {}),
         },
+        // Test mode: web checkout often shows only UPI QR (no UPI ID field). Disable UPI so Card / Netbanking work for sandbox.
+        ...(razorpayTestMode
+          ? {
+              method: {
+                upi: false,
+                card: true,
+                netbanking: true,
+                wallet: false,
+                emi: false,
+              },
+            }
+          : {}),
         notes: { courseId },
         theme: { color: '#c1269d' },
         handler: async (response) => {
@@ -177,18 +187,6 @@ export default function CheckoutPage() {
       setPaying(false);
     }
   }, [course, courseId, paying, userCurrency, convertFromINR, user, toast, razorpayTestMode]);
-
-  const copyRazorpayTestVpa = useCallback(
-    async (vpa) => {
-      try {
-        await navigator.clipboard.writeText(vpa);
-        toast?.success(`Copied ${vpa}`);
-      } catch {
-        toast?.info(vpa);
-      }
-    },
-    [toast],
-  );
 
   // ─── Paid success screen ─────────────────────────────────────────────────
   if (paid) {
@@ -312,39 +310,24 @@ export default function CheckoutPage() {
             <div className="space-y-3 min-w-0">
               <p className="font-semibold text-amber-200">Razorpay test mode</p>
               <p className="text-white/80 text-xs leading-relaxed">
-                Do not scan the test UPI QR with PhonePe, Google Pay, or Paytm — it will show an invalid UPI ID. Open{' '}
-                <strong className="text-white">UPI</strong> and use the ID field (or rely on the pre-filled test ID in
-                the checkout).
+                On <strong className="text-white">desktop web</strong>, Razorpay often shows only <strong className="text-white">UPI QR</strong> and may{' '}
+                <strong className="text-white">not</strong> show an “enter UPI ID” field — that is normal. Scanning that QR with a real UPI app will fail.
               </p>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => copyRazorpayTestVpa('success@razorpay')}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/15 text-xs font-mono text-white border border-white/15"
-                >
-                  <Copy className="w-3 h-3" />
-                  success@razorpay
-                </button>
-                <button
-                  type="button"
-                  onClick={() => copyRazorpayTestVpa('failure@razorpay')}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/15 text-xs font-mono text-white border border-white/15"
-                >
-                  <Copy className="w-3 h-3" />
-                  failure@razorpay
-                </button>
-              </div>
-              <p className="text-white/70 text-xs leading-relaxed">
-                Or use <strong className="text-white">Card</strong> with Razorpay&apos;s test card numbers —{' '}
+              <p className="text-white/80 text-xs leading-relaxed">
+                This checkout opens with <strong className="text-white">Card</strong> and <strong className="text-white">Netbanking</strong> for sandbox. Use Razorpay&apos;s{' '}
+                <strong className="text-white">test card</strong> numbers (or the mock bank flow for netbanking). See{' '}
                 <a
                   href={RAZORPAY_TEST_DOCS}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[#ff8ec4] hover:underline"
                 >
-                  official test card &amp; UPI list
+                  test card &amp; UPI reference
                 </a>
                 .
+              </p>
+              <p className="text-white/55 text-[11px] leading-relaxed">
+                Live mode still offers full UPI for real customers. For UPI collect on mobile, Razorpay is changing flows per NPCI; use test cards for reliable end-to-end tests.
               </p>
             </div>
           </div>
