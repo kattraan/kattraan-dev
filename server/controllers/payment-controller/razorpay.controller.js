@@ -36,10 +36,17 @@ async function createOrder(req, res) {
 
     const amountPaise = Math.round(priceINR * 100);
 
+    // Razorpay receipt max length is 40; courseId + userId + timestamp exceed that.
+    const receipt = crypto
+      .createHash('sha256')
+      .update(`${courseId}|${userId}|${Date.now()}|${Math.random()}`)
+      .digest('hex')
+      .slice(0, 40);
+
     const razorpayOrder = await razorpay.orders.create({
       amount: amountPaise,
       currency: 'INR',
-      receipt: `course_${courseId}_user_${userId}_${Date.now()}`,
+      receipt,
       notes: {
         courseId,
         userId,
@@ -61,7 +68,12 @@ async function createOrder(req, res) {
     });
   } catch (err) {
     console.error('[Razorpay] create-order error:', err);
-    res.status(500).json({ success: false, message: err.message || 'Failed to create payment order' });
+    const desc = err.error?.description || err.description;
+    const status = err.statusCode >= 400 && err.statusCode < 500 ? err.statusCode : 500;
+    res.status(status).json({
+      success: false,
+      message: desc || err.message || 'Failed to create payment order',
+    });
   }
 }
 
