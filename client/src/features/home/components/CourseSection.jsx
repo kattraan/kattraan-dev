@@ -1,21 +1,27 @@
 import React, { useState } from 'react';
-import { Star, BookOpen, Clock, Award, ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Star, BookOpen, Clock, Award } from 'lucide-react';
+import { ROUTES } from '@/config/routes';
 import { courseDescriptionPlainText } from '@/utils/courseDescriptionHtml';
 
 const CourseCard = ({ course }) => {
-  return (
-    <div 
-      className="group relative flex flex-col w-full h-[360px] border-[1px] border-white/10 rounded-[40px] p-4 transition-all duration-300 hover:scale-[1.02] backdrop-blur-[4px] shadow-2xl flex-shrink-0 transform-gpu will-change-transform"
-      style={{ background: 'linear-gradient(91.43deg, rgba(217, 217, 217, 0.224) 1.92%, rgba(217, 217, 217, 0.048) 102.33%)' }}
-    >
+  const courseId = course._id || course.id;
+  const detailsUrl = courseId ? `${ROUTES.COURSE_DETAILS}/${courseId}` : ROUTES.COURSES;
+
+  const cardInner = (
+    <>
       {/* Course Image */}
       <div className="relative w-full h-[155px] rounded-[22px] overflow-hidden mb-4">
-        <img 
-          src={course.image} 
-          alt={course.title}
-          className="w-full h-full object-cover"
-          loading="lazy"
-        />
+        {course.image ? (
+          <img
+            src={course.image}
+            alt={course.title}
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-[#FF8C42]/30 to-[#FF3FB4]/20" />
+        )}
       </div>
 
       {/* Category & Rating Badges */}
@@ -58,16 +64,29 @@ const CourseCard = ({ course }) => {
             </div>
           </div>
 
-          <button className="bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] hover:opacity-90 text-white text-[11px] font-bold px-4 py-2 rounded-full transition-all flex-shrink-0 shadow-lg shadow-pink-500/10">
+          <span className="bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] group-hover:opacity-90 text-white text-[11px] font-bold px-4 py-2 rounded-full transition-all flex-shrink-0 shadow-lg shadow-pink-500/10">
             View details
-          </button>
+          </span>
         </div>
       </div>
-    </div>
+    </>
+  );
+
+  const cardClassName =
+    'group relative flex flex-col w-full h-[360px] border-[1px] border-white/10 rounded-[40px] p-4 transition-all duration-300 hover:scale-[1.02] backdrop-blur-[4px] shadow-2xl flex-shrink-0 transform-gpu will-change-transform text-left';
+  const cardStyle = {
+    background:
+      'linear-gradient(91.43deg, rgba(217, 217, 217, 0.224) 1.92%, rgba(217, 217, 217, 0.048) 102.33%)',
+  };
+
+  return (
+    <Link to={detailsUrl} className={cardClassName} style={cardStyle}>
+      {cardInner}
+    </Link>
   );
 };
 
-const CourseSection = ({ title, highlightWord, courses }) => {
+const CourseSection = ({ title, highlightWord, courses, isLoading = false }) => {
   const scrollRef = React.useRef(null);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -171,16 +190,28 @@ const CourseSection = ({ title, highlightWord, courses }) => {
           <div className="relative z-10 flex overflow-hidden group/container py-6 -my-6 px-8 -mx-8">
             <div 
               ref={scrollRef}
-              className="flex gap-6 px-4 overflow-x-auto scrollbar-hide scroll-smooth w-full py-4 -my-4"
+              className="flex gap-6 px-4 overflow-x-auto overscroll-x-contain scrollbar-hide scroll-smooth w-full py-4 -my-4 touch-pan-x"
               onScroll={handleScroll}
               onMouseEnter={() => setIsPaused(true)}
               onMouseLeave={() => setIsPaused(false)}
             >
-              {[...courses, ...courses].map((course, index) => (
-                <div key={index} className="w-[300px] flex-shrink-0 p-1">
-                  <CourseCard course={course} />
-                </div>
-              ))}
+              {isLoading ? (
+                [...Array(4)].map((_, index) => (
+                  <div
+                    key={`skeleton-${index}`}
+                    className="w-[300px] flex-shrink-0 p-1 h-[360px] rounded-[40px] border border-white/10 bg-white/5 animate-pulse"
+                  />
+                ))
+              ) : (
+                [...courses, ...courses].map((course, index) => (
+                  <div
+                    key={course._id || course.id || `${course.title}-${index}`}
+                    className="w-[300px] flex-shrink-0 p-1"
+                  >
+                    <CourseCard course={course} />
+                  </div>
+                ))
+              )}
             </div>
           </div>
 

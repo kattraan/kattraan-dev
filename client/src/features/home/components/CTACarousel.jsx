@@ -1,5 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { ROUTES } from '@/config/routes';
+import { getStartLearningPath } from '@/features/home/utils/landingNavigation';
 
 import icon1 from '@/assets/icon.png';
 import icon2 from '@/assets/icon-2.png';
@@ -7,6 +11,12 @@ import icon2 from '@/assets/icon-2.png';
 const CTACarousel = () => {
   const [activeSlide, setActiveSlide] = useState(0);
   const scrollRef = React.useRef(null);
+  const isAuthenticated = useSelector((state) => state.auth?.isAuthenticated);
+  const user = useSelector((state) => state.auth?.user);
+  const startLearningPath = getStartLearningPath(isAuthenticated, user);
+
+  const coursesWithCategory = (category) =>
+    `${ROUTES.COURSES}?category=${encodeURIComponent(category)}`;
 
   const slides = [
     {
@@ -15,6 +25,7 @@ const CTACarousel = () => {
       title: "Full Stack is evolving. Are you?",
       description: "Build production-ready applications using React, Node.js, and modern frameworks companies actually use.",
       buttonText: "Explore developer track",
+      ctaTo: coursesWithCategory('Development'),
       icon: icon1
     },
     {
@@ -23,6 +34,7 @@ const CTACarousel = () => {
       title: "Advance your career without quitting your job",
       description: "Learn evenings and weekends. Build real projects. Get hired. All with flexible schedules designed for working professionals",
       buttonText: "View All Tracks",
+      ctaTo: isAuthenticated ? startLearningPath : ROUTES.COURSES,
       icon: icon2
     },
     {
@@ -31,6 +43,7 @@ const CTACarousel = () => {
       title: "The future is automated testing. Start building today.",
       description: "Manual testing is dead. Learn Selenium, Cypress, and CI/CD automation to stay relevant in 2025 and beyond",
       buttonText: "Start QA Track",
+      ctaTo: ROUTES.CATEGORIES,
       icon: icon1
     },
     {
@@ -39,6 +52,7 @@ const CTACarousel = () => {
       title: "Cloud & DevOps are reshaping IT. Are you ready?",
       description: "Docker, Kubernetes, and AWS aren't optional anymore. Companies need DevOps engineers who can deploy, not just code.",
       buttonText: "Start Cloud Track",
+      ctaTo: ROUTES.CATEGORIES,
       icon: icon1
     },
     {
@@ -47,6 +61,7 @@ const CTACarousel = () => {
       title: "Data drives every decision. Can you analyze it?",
       description: "SQL, Python, and Tableau are non-negotiable skills. Learn data analytics and become the person companies can't afford to lose.",
       buttonText: "Start Data Track",
+      ctaTo: coursesWithCategory('Business'),
       icon: icon1
     },
     {
@@ -55,6 +70,7 @@ const CTACarousel = () => {
       title: "AI tools are changing development. Learn to use them",
       description: "GitHub Copilot, ChatGPT, and AI-assisted coding are the new normal. Build faster, smarter, and stay ahead of developers who don't adapt",
       buttonText: "Master AI Tools",
+      ctaTo: coursesWithCategory('Development'),
       icon: icon1
     }
   ];
@@ -115,19 +131,19 @@ const CTACarousel = () => {
   };
 
   return (
-    <section className="relative w-full pt-10 pb-20 px-4 flex flex-col items-center">
-      <div className="relative z-10 w-full max-w-[950px]">
-        {/* Navigation Arrows - Moved Outside */}
+    <section className="relative w-full pt-10 pb-20 px-4 flex flex-col items-center overflow-hidden">
+      <div className="relative z-10 w-full max-w-[950px] overflow-hidden">
+        {/* Navigation Arrows */}
         <button
           onClick={scrollPrev}
-          className="absolute -left-20 top-1/2 -translate-y-1/2 z-30 w-12 h-12 rounded-full bg-white/5 backdrop-blur-md border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all group lg:flex hidden"
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-30 w-12 h-12 rounded-full bg-white/5 backdrop-blur-md border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all group lg:flex hidden"
         >
           <ChevronLeft className="w-6 h-6 text-white/70 group-hover:text-white transition-colors" />
         </button>
 
         <button
           onClick={scrollNext}
-          className="absolute -right-20 top-1/2 -translate-y-1/2 z-30 w-12 h-12 rounded-full bg-white/5 backdrop-blur-md border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all group lg:flex hidden"
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-30 w-12 h-12 rounded-full bg-white/5 backdrop-blur-md border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all group lg:flex hidden"
         >
           <ChevronRight className="w-6 h-6 text-white/70 group-hover:text-white transition-colors" />
         </button>
@@ -140,7 +156,7 @@ const CTACarousel = () => {
              <div 
                ref={scrollRef}
                onScroll={handleScroll}
-               className="flex w-full overflow-x-auto scrollbar-hide snap-x snap-mandatory"
+               className="flex w-full overflow-x-auto overscroll-x-contain scrollbar-hide snap-x snap-mandatory touch-pan-x"
              >
                 {slides.map((slide, index) => (
                   <div key={`${slide.id}-${index}`} className="w-full flex-shrink-0 snap-center p-2">
@@ -160,13 +176,16 @@ const CTACarousel = () => {
                             {slide.description}
                           </p>
                           <div className="mt-auto">
-                            <button className={`text-white text-[13px] font-bold px-6 py-2.5 rounded-xl transition-all border border-white/20 shadow-lg ${
-                              index % 6 < 3
-                                ? 'bg-gradient-to-r from-[#e89d91] to-[#945398] hover:opacity-90'
-                                : 'bg-[#532b53] hover:bg-[#663566]'
-                            }`}>
+                            <Link
+                              to={slide.ctaTo}
+                              className={`inline-block text-white text-[13px] font-bold px-6 py-2.5 rounded-xl transition-all border border-white/20 shadow-lg ${
+                                index % 6 < 3
+                                  ? 'bg-gradient-to-r from-[#e89d91] to-[#945398] hover:opacity-90'
+                                  : 'bg-[#532b53] hover:bg-[#663566]'
+                              }`}
+                            >
                               {slide.buttonText}
-                            </button>
+                            </Link>
                           </div>
                         </div>
                         <div className="relative w-[180px] h-[180px] flex-shrink-0 ml-10 hidden md:flex items-center justify-center">

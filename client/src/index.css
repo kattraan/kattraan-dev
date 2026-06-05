@@ -23,6 +23,13 @@
 
 /* Base styles */
 @layer base {
+  html,
+  body {
+    overflow-x: hidden;
+    max-width: 100%;
+    overscroll-behavior-x: none;
+  }
+
   body {
     @apply bg-gray-50 text-gray-900 dark:bg-primary-dark dark:text-white font-sans antialiased transition-colors duration-300;
   }
@@ -192,6 +199,12 @@
   .animate-float-delayed {
     animation: float-delayed 7s ease-in-out infinite;
     animation-delay: 2s;
+  }
+
+  /* Keep horizontal drags inside carousels (landing page course rows, CTA, etc.) */
+  .overscroll-x-contain {
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
   }
 
   .scrollbar-hide::-webkit-scrollbar {

@@ -15,7 +15,7 @@ import CTACarousel from '@/features/home/components/CTACarousel'
  */
 const LandingPage = () => {
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col w-full overflow-x-hidden">
       <HeroSection />
       <PathSelector />
       <TopRatedCourses />

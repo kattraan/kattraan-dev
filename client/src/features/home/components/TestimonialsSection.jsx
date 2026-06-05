@@ -3,14 +3,14 @@ import { Star, ChevronLeft, ChevronRight, Quote } from 'lucide-react';
 import blogBg from '@/assets/blog.png';
 import blogBg2 from '@/assets/blog 1.png';
 
-const TestimonialCard = ({ testimonial, position, isCenter }) => {
+const TestimonialCard = ({ testimonial, position, isCenter, carouselRadius = 460 }) => {
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const cardRef = useRef(null);
 
   const getCardStyle = () => {
     const totalCards = 5;
     const theta = (position * (360 / totalCards)) * (Math.PI / 180);
-    const radiusX = 460; 
+    const radiusX = carouselRadius; 
     
     // Math.round all values to prevent sub-pixel rendering blur
     const x = Math.round(radiusX * Math.sin(theta));
@@ -148,6 +148,16 @@ const TestimonialCard = ({ testimonial, position, isCenter }) => {
 const TestimonialsSection = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [carouselRadius, setCarouselRadius] = useState(460);
+
+  useEffect(() => {
+    const updateRadius = () => {
+      setCarouselRadius(window.innerWidth < 768 ? 280 : 460);
+    };
+    updateRadius();
+    window.addEventListener('resize', updateRadius);
+    return () => window.removeEventListener('resize', updateRadius);
+  }, []);
 
   const testimonials = [
     {
@@ -228,10 +238,31 @@ const TestimonialsSection = () => {
       
       {/* Header - Moved OUTSIDE the background container */}
       <div className="relative z-10 w-full max-w-[1400px] text-center mb-12 animate-in fade-in slide-in-from-top duration-700">
-        <h2 className="text-4xl md:text-5xl font-bold mb-2">
-          <span className="text-transparent bg-clip-text bg-gradient-to-b from-white to-white/60">Our Trusted</span>{' '}
-          <span className="bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] bg-clip-text text-transparent">Testimonials</span>
+        <h2 className="text-[32px] font-bold mb-2 tracking-tight">
+          <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] to-[#808080]">Our Trusted</span>{' '}
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4]">Testimonials</span>
         </h2>
+
+        <div className="flex items-center justify-center gap-2 mt-2 w-full max-w-[1000px] mx-auto">
+          <svg width="0" height="0" className="absolute">
+            <defs>
+              <linearGradient id="starGradientTestimonials" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#FFFFFF" />
+                <stop offset="100%" stopColor="#808080" />
+              </linearGradient>
+            </defs>
+          </svg>
+
+          <div className="h-[1.5px] flex-1" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), rgba(255,255,255,0.9))' }}></div>
+
+          <div className="flex items-center gap-2">
+            <Star className="w-2.5 h-2.5 fill-[url(#starGradientTestimonials)] stroke-none opacity-80" />
+            <Star className="w-4 h-4 fill-[url(#starGradientTestimonials)] stroke-none drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]" />
+            <Star className="w-2.5 h-2.5 fill-[url(#starGradientTestimonials)] stroke-none opacity-80" />
+          </div>
+
+          <div className="h-[1.5px] flex-1" style={{ background: 'linear-gradient(270deg, transparent, rgba(255,255,255,0.1), rgba(255,255,255,0.9))' }}></div>
+        </div>
       </div>
 
       {/* Main Content Container (Background + Carousel) */}
@@ -275,7 +306,7 @@ const TestimonialsSection = () => {
             onMouseLeave={() => setIsAutoPlaying(true)}
           >
             {/* Cards Container */}
-            <div className="absolute inset-0 flex justify-center perspective-[2000px] items-center">
+            <div className="absolute inset-0 flex justify-center perspective-[2000px] items-center overflow-hidden [contain:paint]">
               {testimonials.map((testimonial, index) => {
                 // Calculate relative position for circular buffer
                 let position = (index - currentIndex);
@@ -290,6 +321,7 @@ const TestimonialsSection = () => {
                     testimonial={testimonial}
                     position={position}
                     isCenter={isCenter}
+                    carouselRadius={carouselRadius}
                   />
                 );
               })}

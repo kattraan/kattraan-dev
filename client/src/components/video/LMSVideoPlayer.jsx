@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useSelector } from 'react-redux';
 import Hls from 'hls.js';
 import {
@@ -19,6 +20,12 @@ import {
   formatDuration,
   PLAYBACK_RATES,
   LMS_PLAYBACK_SPEED_KEY,
+  buildHlsQualityOptions,
+  getStoredQualitySelection,
+  setStoredQualitySelection,
+  applyHlsQualitySelection,
+  hasMultipleHlsQualities,
+  createHlsConfigForBunnySignedUrl,
 } from '@/utils/videoUtils';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import courseService from '@/features/courses/services/courseService';
@@ -62,6 +69,12 @@ export default function LMSVideoPlayer({
 }) {
   const videoRef = useRef(null);
   const containerRef = useRef(null);
+  const qualityAnchorRef = useRef(null);
+  const qualityMenuRef = useRef(null);
+  const speedAnchorRef = useRef(null);
+  const speedMenuRef = useRef(null);
+  const [qualityMenuPos, setQualityMenuPos] = useState(null);
+  const [speedMenuPos, setSpeedMenuPos] = useState(null);
   const userEmail = useSelector((state) => state.auth?.user?.email ?? '');
 
   const [isPlaying, setIsPlaying] = useState(false);
@@ -73,6 +86,11 @@ export default function LMSVideoPlayer({
   const [playbackRate, setPlaybackRate] = useState(getStoredPlaybackSpeed);
   const [isLoading, setIsLoading] = useState(false);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
+  const [showQualityMenu, setShowQualityMenu] = useState(false);
+  const [qualityOptions, setQualityOptions] = useState([]);
+  /** 'auto' or height string, e.g. '720' */
+  const [selectedQualityId, setSelectedQualityId] = useState('auto');
+  const [hlsQualityEnabled, setHlsQualityEnabled] = useState(false);
   const [error, setError] = useState(null);
   const [bufferedEnd, setBufferedEnd] = useState(0);
   const [playbackUrl, setPlaybackUrl] = useState(null);
@@ -97,6 +115,8 @@ export default function LMSVideoPlayer({
   const videoUrl = playbackUrl || legacyVideoUrl;
 
   const hlsRef = useRef(null);
+  const hlsManifestRetryRef = useRef(0);
+  const lastPlaybackUrlRef = useRef(null);
 
   const togglePlay = useCallback(() => {
     const video = videoRef.current;
@@ -250,6 +270,21 @@ export default function LMSVideoPlayer({
     setShowSpeedMenu(false);
   }, []);
 
+  /** User picked a quality — update UI first, then hls.js (never block UI on HLS errors). */
+  const handleQualitySelect = useCallback((option) => {
+    if (!option) return;
+    setSelectedQualityId(option.id);
+    setStoredQualitySelection(option.id === 'auto' ? 'auto' : option.height);
+    setShowQualityMenu(false);
+    const hls = hlsRef.current;
+    if (hls) applyHlsQualitySelection(hls, option);
+  }, []);
+
+  const qualityButtonLabel =
+    selectedQualityId === 'auto'
+      ? 'Auto'
+      : qualityOptions.find((o) => o.id === selectedQualityId)?.label ?? 'Auto';
+
   const seekForward = useCallback(() => {
     const video = videoRef.current;
     if (video) video.currentTime = Math.min(video.duration, video.currentTime + 10);
@@ -276,6 +311,84 @@ export default function LMSVideoPlayer({
     onFullscreen: toggleFullscreen,
     onMute: toggleMute,
   });
+
+  const updateQualityMenuPos = useCallback(() => {
+    const el = qualityAnchorRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    setQualityMenuPos({
+      left: Math.max(8, rect.right - 120),
+      bottom: window.innerHeight - rect.top + 8,
+    });
+  }, []);
+
+  const updateSpeedMenuPos = useCallback(() => {
+    const el = speedAnchorRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    setSpeedMenuPos({
+      left: Math.max(8, rect.right - 72),
+      bottom: window.innerHeight - rect.top + 8,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!showQualityMenu) {
+      setQualityMenuPos(null);
+      return;
+    }
+    updateQualityMenuPos();
+    window.addEventListener('resize', updateQualityMenuPos);
+    window.addEventListener('scroll', updateQualityMenuPos, true);
+    return () => {
+      window.removeEventListener('resize', updateQualityMenuPos);
+      window.removeEventListener('scroll', updateQualityMenuPos, true);
+    };
+  }, [showQualityMenu, updateQualityMenuPos]);
+
+  useEffect(() => {
+    if (!showSpeedMenu) {
+      setSpeedMenuPos(null);
+      return;
+    }
+    updateSpeedMenuPos();
+    window.addEventListener('resize', updateSpeedMenuPos);
+    window.addEventListener('scroll', updateSpeedMenuPos, true);
+    return () => {
+      window.removeEventListener('resize', updateSpeedMenuPos);
+      window.removeEventListener('scroll', updateSpeedMenuPos, true);
+    };
+  }, [showSpeedMenu, updateSpeedMenuPos]);
+
+  useEffect(() => {
+    if (!showQualityMenu) return;
+    const onClickOutside = (e) => {
+      if (e.target.closest('[data-lms-quality-menu], [data-lms-quality-trigger]')) return;
+      setShowQualityMenu(false);
+    };
+    const timer = window.setTimeout(() => {
+      document.addEventListener('click', onClickOutside);
+    }, 0);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener('click', onClickOutside);
+    };
+  }, [showQualityMenu]);
+
+  useEffect(() => {
+    if (!showSpeedMenu) return;
+    const onClickOutside = (e) => {
+      if (e.target.closest('[data-lms-speed-menu], [data-lms-speed-trigger]')) return;
+      setShowSpeedMenu(false);
+    };
+    const timer = window.setTimeout(() => {
+      document.addEventListener('click', onClickOutside);
+    }, 0);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener('click', onClickOutside);
+    };
+  }, [showSpeedMenu]);
 
   // Watermark: update position and timestamp every 10s to deter cropping
   useEffect(() => {
@@ -318,9 +431,18 @@ export default function LMSVideoPlayer({
       try {
         const res = await courseService.getVideoPlayUrlByVideoId(videoContentId);
         const url = res?.playbackUrl ?? res?.data?.playbackUrl;
-        if (!cancelled && url) setPlaybackUrl(url);
-      } catch {
-        if (!cancelled) setError(new Error('Could not load video. Check enrollment.'));
+        if (!cancelled && url) {
+          lastPlaybackUrlRef.current = url;
+          setPlaybackUrl(url);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          const msg =
+            err?.response?.data?.message ||
+            err?.message ||
+            'Could not load video. Check enrollment or re-upload if you changed Bunny accounts.';
+          setError(new Error(msg));
+        }
       }
     })();
     return () => {
@@ -338,6 +460,11 @@ export default function LMSVideoPlayer({
     setCurrentTime(0);
     setDuration(contentDuration);
     setBufferedEnd(0);
+    setQualityOptions([]);
+    setHlsQualityEnabled(false);
+    setSelectedQualityId('auto');
+    setShowQualityMenu(false);
+    hlsManifestRetryRef.current = 0;
 
     const video = videoRef.current;
     if (!video) return;
@@ -350,10 +477,33 @@ export default function LMSVideoPlayer({
 
     if (isHlsUrl(videoUrl)) {
       if (Hls.isSupported()) {
-        const hls = new Hls({ startLevel: -1, autoLevelEnabled: true });
+        const hls = new Hls(createHlsConfigForBunnySignedUrl(videoUrl));
         hlsRef.current = hls;
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           setIsLoading(false);
+          const options = buildHlsQualityOptions(hls);
+          setQualityOptions(options);
+          setHlsQualityEnabled(hasMultipleHlsQualities(hls));
+
+          const stored = getStoredQualitySelection();
+          const optionToApply =
+            stored === 'auto'
+              ? options[0]
+              : options.find((o) => o.height === stored) ?? options[0];
+          setSelectedQualityId(optionToApply.id);
+          applyHlsQualitySelection(hls, optionToApply);
+        });
+        hls.on(Hls.Events.LEVEL_SWITCHED, (_event, data) => {
+          const hls = hlsRef.current;
+          if (!hls) return;
+          if (hls.autoLevelEnabled) {
+            setSelectedQualityId('auto');
+            return;
+          }
+          const level = hls.levels[data.level];
+          if (level?.height) {
+            setSelectedQualityId(String(level.height));
+          }
         });
         hls.loadSource(videoUrl);
         hls.attachMedia(video);
@@ -365,28 +515,57 @@ export default function LMSVideoPlayer({
           }
         });
         hls.on(Hls.Events.ERROR, (_event, data) => {
-          if (data.fatal) {
-            if (videoContentId && (data.type === Hls.ErrorTypes.NETWORK_ERROR || data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR)) {
-              courseService.getVideoPlayUrlByVideoId(videoContentId)
-                .then((res) => {
-                  const newUrl = res?.playbackUrl ?? res?.data?.playbackUrl;
-                  if (newUrl && hlsRef.current) {
-                    hlsRef.current.loadSource(newUrl);
-                    setError(null);
-                  } else {
-                    setError(new Error('HLS stream error – please retry'));
-                    setIsLoading(false);
-                  }
-                })
-                .catch(() => {
-                  setError(new Error('HLS stream error – please retry'));
-                  setIsLoading(false);
-                });
-            } else {
-              setError(new Error('HLS stream error – please retry'));
-              setIsLoading(false);
-            }
+          if (!data.fatal) return;
+
+          const httpStatus = data.response?.code;
+          if (httpStatus === 404) {
+            setError(
+              new Error(
+                'Video playlist not found (404). The file may still be encoding, or this lesson was uploaded to a different Bunny account — re-upload the video in the course editor.'
+              )
+            );
+            setIsLoading(false);
+            return;
           }
+
+          const canRetryManifest =
+            videoContentId &&
+            hlsManifestRetryRef.current < 1 &&
+            (data.type === Hls.ErrorTypes.NETWORK_ERROR ||
+              data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR);
+
+          if (canRetryManifest) {
+            hlsManifestRetryRef.current += 1;
+            courseService
+              .getVideoPlayUrlByVideoId(videoContentId)
+              .then((res) => {
+                const newUrl = res?.playbackUrl ?? res?.data?.playbackUrl;
+                if (newUrl && hlsRef.current && newUrl !== lastPlaybackUrlRef.current) {
+                  lastPlaybackUrlRef.current = newUrl;
+                  setPlaybackUrl(newUrl);
+                  setError(null);
+                } else {
+                  setError(
+                    new Error(
+                      'Could not load video stream. Confirm the video exists in Bunny Stream and encoding is finished.'
+                    )
+                  );
+                  setIsLoading(false);
+                }
+              })
+              .catch((err) => {
+                const msg =
+                  err?.response?.data?.message ||
+                  err?.message ||
+                  'Could not refresh video playback URL.';
+                setError(new Error(msg));
+                setIsLoading(false);
+              });
+            return;
+          }
+
+          setError(new Error('HLS stream error – please retry'));
+          setIsLoading(false);
         });
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         // Native HLS (Safari)
@@ -517,7 +696,7 @@ export default function LMSVideoPlayer({
         <button
           type="button"
           onClick={togglePlay}
-          className="absolute inset-0 z-[5] flex items-center justify-center bg-black/20 hover:bg-black/30 transition-colors group"
+          className="absolute top-0 left-0 right-0 bottom-20 z-[5] flex items-center justify-center bg-black/20 hover:bg-black/30 transition-colors group"
           aria-label="Play"
         >
           <span className="w-16 h-16 rounded-full bg-white/90 hover:bg-white flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform duration-200">
@@ -537,7 +716,11 @@ export default function LMSVideoPlayer({
       )}
 
       {!error && (
-        <div className="absolute bottom-0 left-0 right-0 z-10 rounded-b-xl overflow-visible">
+        <div
+          className={`absolute bottom-0 left-0 right-0 rounded-b-xl overflow-visible ${
+            showQualityMenu || showSpeedMenu ? 'z-[50]' : 'z-10'
+          }`}
+        >
           {/* Progress bar area - keep rounded clip for bar only */}
           <div className="group/progress relative h-2 bg-white/10 cursor-pointer rounded-b-xl overflow-hidden">
             {/* Buffered */}
@@ -628,10 +811,77 @@ export default function LMSVideoPlayer({
                 />
               </div>
 
+              {hlsQualityEnabled && (
+                <div className="relative shrink-0">
+                  <button
+                    ref={qualityAnchorRef}
+                    type="button"
+                    data-lms-quality-trigger
+                    onClick={() => {
+                      setShowQualityMenu((v) => !v);
+                      setShowSpeedMenu(false);
+                    }}
+                    className={`px-2 sm:px-3 py-2 text-sm font-semibold rounded-lg min-w-[2.75rem] sm:min-w-[3.5rem] transition-colors bg-white/15 text-white hover:bg-primary-pink/25 hover:text-white focus:outline-none focus:ring-2 focus:ring-primary-pink/50 ${
+                      showQualityMenu ? 'bg-primary-pink/30 text-white ring-2 ring-primary-pink/50' : ''
+                    }`}
+                    aria-label="Video quality"
+                    aria-expanded={showQualityMenu}
+                    title="Quality"
+                  >
+                    {qualityButtonLabel}
+                  </button>
+                  {showQualityMenu &&
+                    qualityMenuPos &&
+                    createPortal(
+                      <div
+                        ref={qualityMenuRef}
+                        role="menu"
+                        data-lms-quality-menu
+                        className="fixed z-[9999] py-1.5 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl min-w-[5.5rem] max-h-[240px] overflow-y-auto pointer-events-auto"
+                        style={{
+                          left: qualityMenuPos.left,
+                          bottom: qualityMenuPos.bottom,
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                      >
+                        <p className="px-4 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-white/40 pointer-events-none">
+                          Quality
+                        </p>
+                        {qualityOptions.map((option) => (
+                          <button
+                            key={option.id}
+                            type="button"
+                            role="menuitemradio"
+                            aria-checked={selectedQualityId === option.id}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleQualitySelect(option);
+                            }}
+                            className={`block w-full px-4 py-2.5 text-left text-sm transition-colors cursor-pointer ${
+                              selectedQualityId === option.id
+                                ? 'text-primary-pink font-semibold bg-primary-pink/10'
+                                : 'text-white/80 hover:bg-white/10 hover:text-white'
+                            }`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>,
+                      document.body
+                    )}
+                </div>
+              )}
+
               <div className="relative shrink-0">
                 <button
+                  ref={speedAnchorRef}
                   type="button"
-                  onClick={() => setShowSpeedMenu((v) => !v)}
+                  data-lms-speed-trigger
+                  onClick={() => {
+                    setShowSpeedMenu((v) => !v);
+                    setShowQualityMenu(false);
+                  }}
                   className={`px-2 sm:px-3 py-2 text-sm font-semibold rounded-lg min-w-[2.75rem] sm:min-w-[3.25rem] transition-colors bg-white/15 text-white hover:bg-primary-pink/25 hover:text-white focus:outline-none focus:ring-2 focus:ring-primary-pink/50 ${
                     showSpeedMenu ? 'bg-primary-pink/30 text-white ring-2 ring-primary-pink/50' : ''
                   }`}
@@ -640,20 +890,28 @@ export default function LMSVideoPlayer({
                 >
                   {playbackRate}x
                 </button>
-                {showSpeedMenu && (
-                  <>
+                {showSpeedMenu &&
+                  speedMenuPos &&
+                  createPortal(
                     <div
-                      className="fixed inset-0 z-20"
-                      aria-hidden
-                      onClick={() => setShowSpeedMenu(false)}
-                    />
-                    <div className="absolute bottom-full right-0 mb-2 py-1.5 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-xl z-30 min-w-[4.5rem] overflow-hidden">
+                      ref={speedMenuRef}
+                      role="menu"
+                      data-lms-speed-menu
+                      className="fixed z-[9999] py-1.5 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl min-w-[4.5rem] overflow-hidden pointer-events-auto"
+                      onMouseDown={(e) => e.stopPropagation()}
+                      style={{
+                        left: speedMenuPos.left,
+                        bottom: speedMenuPos.bottom,
+                      }}
+                    >
                       {PLAYBACK_RATES.map((rate) => (
                         <button
                           key={rate}
                           type="button"
+                          role="menuitemradio"
+                          aria-checked={playbackRate === rate}
                           onClick={() => setRate(rate)}
-                          className={`block w-full px-4 py-2.5 text-left text-sm transition-colors ${
+                          className={`block w-full px-4 py-2.5 text-left text-sm transition-colors cursor-pointer ${
                             playbackRate === rate
                               ? 'text-primary-pink font-semibold bg-primary-pink/10'
                               : 'text-white/80 hover:bg-white/10 hover:text-white'
@@ -662,9 +920,9 @@ export default function LMSVideoPlayer({
                           {rate}x
                         </button>
                       ))}
-                    </div>
-                  </>
-                )}
+                    </div>,
+                    document.body
+                  )}
               </div>
 
               {onTheaterModeToggle && (

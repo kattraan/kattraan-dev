@@ -109,9 +109,13 @@ async function getBunnyVideo(videoId) {
     const width = typeof data?.width === "number" ? data.width : 0;
     const height = typeof data?.height === "number" ? data.height : 0;
     const resolution = width && height ? `${width}x${height}` : "";
+    const status = typeof data?.status === "number" ? data.status : null;
 
-    return { length, width, height, resolution };
-  } catch {
+    return { length, width, height, resolution, status };
+  } catch (err) {
+    if (axios.isAxiosError(err) && err.response?.status === 404) {
+      return null;
+    }
     return null;
   }
 }

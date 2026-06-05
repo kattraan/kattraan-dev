@@ -4,6 +4,10 @@ const Content = require('../models/Content');
 const Course = require('../models/Course');
 const LearnerCourses = require('../models/LearnerCourses');
 const { generateSignedStreamUrl, generateSignedUrl } = require('../helpers/bunnyToken');
+const { getBunnyVideo } = require('../helpers/bunnyStream');
+
+/** Bunny Stream status: 3 = finished, 4 = first resolution ready (playable). */
+const BUNNY_PLAYABLE_STATUSES = new Set([3, 4]);
 
 /** TTL for signed VOD playback URLs (1 hour). Short TTL + frequent client refresh caused full HLS reloads and resets mid-lesson. */
 const PLAYBACK_URL_TTL = 3600;
@@ -65,7 +69,7 @@ async function getChapterPlayUrl(chapterId, userId, userRole) {
   if (!chapter) return null;
 
   const videoContent = chapter.contents?.[0];
-  const signedUrl = getSignedPlaybackUrlFromContent(videoContent);
+  const signedUrl = await getSignedPlaybackUrlFromContent(videoContent);
   if (!signedUrl) return null;
 
   return { signedUrl, contentId: videoContent._id.toString() };
@@ -79,10 +83,33 @@ async function getChapterPlayUrl(chapterId, userId, userRole) {
  * @param {object} content - Video content document (lean)
  * @returns {string|null} Signed playlist URL or null
  */
-function getSignedPlaybackUrlFromContent(content) {
+/**
+ * Ensure the Bunny guid exists in the configured library and is playable.
+ * @throws {Error} code BUNNY_VIDEO_NOT_FOUND | BUNNY_VIDEO_ENCODING
+ */
+async function assertBunnyVideoPlayable(bunnyVideoId) {
+  const info = await getBunnyVideo(bunnyVideoId);
+  if (!info) {
+    const err = new Error(
+      'This video is not available in your Bunny Stream library. It may still be uploading, was deleted, or belongs to an old Bunny account — re-upload the lesson video.'
+    );
+    err.code = 'BUNNY_VIDEO_NOT_FOUND';
+    throw err;
+  }
+  if (info.status != null && !BUNNY_PLAYABLE_STATUSES.has(info.status)) {
+    const err = new Error(
+      'Video is still encoding on Bunny Stream. Wait until processing finishes, then try again.'
+    );
+    err.code = 'BUNNY_VIDEO_ENCODING';
+    throw err;
+  }
+}
+
+async function getSignedPlaybackUrlFromContent(content) {
   if (!content) return null;
 
   if (content.bunnyVideoId) {
+    await assertBunnyVideoPlayable(content.bunnyVideoId);
     return generateSignedStreamUrl(content.bunnyVideoId, PLAYBACK_URL_TTL);
   }
 
@@ -107,7 +134,7 @@ async function getVideoPlayUrlByVideoId(videoId, userId, userRole) {
   const content = await Content.findById(videoId).lean();
   if (!content || content.type !== 'video') return null;
 
-  const playbackUrl = getSignedPlaybackUrlFromContent(content);
+  const playbackUrl = await getSignedPlaybackUrlFromContent(content);
   if (!playbackUrl) return null;
 
   const chapterId = content.chapter?.toString?.() || content.chapter;

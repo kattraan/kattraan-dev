@@ -43,6 +43,12 @@ async function getVideoPlayUrl(req, res) {
       },
     });
   } catch (err) {
+    if (err.code === 'BUNNY_VIDEO_NOT_FOUND') {
+      return res.status(404).json({ success: false, message: err.message });
+    }
+    if (err.code === 'BUNNY_VIDEO_ENCODING') {
+      return res.status(409).json({ success: false, message: err.message });
+    }
     res.status(500).json({ success: false, message: err.message });
   }
 }

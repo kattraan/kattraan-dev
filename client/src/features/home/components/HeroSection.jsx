@@ -1,21 +1,32 @@
 import React from "react";
-import { ArrowRight, ChevronRight } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { ChevronRight } from "lucide-react";
 import TrendingCourses from "./TrendingCourses";
+import { getStartLearningPath } from "@/features/home/utils/landingNavigation";
 import heroBackground from "@/assets/hero-background.png";
 import heroDecorationRightBottom from "@/assets/hero-decoration-right-bottom.png";
 import heroDecorationLeft from "@/assets/hero-decoration-left.png";
 import heroDecorationRightTop from "@/assets/hero-decoration-right-top.png";
 
 const HeroSection = () => {
+  const isAuthenticated = useSelector((state) => state.auth?.isAuthenticated);
+  const user = useSelector((state) => state.auth?.user);
+  const startLearningPath = getStartLearningPath(isAuthenticated, user);
+
   return (
     <section className="relative min-h-screen w-full overflow-hidden flex flex-col items-center justify-start pt-28 md:pt-32 lg:pt-36 xl:pt-44 pb-8">
+      <link rel="preload" as="image" href={heroBackground} fetchPriority="high" />
 
-      {/* Background Image */}
+      {/* Background Image — LCP: eager + high priority */}
       <img
         src={heroBackground}
-        alt="Hero Background"
+        alt=""
+        role="presentation"
         className="absolute inset-0 w-full h-full object-cover object-[65%_center]"
-        loading="lazy"
+        loading="eager"
+        fetchPriority="high"
+        decoding="async"
       />
 
       {/* Gradient Overlay */}
@@ -78,10 +89,13 @@ const HeroSection = () => {
         </p>
 
         {/* CTA Button */}
-        <button className="mt-8 inline-flex items-center gap-3 text-white px-10 py-2.5 rounded-full text-[17px] font-medium border border-white/30 backdrop-blur-md bg-[rgba(168,85,108,0.5)] hover:bg-[rgba(168,85,108,0.6)] transition-all shadow-[0_4px_15px_rgba(0,0,0,0.1)]">
+        <Link
+          to={startLearningPath}
+          className="mt-8 inline-flex items-center gap-3 text-white px-10 py-2.5 rounded-full text-[17px] font-medium border border-white/30 backdrop-blur-md bg-[rgba(168,85,108,0.5)] hover:bg-[rgba(168,85,108,0.6)] transition-all shadow-[0_4px_15px_rgba(0,0,0,0.1)]"
+        >
           Start learning
-          <ChevronRight className="h-5 w-5" />
-        </button>
+          <ChevronRight className="h-5 w-5" aria-hidden />
+        </Link>
 
         {/* Trending Courses Component */}
         <TrendingCourses />
