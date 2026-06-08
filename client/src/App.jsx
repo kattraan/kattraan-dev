@@ -19,6 +19,10 @@ import { ROUTES } from '@/config/routes';
 
 // Lazy loading pages for better performance (Code Splitting)
 const LandingPage = lazy(() => import('@/pages/LandingPage'));
+const AboutPage = lazy(() => import('@/components/landing pages/about'));
+const ContactPage = lazy(() => import('@/components/landing pages/contact'));
+const PrivacyPolicyPage = lazy(() => import('@/components/landing pages/PrivacyPolicy'));
+const FAQPage = lazy(() => import('@/components/landing pages/FAQ'));
 const LoginPage = lazy(() => import('@/pages/auth/LoginPage'));
 const SignUpPage = lazy(() => import('@/pages/auth/SignUpPage'));
 const InstructorSignUp = lazy(() => import('@/pages/auth/InstructorSignUpPage'));
@@ -82,6 +86,10 @@ function App() {
             <Routes>
             {/* Public Routes */}
             <Route path={ROUTES.HOME} element={<MainLayout><LandingPage /></MainLayout>} />
+            <Route path={ROUTES.ABOUT} element={<MainLayout><AboutPage /></MainLayout>} />
+            <Route path={ROUTES.CONTACT} element={<MainLayout><ContactPage /></MainLayout>} />
+            <Route path={ROUTES.PRIVACY_POLICY} element={<MainLayout><PrivacyPolicyPage /></MainLayout>} />
+            <Route path={ROUTES.FAQ} element={<MainLayout><FAQPage /></MainLayout>} />
             <Route path={ROUTES.CATEGORIES} element={<MainLayout><CategoriesPage /></MainLayout>} />
             <Route path={`${ROUTES.COURSE_DETAILS}/:courseId`} element={<MainLayout><CourseDetailsPage /></MainLayout>} />
             

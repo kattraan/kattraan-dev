@@ -8,6 +8,10 @@ export const ROUTES = {
   CATEGORIES: "/categories",
   COURSE_DETAILS: "/course-details",
   HELP: "/help",
+  ABOUT: "/about",
+  CONTACT: "/contact",
+  PRIVACY_POLICY: "/privacy-policy",
+  FAQ: "/faq",
 
   // Auth
   LOGIN: "/login",
