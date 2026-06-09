@@ -202,8 +202,9 @@ const Contact = () => {
                   <div>
                     <p className="text-xs text-white/50 uppercase tracking-wider font-bold">Registered Office</p>
                     <p className="text-white/80 font-light text-sm leading-relaxed mt-1">
-                      Kattraan Learning Solutions Private Limited,<br />
-                      Tech Hub Sector 5, Bangalore, Karnataka, India
+                      Urbancode Training And Solutions
+ Private Limited,<br />
+                      9/29, 5th St, Kamakoti Nagar, Pallikaranai, Chennai, Tamil Nadu, 600100
                     </p>
                   </div>
                 </div>
@@ -234,22 +235,8 @@ const Contact = () => {
               </div>
             </div>
 
-            {/* Partnerships Card */}
-            <div className="p-8 rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.02] to-white/[0.005] backdrop-blur-xl">
-              <h3 className="text-lg font-bold mb-4 flex items-center gap-3">
-                <Handshake className="w-5 h-5 text-emerald-400" />
-                Partnership Opportunities
-              </h3>
-              <p className="text-white/60 text-sm font-light mb-4 leading-relaxed">
-                For collaborations, educational partnerships, institutional training, or corporate learning programs:
-              </p>
-              <div className="flex items-center gap-3 bg-white/[0.02] border border-white/5 p-3.5 rounded-xl">
-                <Mail className="w-4 h-4 text-emerald-400" />
-                <a href="mailto:partnerships@kattraan.com" className="text-white hover:text-emerald-400 transition-colors text-sm font-medium">
-                  partnerships@kattraan.com
-                </a>
-              </div>
-            </div>
+            
+            
 
           </div>
 

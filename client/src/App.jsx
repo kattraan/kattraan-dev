@@ -23,6 +23,9 @@ const AboutPage = lazy(() => import('@/components/landing pages/about'));
 const ContactPage = lazy(() => import('@/components/landing pages/contact'));
 const PrivacyPolicyPage = lazy(() => import('@/components/landing pages/PrivacyPolicy'));
 const FAQPage = lazy(() => import('@/components/landing pages/FAQ'));
+const TermsPage = lazy(() => import('@/components/landing pages/Terms'));
+const RefundsPage = lazy(() => import('@/components/landing pages/Refunds'));
+const ShippingPage = lazy(() => import('@/components/landing pages/Shipping'));
 const LoginPage = lazy(() => import('@/pages/auth/LoginPage'));
 const SignUpPage = lazy(() => import('@/pages/auth/SignUpPage'));
 const InstructorSignUp = lazy(() => import('@/pages/auth/InstructorSignUpPage'));
@@ -90,6 +93,9 @@ function App() {
             <Route path={ROUTES.CONTACT} element={<MainLayout><ContactPage /></MainLayout>} />
             <Route path={ROUTES.PRIVACY_POLICY} element={<MainLayout><PrivacyPolicyPage /></MainLayout>} />
             <Route path={ROUTES.FAQ} element={<MainLayout><FAQPage /></MainLayout>} />
+            <Route path={ROUTES.TERMS} element={<MainLayout><TermsPage /></MainLayout>} />
+            <Route path={ROUTES.REFUNDS} element={<MainLayout><RefundsPage /></MainLayout>} />
+            <Route path={ROUTES.SHIPPING_DELIVERY} element={<MainLayout><ShippingPage /></MainLayout>} />
             <Route path={ROUTES.CATEGORIES} element={<MainLayout><CategoriesPage /></MainLayout>} />
             <Route path={`${ROUTES.COURSE_DETAILS}/:courseId`} element={<MainLayout><CourseDetailsPage /></MainLayout>} />
             

@@ -184,7 +184,7 @@ const Navbar = () => {
           </div>
 
           {/* Search Input */}
-          <div className="flex items-center relative gap-2.5 ml-8 pr-4 group/search">
+          {/* <div className="flex items-center relative gap-2.5 ml-8 pr-4 group/search">
             <Search
               className={`h-4 w-4 ${
                 isHeroNavPage ? "text-white/40 group-focus-within/search:text-white/80" : "text-gray-700/40 group-focus-within/search:text-gray-900/80 dark:text-white/40 dark:group-focus-within/search:text-white/80"
@@ -203,7 +203,7 @@ const Navbar = () => {
                 }`}
               />
             </div>
-          </div>
+          </div> */}
         </div>
 
         {/* Desktop User Actions */}

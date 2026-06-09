@@ -13,45 +13,6 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
-/**
- * Data-driven section renderer — each privacy topic is a card with icon, title,
- * and either a bullet list or paragraph body. This keeps the JSX lean while
- * allowing the content array below to stay readable.
- */
-const SectionCard = ({ icon: Icon, iconColor, title, children }) => (
-  <div className="p-8 md:p-10 rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.03] to-white/[0.005] backdrop-blur-xl group hover:border-white/15 transition-all duration-500">
-    <div className="flex items-start gap-5 mb-6">
-      <div
-        className={`p-3 rounded-xl ${iconColor} flex-shrink-0 group-hover:scale-110 transition-transform duration-300`}
-      >
-        <Icon className="w-6 h-6" />
-      </div>
-      <h2 className="text-2xl md:text-3xl font-black tracking-tight pt-1">
-        {title}
-      </h2>
-    </div>
-    <div className="space-y-4 text-white/70 text-base font-light leading-relaxed pl-0 md:pl-[68px]">
-      {children}
-    </div>
-  </div>
-);
-
-const BulletList = ({ heading, items }) => (
-  <div>
-    {heading && (
-      <h3 className="text-lg font-bold text-white mb-3">{heading}</h3>
-    )}
-    <ul className="space-y-2.5">
-      {items.map((item, idx) => (
-        <li key={idx} className="flex items-start gap-3">
-          <CheckCircle2 className="w-4 h-4 text-primary-pink flex-shrink-0 mt-1" />
-          <span>{item}</span>
-        </li>
-      ))}
-    </ul>
-  </div>
-);
-
 const PrivacyPolicy = () => {
   return (
     <div className="relative w-full overflow-hidden bg-[#090C03] text-white">
@@ -93,151 +54,158 @@ const PrivacyPolicy = () => {
         <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-[#090C03] to-transparent pointer-events-none" />
       </section>
 
-      {/* ─── CONTENT SECTIONS ─── */}
-      <section className="max-w-[1000px] mx-auto px-6 lg:px-8 pb-24 relative z-10 space-y-8">
-        {/* 1. Personal Information */}
-        <SectionCard
-          icon={User}
-          iconColor="text-[#FF8C42] bg-[#FF8C42]/10"
-          title="Personal Information"
-        >
-          <p>We may collect the following personal information:</p>
-          <BulletList
-            items={[
-              "Full Name",
-              "Email Address",
-              "Mobile Number",
-              "Billing Address",
-              "Payment Information",
-              "Account Credentials",
-            ]}
-          />
-        </SectionCard>
+      {/* ─── CONTENT SECTIONS (TABLE FORMAT) ─── */}
+      <section className="max-w-[1000px] mx-auto px-6 lg:px-8 pb-24 relative z-10">
+        <div className="w-full overflow-x-auto rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.03] to-white/[0.005] backdrop-blur-xl">
+          <table className="w-full text-left border-collapse min-w-[700px]">
+            <thead>
+              <tr className="border-b border-white/10 bg-white/5">
+                <th className="p-6 md:p-8 text-xl font-bold text-white w-1/3">Policy Section</th>
+                <th className="p-6 md:p-8 text-xl font-bold text-white">Details & Information</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              
+              {/* 1. Personal Information */}
+              <tr className="hover:bg-white/[0.02] transition-colors">
+                <td className="p-6 md:p-8 align-top font-semibold text-white/90 flex items-center gap-3">
+                  <User className="w-5 h-5 text-[#FF8C42]" />
+                  Personal Information
+                </td>
+                <td className="p-6 md:p-8 align-top text-white/70">
+                  <p className="mb-2">We may collect the following personal information:</p>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>Full Name</li>
+                    <li>Email Address</li>
+                    <li>Mobile Number</li>
+                    <li>Billing Address</li>
+                    <li>Payment Information</li>
+                    <li>Account Credentials</li>
+                  </ul>
+                </td>
+              </tr>
 
-        {/* 2. Learning Information */}
-        <SectionCard
-          icon={BookOpen}
-          iconColor="text-blue-400 bg-blue-400/10"
-          title="Learning Information"
-        >
-          <p>
-            To improve your learning experience, we may collect:
-          </p>
-          <BulletList
-            items={[
-              "Course enrollments",
-              "Course progress",
-              "Assessment results",
-              "Certificate status",
-              "Learning preferences",
-            ]}
-          />
-        </SectionCard>
+              {/* 2. Learning Information */}
+              <tr className="hover:bg-white/[0.02] transition-colors">
+                <td className="p-6 md:p-8 align-top font-semibold text-white/90 flex items-center gap-3">
+                  <BookOpen className="w-5 h-5 text-blue-400" />
+                  Learning Information
+                </td>
+                <td className="p-6 md:p-8 align-top text-white/70">
+                  <p className="mb-2">To improve your learning experience, we may collect:</p>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>Course enrollments and progress</li>
+                    <li>Assessment results</li>
+                    <li>Certificate status</li>
+                    <li>Learning preferences</li>
+                  </ul>
+                </td>
+              </tr>
 
-        {/* 3. Technical Information */}
-        <SectionCard
-          icon={Monitor}
-          iconColor="text-emerald-400 bg-emerald-400/10"
-          title="Technical Information"
-        >
-          <p>We may automatically collect:</p>
-          <BulletList
-            items={[
-              "IP Address",
-              "Browser Information",
-              "Device Information",
-              "Usage Analytics",
-              "Cookies",
-            ]}
-          />
-        </SectionCard>
+              {/* 3. Technical Information */}
+              <tr className="hover:bg-white/[0.02] transition-colors">
+                <td className="p-6 md:p-8 align-top font-semibold text-white/90 flex items-center gap-3">
+                  <Monitor className="w-5 h-5 text-emerald-400" />
+                  Technical Information
+                </td>
+                <td className="p-6 md:p-8 align-top text-white/70">
+                  <p className="mb-2">We may automatically collect:</p>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>IP Address and Browser Information</li>
+                    <li>Device Information</li>
+                    <li>Usage Analytics</li>
+                    <li>Cookies</li>
+                  </ul>
+                </td>
+              </tr>
 
-        {/* 4. How We Use Information */}
-        <SectionCard
-          icon={Settings}
-          iconColor="text-primary-pink bg-primary-pink/10"
-          title="How We Use Information"
-        >
-          <p>We use the information we collect to:</p>
-          <BulletList
-            items={[
-              "Create and manage accounts",
-              "Process payments securely",
-              "Provide course access",
-              "Deliver learning services",
-              "Generate certificates",
-              "Improve platform performance",
-              "Provide customer support",
-              "Send important service notifications",
-            ]}
-          />
-        </SectionCard>
+              {/* 4. How We Use Information */}
+              <tr className="hover:bg-white/[0.02] transition-colors">
+                <td className="p-6 md:p-8 align-top font-semibold text-white/90 flex items-center gap-3">
+                  <Settings className="w-5 h-5 text-primary-pink" />
+                  Data Usage
+                </td>
+                <td className="p-6 md:p-8 align-top text-white/70">
+                  <p className="mb-2">We use the information we collect to:</p>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>Create and manage accounts</li>
+                    <li>Process payments securely</li>
+                    <li>Provide course access and deliver learning services</li>
+                    <li>Generate certificates</li>
+                    <li>Improve platform performance</li>
+                    <li>Provide customer support and send notifications</li>
+                  </ul>
+                </td>
+              </tr>
 
-        {/* 5. Data Security */}
-        <SectionCard
-          icon={Lock}
-          iconColor="text-purple-400 bg-purple-400/10"
-          title="Data Security"
-        >
-          <p>
-            We implement reasonable technical, administrative, and
-            organizational safeguards to protect user information.
-          </p>
-          <p>
-            Despite our efforts, no system can guarantee absolute security.
-            Users are encouraged to maintain strong passwords and protect
-            account credentials.
-          </p>
-        </SectionCard>
+              {/* 5. Data Security */}
+              <tr className="hover:bg-white/[0.02] transition-colors">
+                <td className="p-6 md:p-8 align-top font-semibold text-white/90 flex items-center gap-3">
+                  <Lock className="w-5 h-5 text-purple-400" />
+                  Data Security
+                </td>
+                <td className="p-6 md:p-8 align-top text-white/70">
+                  <p className="mb-2">We implement reasonable technical, administrative, and organizational safeguards to protect user information.</p>
+                  <p>Despite our efforts, no system can guarantee absolute security. Users are encouraged to maintain strong passwords and protect account credentials.</p>
+                </td>
+              </tr>
 
-        {/* 6. Third-Party Services */}
-        <SectionCard
-          icon={ExternalLink}
-          iconColor="text-amber-400 bg-amber-400/10"
-          title="Third-Party Services"
-        >
-          <p>
-            We may use trusted third-party service providers for:
-          </p>
-          <BulletList
-            items={[
-              "Payment Processing",
-              "Cloud Infrastructure",
-              "Analytics",
-              "Communication Services",
-              "Security Monitoring",
-            ]}
-          />
-        </SectionCard>
+              {/* 6. Third-Party Services */}
+              <tr className="hover:bg-white/[0.02] transition-colors">
+                <td className="p-6 md:p-8 align-top font-semibold text-white/90 flex items-center gap-3">
+                  <ExternalLink className="w-5 h-5 text-amber-400" />
+                  Third-Party Services
+                </td>
+                <td className="p-6 md:p-8 align-top text-white/70">
+                  <p className="mb-2">We may use trusted third-party service providers for:</p>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>Payment Processing</li>
+                    <li>Cloud Infrastructure and Analytics</li>
+                    <li>Communication Services</li>
+                    <li>Security Monitoring</li>
+                  </ul>
+                </td>
+              </tr>
 
-        {/* 7. User Rights */}
-        <SectionCard
-          icon={UserCheck}
-          iconColor="text-emerald-400 bg-emerald-400/10"
-          title="User Rights"
-        >
-          <p>As a Kattraan user, you may:</p>
-          <BulletList
-            items={[
-              "Access their personal data",
-              "Request corrections",
-              "Request account deletion",
-              "Withdraw marketing consent",
-            ]}
-          />
-          <div className="mt-6 p-4 rounded-xl border border-white/10 bg-white/[0.02] flex items-center gap-3">
-            <Mail className="w-5 h-5 text-primary-pink flex-shrink-0" />
-            <p className="text-sm">
-              Submit requests at{" "}
-              <a
-                href="mailto:kattraan.lms@gmail.com"
-                className="text-primary-pink hover:underline font-medium"
-              >
-                support@kattraan.com
-              </a>
-            </p>
-          </div>
-        </SectionCard>
+              {/* 7. User Rights */}
+              <tr className="hover:bg-white/[0.02] transition-colors">
+                <td className="p-6 md:p-8 align-top font-semibold text-white/90 flex items-center gap-3">
+                  <UserCheck className="w-5 h-5 text-emerald-400" />
+                  User Rights
+                </td>
+                <td className="p-6 md:p-8 align-top text-white/70">
+                  <p className="mb-2">As a Kattraan user, you may:</p>
+                  <ul className="list-disc list-inside space-y-1 mb-4">
+                    <li>Access your personal data</li>
+                    <li>Request corrections</li>
+                    <li>Request account deletion</li>
+                    <li>Withdraw marketing consent</li>
+                  </ul>
+                  <p>Submit requests at <a href="mailto:kattraan.lms@gmail.com" className="text-primary-pink hover:underline font-medium">kattraan.lms@gmail.com</a></p>
+                </td>
+              </tr>
+
+              {/* 8. Contact Information */}
+              <tr className="hover:bg-white/[0.02] transition-colors">
+                <td className="p-6 md:p-8 align-top font-semibold text-white/90 flex items-center gap-3">
+                  <Mail className="w-5 h-5 text-pink-400" />
+                  Contact Us
+                </td>
+                <td className="p-6 md:p-8 align-top text-white/70">
+                  <p className="mb-3">If you have any questions or concerns about this Privacy Policy, please contact us at:</p>
+                  <div className="bg-white/[0.02] p-4 rounded-xl border border-white/5">
+                    <p className="font-bold text-white mb-1">Urbancode Training And Solutions Private Limited</p>
+                    <p>9/29, 5th St, Kamakoti Nagar, Pallikaranai,</p>
+                    <p>Chennai, Tamil Nadu, 600100</p>
+                    <p className="mt-2 text-white/90">Email: kattraan.lms@gmail.com</p>
+                    <p className="text-white/90">Phone: +91 92268 92667</p>
+                  </div>
+                </td>
+              </tr>
+
+            </tbody>
+          </table>
+        </div>
       </section>
     </div>
   );
