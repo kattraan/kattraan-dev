@@ -32,7 +32,7 @@ const Shipping = () => {
           <p className="text-white/70 leading-relaxed mb-6">
             If you experience any issues accessing your purchased content, please contact our support team immediately. We will ensure the issue is resolved promptly so you can continue your learning journey.
           </p>
-          
+
           <h2 className="text-2xl font-bold mb-4 text-white">4. Contact Information</h2>
           <div className="text-white/70 leading-relaxed">
             <p>For any queries regarding the delivery of digital goods, please reach out to us at:</p>
@@ -41,7 +41,7 @@ const Shipping = () => {
               <p>9/29, 5th St, Kamakoti Nagar, Pallikaranai,</p>
               <p>Chennai, Tamil Nadu, 600100</p>
               <p className="mt-2">Email: kattraan.lms@gmail.com</p>
-              <p className="mt-1">Phone: +91 92268 92667</p>
+              <p className="mt-1">Phone: +91 98787 98797</p>
             </div>
           </div>
         </div>

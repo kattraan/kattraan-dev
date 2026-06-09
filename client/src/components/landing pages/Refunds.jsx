@@ -37,7 +37,7 @@ const Refunds = () => {
           <p className="text-white/70 leading-relaxed mb-6">
             We reserve the right to decline refund requests in cases of suspected fraud, abuse of the policy, or violations of our Terms of Use.
           </p>
-          
+
           <h2 className="text-2xl font-bold mb-4 text-white">5. Contact Information</h2>
           <div className="text-white/70 leading-relaxed">
             <p>If you wish to request a refund or cancellation, please email us with your order details at:</p>
@@ -46,7 +46,7 @@ const Refunds = () => {
               <p>9/29, 5th St, Kamakoti Nagar, Pallikaranai,</p>
               <p>Chennai, Tamil Nadu, 600100</p>
               <p className="mt-2">Email: kattraan.lms@gmail.com</p>
-              <p className="mt-1">Phone: +91 92268 92667</p>
+              <p className="mt-1">Phone: +91 98787 98797</p>
             </div>
           </div>
         </div>

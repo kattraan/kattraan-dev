@@ -65,7 +65,7 @@ const PrivacyPolicy = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              
+
               {/* 1. Personal Information */}
               <tr className="hover:bg-white/[0.02] transition-colors">
                 <td className="p-6 md:p-8 align-top font-semibold text-white/90 flex items-center gap-3">
@@ -198,7 +198,7 @@ const PrivacyPolicy = () => {
                     <p>9/29, 5th St, Kamakoti Nagar, Pallikaranai,</p>
                     <p>Chennai, Tamil Nadu, 600100</p>
                     <p className="mt-2 text-white/90">Email: kattraan.lms@gmail.com</p>
-                    <p className="text-white/90">Phone: +91 92268 92667</p>
+                    <p className="text-white/90">Phone: +91 98787 98797</p>
                   </div>
                 </td>
               </tr>

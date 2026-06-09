@@ -1,11 +1,11 @@
 import React, { useState } from "react";
-import { 
-  Mail, 
-  Phone, 
-  MapPin, 
-  Clock, 
-  Timer, 
-  Handshake, 
+import {
+  Mail,
+  Phone,
+  MapPin,
+  Clock,
+  Timer,
+  Handshake,
   Send,
   MessageSquare,
   Sparkles,
@@ -58,7 +58,7 @@ const Contact = () => {
         </h1>
 
         <p className="mt-6 text-lg md:text-xl text-white/80 max-w-2xl font-light leading-relaxed">
-          At Kattraan, learner success is our priority. Our team is available to assist you 
+          At Kattraan, learner success is our priority. Our team is available to assist you
           with any questions, feedback, or inquiries.
         </p>
 
@@ -68,7 +68,7 @@ const Contact = () => {
       {/* 2. CONTACT FORM & INFO SECTION */}
       <section className="max-w-[1440px] mx-auto px-6 lg:px-16 pb-24 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
-          
+
           {/* Left: Contact Form */}
           <div className="lg:col-span-7">
             <div className="p-8 md:p-10 rounded-3xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.01] backdrop-blur-xl shadow-2xl">
@@ -163,7 +163,7 @@ const Contact = () => {
 
           {/* Right: Info Cards */}
           <div className="lg:col-span-5 space-y-6">
-            
+
             {/* Customer Support Card */}
             <div className="p-8 rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.02] to-white/[0.005] backdrop-blur-xl">
               <h3 className="text-xl font-bold mb-6 flex items-center gap-3 border-b border-white/5 pb-4">
@@ -189,8 +189,8 @@ const Contact = () => {
                   </div>
                   <div>
                     <p className="text-xs text-white/50 uppercase tracking-wider font-bold">Phone Support</p>
-                    <a href="tel:+91 92268 92667" className="text-white hover:text-primary-pink transition-colors font-medium">
-                      +91 92268 92667
+                    <a href="tel:+91 98787 98797" className="text-white hover:text-primary-pink transition-colors font-medium">
+                      +91 98787 98797
                     </a>
                   </div>
                 </div>
@@ -203,7 +203,7 @@ const Contact = () => {
                     <p className="text-xs text-white/50 uppercase tracking-wider font-bold">Registered Office</p>
                     <p className="text-white/80 font-light text-sm leading-relaxed mt-1">
                       Urbancode Training And Solutions
- Private Limited,<br />
+                      Private Limited,<br />
                       9/29, 5th St, Kamakoti Nagar, Pallikaranai, Chennai, Tamil Nadu, 600100
                     </p>
                   </div>
@@ -235,8 +235,8 @@ const Contact = () => {
               </div>
             </div>
 
-            
-            
+
+
 
           </div>
 

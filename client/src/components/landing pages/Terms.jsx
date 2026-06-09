@@ -42,7 +42,7 @@ const Terms = () => {
           <p className="text-white/70 leading-relaxed mb-6">
             We reserve the right to modify these terms at any time. Your continued use of the platform constitutes acceptance of the new terms.
           </p>
-          
+
           <h2 className="text-2xl font-bold mb-4 text-white">6. Contact Information</h2>
           <div className="text-white/70 leading-relaxed">
             <p>If you have any questions about these Terms, please contact us at:</p>
@@ -51,7 +51,7 @@ const Terms = () => {
               <p>9/29, 5th St, Kamakoti Nagar, Pallikaranai,</p>
               <p>Chennai, Tamil Nadu, 600100</p>
               <p className="mt-2">Email: kattraan.lms@gmail.com</p>
-              <p className="mt-1">Phone: +91 92268 92667</p>
+              <p className="mt-1">Phone: +91 98787 98797</p>
             </div>
           </div>
         </div>
