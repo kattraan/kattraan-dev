@@ -1,19 +1,20 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Clock } from 'lucide-react';
 
 // Images
 import blogBg from '@/assets/blog.png';
 import blogBg2 from '@/assets/blog 1.png';
-import communicateImg from '@/assets/blog/Communicate.png';
-import careerImg from '@/assets/blog/Career.png';
-import developmentImg from '@/assets/blog/Development.png';
-import designsImg from '@/assets/blog/Designs.png';
-import workImg from '@/assets/blog/Work.png';
-import analyticsImg from '@/assets/blog/Analystics.png';
+import { articles } from '@/data/blogData';
 
 const BlogCard = ({ article, alignment = 'left', variant = 'large' }) => {
   const isCentered = alignment === 'center';
   const isLarge = variant === 'large';
+  const navigate = useNavigate();
+
+  const handleReadArticle = () => {
+    navigate(`/blog/${article.id}`, { state: { article } });
+  };
 
   return (
     <div 
@@ -54,7 +55,10 @@ const BlogCard = ({ article, alignment = 'left', variant = 'large' }) => {
           {article.readTime}
         </p>
         
-        <button className="bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] hover:opacity-90 text-white text-[12px] font-bold py-2.5 px-8 rounded-[12px] transition-all shadow-lg shadow-pink-500/20">
+        <button 
+          onClick={handleReadArticle}
+          className="bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] hover:opacity-90 text-white text-[12px] font-bold py-2.5 px-8 rounded-[12px] transition-all shadow-lg shadow-pink-500/20"
+        >
           Read Article
         </button>
       </div>
@@ -63,57 +67,6 @@ const BlogCard = ({ article, alignment = 'left', variant = 'large' }) => {
 };
 
 const BlogSection = () => {
-  const articles = [
-    {
-      id: 1,
-      category: 'Mindset',
-      title: "Why 'Learning' is Keeping you Stuck",
-      description: "Stop consuming content. Start building capability. The uncomfortable truth about why your course collection isn't helping.",
-      readTime: '5 Min read',
-      image: communicateImg
-    },
-    {
-      id: 2,
-      category: 'Career',
-      title: 'How to Get Hired Without "Years of Experience"',
-      description: "Why showing beautiful screens isn't enough. What separates portfolio projects from portfolio theater.",
-      readTime: '6 Min read',
-      image: careerImg
-    },
-    {
-      id: 3,
-      category: 'Development',
-      title: "The Full-Stack Developer Doesn't Exist",
-      description: "Why that's actually good news. What employers really mean when they say 'full-stack' and how to position yourself.",
-      readTime: '8 Min read',
-      image: developmentImg
-    },
-    {
-      id: 4,
-      category: 'Design',
-      title: "Your Figma Files Won't Get You Hired",
-      description: "Why showing beautiful screens isn't enough. What separates portfolio projects from actually useful.",
-      readTime: '6 Min read',
-      image: designsImg
-    },
-    {
-      id: 5,
-      category: 'Future Of Work',
-      title: 'AI Won\'t Replace You. Someone Using AI Will.',
-      description: "The uncomfortable truth about AI augmentation. How to 10x your output instead of becoming obsolete.",
-      readTime: '9 Min read',
-      image: workImg
-    },
-    {
-      id: 6,
-      category: 'Analytics',
-      title: "Excel Isn't a Skill. Problem-Solving Is.",
-      description: "Why technical proficiency doesn't equal analytical thinking. What makes a dashboard actually useful vs. just pretty.",
-      readTime: '7 Min read',
-      image: analyticsImg
-    }
-  ];
-
   // Column Distribution for Masonry-like effect
   // Col 1: Big, Small
   // Col 2: Small, Big (Centered)

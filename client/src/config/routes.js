@@ -15,6 +15,7 @@ export const ROUTES = {
   TERMS: "/terms",
   REFUNDS: "/refunds",
   SHIPPING_DELIVERY: "/shipping-and-delivery",
+  BLOG_ARTICLE: "/blog",
 
   // Auth
   LOGIN: "/login",

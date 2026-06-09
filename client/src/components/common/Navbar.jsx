@@ -66,7 +66,6 @@ const Navbar = () => {
           hasDropdown: false,
           path: ROUTES.INSTRUCTOR_SIGNUP,
         },
-        { name: "Help & Support", hasDropdown: false, path: "#" },
       ];
     }
 
@@ -79,7 +78,6 @@ const Navbar = () => {
           hasDropdown: false,
           path: ROUTES.INSTRUCTOR_DASHBOARD,
         },
-        { name: "Help & Support", hasDropdown: false, path: "#" },
       ];
     }
 
@@ -91,7 +89,6 @@ const Navbar = () => {
           hasDropdown: false,
           path: ROUTES.ADMIN_DASHBOARD,
         },
-        { name: "Help & Support", hasDropdown: false, path: "#" },
       ];
     }
 
@@ -103,7 +100,6 @@ const Navbar = () => {
         hasDropdown: false,
         path: ROUTES.INSTRUCTOR_SIGNUP,
       },
-      { name: "Help & Support", hasDropdown: false, path: "#" },
     ];
   };
 

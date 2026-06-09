@@ -17,9 +17,9 @@ const LandingPage = () => {
   return (
     <div className="flex flex-col w-full overflow-x-hidden">
       <HeroSection />
-      <PathSelector />
+      {/* <PathSelector /> */}
       <TopRatedCourses />
-      <InDemandCourses />
+      {/* <InDemandCourses /> */}
       <BlogSection />
       
       {/* Bottom section with solid black background like other sections */}
