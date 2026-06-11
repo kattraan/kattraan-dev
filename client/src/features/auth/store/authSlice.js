@@ -17,12 +17,29 @@ export const login = createAsyncThunk('auth/login', async ({ email, password }, 
 
 export const register = createAsyncThunk('auth/register', async (userData, thunkAPI) => {
     try {
-        await authService.register(userData);
-        // Auto-login after registration
-        const response = await authService.login(userData.email, userData.password);
-        // Sequential call: Fetch profile
+        const response = await authService.register(userData);
+        return { ...response, email: userData.email, password: userData.password };
+    } catch (error) {
+        const message = error.response?.data?.message || error.message;
+        return thunkAPI.rejectWithValue(message);
+    }
+});
+
+export const verifyEmail = createAsyncThunk('auth/verifyEmail', async ({ email, password, otp }, thunkAPI) => {
+    try {
+        await authService.verifyEmail(email, otp);
+        const response = await authService.login(email, password);
         const userResponse = await authService.checkAuth();
         return { ...response, user: userResponse.data?.user };
+    } catch (error) {
+        const message = error.response?.data?.message || error.message;
+        return thunkAPI.rejectWithValue(message);
+    }
+});
+
+export const resendVerificationOtp = createAsyncThunk('auth/resendVerificationOtp', async (email, thunkAPI) => {
+    try {
+        return await authService.resendVerificationOtp(email);
     } catch (error) {
         const message = error.response?.data?.message || error.message;
         return thunkAPI.rejectWithValue(message);
@@ -180,14 +197,27 @@ const authSlice = createSlice({
                 state.loading = true;
                 state.error = null;
             })
-            .addCase(register.fulfilled, (state, action) => {
+            .addCase(register.fulfilled, (state) => {
+                state.loading = false;
+                state.error = null;
+            })
+            .addCase(register.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
+            })
+            // Verify email lifecycle
+            .addCase(verifyEmail.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(verifyEmail.fulfilled, (state, action) => {
                 state.loading = false;
                 state.isAuthenticated = true;
                 state.error = null;
                 state.user = normalizeUser(action.payload.user);
                 localStorage.setItem('user', JSON.stringify(state.user));
             })
-            .addCase(register.rejected, (state, action) => {
+            .addCase(verifyEmail.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload;
             })

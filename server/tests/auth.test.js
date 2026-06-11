@@ -3,6 +3,10 @@
  * Uses in-memory MongoDB (mongodb-memory-server). Run with: npm run test
  */
 
+jest.mock("../services/gmailService", () => ({
+  sendEmail: jest.fn().mockResolvedValue({ messageId: "test-message-id" }),
+}));
+
 const request = require("supertest");
 const { MongoMemoryServer } = require("mongodb-memory-server");
 const mongoose = require("mongoose");
@@ -17,6 +21,14 @@ const validUser = {
   userEmail: "testuser@gmail.com",
   password: "SecurePass@123",
 };
+
+async function verifyUserEmail(email) {
+  const User = require("../models/User");
+  await User.updateOne(
+    { userEmail: email.toLowerCase() },
+    { isVerified: true, emailVerificationOtp: null, emailVerificationOtpExpires: null }
+  );
+}
 
 // Seed roles required by register
 async function seedRoles() {
@@ -61,7 +73,8 @@ describe("POST /api/auth/register", () => {
 
     expect(res.status).toBe(201);
     expect(res.body.success).toBe(true);
-    expect(res.body.message).toMatch(/registered/i);
+    expect(res.body.message).toMatch(/verification|registered/i);
+    expect(res.body.requiresVerification).toBe(true);
   });
 
   it("should return 400 for duplicate email", async () => {
@@ -107,10 +120,47 @@ describe("POST /api/auth/register", () => {
   });
 });
 
+// ---------- Verify Email ----------
+describe("POST /api/auth/verify-email", () => {
+  it("should verify email with valid OTP", async () => {
+    await request(app).post("/api/auth/register").send(validUser);
+    const User = require("../models/User");
+    const user = await User.findOne({ userEmail: validUser.userEmail.toLowerCase() });
+    const bcrypt = require("bcryptjs");
+    const otp = "123456";
+    user.emailVerificationOtp = await bcrypt.hash(otp, 10);
+    user.emailVerificationOtpExpires = new Date(Date.now() + 10 * 60 * 1000);
+    await user.save();
+
+    const res = await request(app)
+      .post("/api/auth/verify-email")
+      .send({ userEmail: validUser.userEmail, otp })
+      .expect("Content-Type", /json/);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+
+    const updated = await User.findOne({ userEmail: validUser.userEmail.toLowerCase() });
+    expect(updated.isVerified).toBe(true);
+  });
+
+  it("should return 400 for invalid OTP", async () => {
+    await request(app).post("/api/auth/register").send(validUser);
+    const res = await request(app)
+      .post("/api/auth/verify-email")
+      .send({ userEmail: validUser.userEmail, otp: "000000" })
+      .expect("Content-Type", /json/);
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
+});
+
 // ---------- Login ----------
 describe("POST /api/auth/login", () => {
   beforeEach(async () => {
     await request(app).post("/api/auth/register").send(validUser);
+    await verifyUserEmail(validUser.userEmail);
   });
 
   it("should login successfully and return 200 with success", async () => {
@@ -158,6 +208,22 @@ describe("POST /api/auth/login", () => {
     expect(res.status).toBe(400);
     expect(res.body.message).toMatch(/email|password|required/i);
   });
+
+  it("should return 403 when email is not verified", async () => {
+    const User = require("../models/User");
+    await User.updateOne(
+      { userEmail: validUser.userEmail.toLowerCase() },
+      { isVerified: false }
+    );
+
+    const res = await request(app)
+      .post("/api/auth/login")
+      .send({ userEmail: validUser.userEmail, password: validUser.password })
+      .expect("Content-Type", /json/);
+
+    expect(res.status).toBe(403);
+    expect(res.body.requiresVerification).toBe(true);
+  });
 });
 
 // ---------- JWT verification middleware (protected route: GET /api/auth/check-auth) ----------
@@ -166,6 +232,7 @@ describe("JWT verification middleware (GET /api/auth/check-auth)", () => {
 
   beforeEach(async () => {
     await request(app).post("/api/auth/register").send(validUser);
+    await verifyUserEmail(validUser.userEmail);
     const loginRes = await request(app)
       .post("/api/auth/login")
       .send({ userEmail: validUser.userEmail, password: validUser.password });

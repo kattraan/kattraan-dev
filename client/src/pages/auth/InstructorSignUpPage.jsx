@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { registerInstructor, becomeInstructor, clearError } from '@/features/auth/store/authSlice';
+import { registerInstructor, verifyEmail, resendVerificationOtp, becomeInstructor, clearError } from '@/features/auth/store/authSlice';
+import EmailVerificationStep from '@/components/auth/EmailVerificationStep';
 import { hasRole } from '@/features/auth/utils/roleUtils';
 import { logger } from '@/utils/logger';
 import Button from '@/components/ui/Button';
@@ -27,6 +28,8 @@ const InstructorSignUpPage = () => {
   const navigate = useNavigate();
   const { loading, error, isAuthenticated, user } = useSelector((state) => state.auth);
   const [emailError, setEmailError] = useState('');
+  const [step, setStep] = useState('form');
+  const [pendingCredentials, setPendingCredentials] = useState(null);
 
   const isInstructor = hasRole(user, 'instructor');
 
@@ -82,13 +85,32 @@ const InstructorSignUpPage = () => {
     logger.debug("Submitting instructor registration...", formData);
     dispatch(registerInstructor(formData))
          .unwrap()
-         .then((res) => { 
-           logger.debug("Registration successful:", res);
-           navigate(ROUTES.LOGIN, { state: { instructorSignupSuccess: true } }); 
+         .then(() => {
+           setPendingCredentials({ email: formData.email, password: formData.password });
+           setStep('verify');
          })
          .catch((err) => {
            logger.error("Registration failed:", err);
          });
+  };
+
+  const handleVerifyOtp = (otp) => {
+    if (!pendingCredentials) return;
+    dispatch(verifyEmail({
+      email: pendingCredentials.email,
+      password: pendingCredentials.password,
+      otp,
+    }))
+      .unwrap()
+      .then(() => {
+        navigate(ROUTES.INSTRUCTOR_ENROLLMENT, { replace: true });
+      })
+      .catch(() => {});
+  };
+
+  const handleResendOtp = () => {
+    if (!pendingCredentials) return Promise.reject();
+    return dispatch(resendVerificationOtp(pendingCredentials.email)).unwrap();
   };
 
   const handleUpgrade = () => {
@@ -151,7 +173,7 @@ const InstructorSignUpPage = () => {
               <p className="text-white/40 text-[15px]">{isAuthenticated ? "Upgrade your account to start teaching." : "Create your account to start the enrollment process."}</p>
             </div>
 
-            {error && <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-2xl text-sm text-center mb-6 font-medium">{error}</div>}
+            {error && step !== 'verify' && <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-2xl text-sm text-center mb-6 font-medium">{error}</div>}
 
             {isAuthenticated ? (
                 <div className="space-y-6">
@@ -168,6 +190,15 @@ const InstructorSignUpPage = () => {
                         </Link>
                     )}
                 </div>
+            ) : step === 'verify' ? (
+                <EmailVerificationStep
+                  email={pendingCredentials?.email}
+                  onVerify={handleVerifyOtp}
+                  onResend={handleResendOtp}
+                  loading={loading}
+                  error={error}
+                  onClearError={() => dispatch(clearError())}
+                />
             ) : (
                 <form onSubmit={handleSubmit} className="space-y-6 text-white">
                   <Input label="Full Name" name="name" placeholder="John Doe" value={formData.name} onChange={handleChange} required className="h-12 bg-white/5 border-white/10 focus:border-primary-pink/50 rounded-xl" />
@@ -256,7 +287,7 @@ const InstructorSignUpPage = () => {
                 </form>
             )}
             
-            {!isAuthenticated && (
+            {!isAuthenticated && step !== 'verify' && (
               <div className="mt-8 text-center pt-6 border-t border-white/5">
                 <span className="text-white/40 text-sm">Already have an account? </span>
                 <Link to={ROUTES.LOGIN} className="text-primary-pink hover:text-primary-pink/80 font-bold text-sm transition-colors ml-1">Login here</Link>

@@ -24,6 +24,16 @@ const authService = {
         return response.data;
     },
 
+    verifyEmail: async (email, otp) => {
+        const response = await apiClient.post('/auth/verify-email', { userEmail: email, otp });
+        return response.data;
+    },
+
+    resendVerificationOtp: async (email) => {
+        const response = await apiClient.post('/auth/resend-verification', { userEmail: email });
+        return response.data;
+    },
+
     logout: async () => {
         await apiClient.post('/auth/logout');
         localStorage.removeItem('user');

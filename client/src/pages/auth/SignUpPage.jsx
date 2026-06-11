@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Check, User, Mail, Lock } from 'lucide-react';
-import { register, clearError } from '@/features/auth/store/authSlice';
+import { register, verifyEmail, resendVerificationOtp, clearError } from '@/features/auth/store/authSlice';
+import EmailVerificationStep from '@/components/auth/EmailVerificationStep';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import BrandLogo from '@/components/common/BrandLogo';
@@ -23,6 +24,8 @@ const SignUpPage = () => {
     email: '',
     password: '',
   });
+  const [step, setStep] = useState('form');
+  const [pendingCredentials, setPendingCredentials] = useState(null);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -102,7 +105,27 @@ const SignUpPage = () => {
         setPasswordError(result.error);
         return;
     }
-    dispatch(register(formData));
+    dispatch(register(formData))
+      .unwrap()
+      .then(() => {
+        setPendingCredentials({ email: formData.email, password: formData.password });
+        setStep('verify');
+      })
+      .catch(() => {});
+  };
+
+  const handleVerifyOtp = (otp) => {
+    if (!pendingCredentials) return;
+    dispatch(verifyEmail({
+      email: pendingCredentials.email,
+      password: pendingCredentials.password,
+      otp,
+    }));
+  };
+
+  const handleResendOtp = () => {
+    if (!pendingCredentials) return Promise.reject();
+    return dispatch(resendVerificationOtp(pendingCredentials.email)).unwrap();
   };
 
   return (
@@ -132,6 +155,8 @@ const SignUpPage = () => {
       <main className="flex-grow flex items-center justify-center px-4 relative z-10 py-4">
         <div className="w-full max-w-[520px] border border-white/10 rounded-[32px] p-6 md:p-8 shadow-[0_32px_120px_rgba(0,0,0,0.7)] bg-gradient-to-b from-white/[0.08] to-white/[0.02] backdrop-blur-3xl flex flex-col justify-center relative">
           
+          {step === 'form' ? (
+            <>
           <div className="text-center mb-4">
              <h1 className="text-[26px] font-bold text-white tracking-tight">Create Account</h1>
           </div>
@@ -248,6 +273,17 @@ const SignUpPage = () => {
                 <Button type="submit" isLoading={loading} className="w-full h-[46px] text-[14px] font-bold rounded-xl mt-4 relative z-0">Create Account</Button>
              </form>
           </div>
+            </>
+          ) : (
+            <EmailVerificationStep
+              email={pendingCredentials?.email}
+              onVerify={handleVerifyOtp}
+              onResend={handleResendOtp}
+              loading={loading}
+              error={error}
+              onClearError={() => dispatch(clearError())}
+            />
+          )}
 
           <div className="mt-4 pt-4 border-t border-white/5 text-center">
              <span className="text-white/40 text-[14px]">Already have an account? </span>

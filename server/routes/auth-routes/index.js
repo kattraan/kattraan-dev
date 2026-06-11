@@ -8,6 +8,8 @@ const {
   becomeInstructor,
   logoutUser,
   requestPasswordReset, resetPassword,
+  verifyEmailOtp,
+  resendVerificationOtp,
   submitEnrollment,
   adminApproveInstructor,
   becomeLearner,
@@ -27,6 +29,8 @@ const {
   validateSubmitEnrollment,
   validateAdminApprove,
   validateGoogleOneTap,
+  validateVerifyEmail,
+  validateResendVerification,
 } = require("../../validations/auth");
 
 const router = express.Router();
@@ -64,6 +68,21 @@ const loginLimiter = isDev
       },
     });
 
+const otpLimiter = isDev
+  ? (_req, _res, next) => next()
+  : rateLimit({
+      windowMs: 15 * 60 * 1000,
+      max: 5,
+      standardHeaders: true,
+      legacyHeaders: false,
+      handler: (_req, res) => {
+        res.status(429).json({
+          success: false,
+          message: 'Too many verification attempts. Please try again later.',
+        });
+      },
+    });
+
 // General limiter for other auth routes — off in dev, generous in production
 const authLimiter = isDev
   ? (_req, _res, next) => next()
@@ -84,6 +103,8 @@ router.use(authLimiter);
 
 // Routes
 router.post("/register", ...validateRegister, registerUser);
+router.post("/verify-email", otpLimiter, ...validateVerifyEmail, verifyEmailOtp);
+router.post("/resend-verification", otpLimiter, ...validateResendVerification, resendVerificationOtp);
 router.post("/login", loginLimiter, ...validateLogin, loginUser);
 router.post("/refresh", refreshAccessToken);
 router.post("/become-instructor", authenticateMiddleware, becomeInstructor);

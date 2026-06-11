@@ -44,6 +44,20 @@ const validateGoogleOneTap = [
   validateRequest,
 ];
 
+const validateVerifyEmail = [
+  body('userEmail').notEmpty().withMessage('Email is required').isEmail().withMessage('Valid email required'),
+  body('otp')
+    .notEmpty().withMessage('Verification code is required')
+    .trim()
+    .matches(/^\d{6}$/).withMessage('Verification code must be 6 digits'),
+  validateRequest,
+];
+
+const validateResendVerification = [
+  body('userEmail').notEmpty().withMessage('Email is required').isEmail().withMessage('Valid email required'),
+  validateRequest,
+];
+
 module.exports = {
   validateLogin,
   validateForgotPassword,
@@ -51,4 +65,6 @@ module.exports = {
   validateSubmitEnrollment,
   validateAdminApprove,
   validateGoogleOneTap,
+  validateVerifyEmail,
+  validateResendVerification,
 };

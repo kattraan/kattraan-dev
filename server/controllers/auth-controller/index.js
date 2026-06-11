@@ -63,6 +63,46 @@ const isInstructorNotApproved = async (user) => {
 };
 
 const MAX_SESSIONS = 3;
+const OTP_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
+
+const generateOtp = () => String(crypto.randomInt(100000, 1000000));
+
+const sendVerificationOtpEmail = async (user, otp) => {
+  const message = `
+      <h2 style="color: #ffffff; margin-top: 0;">Verify Your Email</h2>
+      <p>Hi ${user.userName},</p>
+      <p>Welcome to Kattraan! Use the verification code below to complete your registration:</p>
+      <div style="text-align: center; margin: 32px 0;">
+        <span style="display: inline-block; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #ff3fb4; background: rgba(255,63,180,0.1); padding: 16px 32px; border-radius: 12px; border: 1px solid rgba(255,63,180,0.3);">${otp}</span>
+      </div>
+      <p>This code will expire in 10 minutes.</p>
+      <p style="font-size: 14px; opacity: 0.7;">If you did not create an account, please ignore this email.</p>
+    `;
+
+  const path = require("path");
+
+  await sendEmail({
+    to: user.userEmail,
+    subject: "Verify your Kattraan account",
+    message: createEmailTemplate("Email Verification", message),
+    attachments: [
+      {
+        filename: 'logo.png',
+        path: path.join(__dirname, '../../../client/src/assets/logo.png'),
+        cid: 'kattranLogo',
+      },
+    ],
+  });
+};
+
+const setEmailVerificationOtp = async (user) => {
+  const otp = generateOtp();
+  user.emailVerificationOtp = await bcrypt.hash(otp, 10);
+  user.emailVerificationOtpExpires = new Date(Date.now() + OTP_EXPIRY_MS);
+  await user.save();
+  await sendVerificationOtpEmail(user, otp);
+  return otp;
+};
 
 // =======================
 // ✅ Register User
@@ -109,14 +149,15 @@ const registerUser = async (req, res) => {
   }
 
   // Create user (catch duplicate email → 400)
+  let user;
   try {
-    const user = await User.create({
+    user = await User.create({
       userName,
       userEmail: userEmail.toLowerCase(),
       password: hash,
       roles: finalRoles,
       status: status,
-      isVerified: false
+      isVerified: false,
     });
     await logAudit(user._id, 'SIGNUP', req, { email: userEmail, roles: finalRoles });
   } catch (err) {
@@ -126,7 +167,22 @@ const registerUser = async (req, res) => {
     throw err;
   }
 
-  res.status(201).json({ success: true, message: "Registered successfully" });
+  try {
+    await setEmailVerificationOtp(user);
+  } catch (emailErr) {
+    console.error("Verification email failed:", emailErr);
+    await User.findByIdAndDelete(user._id);
+    return res.status(500).json({
+      success: false,
+      message: "Could not send verification email. Please try again later.",
+    });
+  }
+
+  res.status(201).json({
+    success: true,
+    message: "Account created. Please check your email for the verification code.",
+    requiresVerification: true,
+  });
 };
 
 // =======================
@@ -220,6 +276,15 @@ const loginUser = async (req, res) => {
         message: isDev
           ? "Incorrect password. Please try again or reset your password."
           : "Invalid credentials",
+      });
+    }
+
+    if (user.isVerified === false) {
+      await logAudit(user._id, 'LOGIN_FAILED', req, { reason: 'email_not_verified' });
+      return res.status(403).json({
+        success: false,
+        message: "Please verify your email before logging in.",
+        requiresVerification: true,
       });
     }
 
@@ -557,6 +622,83 @@ const logoutAll = async (req, res) => {
   } catch (err) {
     console.error("Logout All Error:", err);
     res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// ─── Verify Email OTP ────────────────────────────────────────────────────────
+const verifyEmailOtp = async (req, res) => {
+  try {
+    const { userEmail, otp } = req.body;
+    if (!userEmail || !otp) {
+      return res.status(400).json({ success: false, message: "Email and OTP are required." });
+    }
+
+    if (!userEmail.toLowerCase().endsWith('@gmail.com')) {
+      return res.status(400).json({ success: false, message: "Only @gmail.com email addresses are allowed." });
+    }
+
+    const user = await User.findOne({ userEmail: userEmail.toLowerCase() });
+    if (!user) {
+      return res.status(400).json({ success: false, message: "Invalid verification code." });
+    }
+
+    if (user.isVerified) {
+      return res.status(200).json({ success: true, message: "Email already verified." });
+    }
+
+    if (!user.emailVerificationOtp || !user.emailVerificationOtpExpires || user.emailVerificationOtpExpires < Date.now()) {
+      return res.status(400).json({ success: false, message: "Verification code expired. Please request a new one." });
+    }
+
+    const isOtpValid = await bcrypt.compare(String(otp).trim(), user.emailVerificationOtp);
+    if (!isOtpValid) {
+      return res.status(400).json({ success: false, message: "Invalid verification code." });
+    }
+
+    user.isVerified = true;
+    user.emailVerificationOtp = null;
+    user.emailVerificationOtpExpires = null;
+    await user.save();
+
+    await logAudit(user._id, 'EMAIL_VERIFIED', req);
+
+    return res.status(200).json({ success: true, message: "Email verified successfully." });
+  } catch (err) {
+    console.error("Verify Email Error:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// ─── Resend Verification OTP ─────────────────────────────────────────────────
+const resendVerificationOtp = async (req, res) => {
+  try {
+    const { userEmail } = req.body;
+    if (!userEmail) {
+      return res.status(400).json({ success: false, message: "Email is required." });
+    }
+
+    if (!userEmail.toLowerCase().endsWith('@gmail.com')) {
+      return res.status(400).json({ success: false, message: "Only @gmail.com email addresses are allowed." });
+    }
+
+    const user = await User.findOne({ userEmail: userEmail.toLowerCase() });
+    if (!user) {
+      return res.status(200).json({
+        success: true,
+        message: "If that email is registered and unverified, you will receive a new code.",
+      });
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({ success: false, message: "Email is already verified." });
+    }
+
+    await setEmailVerificationOtp(user);
+
+    return res.status(200).json({ success: true, message: "Verification code sent." });
+  } catch (err) {
+    console.error("Resend OTP Error:", err);
+    return res.status(500).json({ success: false, message: "Could not send verification email. Please try again later." });
   }
 };
 
@@ -915,6 +1057,8 @@ module.exports = {
   becomeInstructor,
   becomeLearner,
   logoutUser,
+  verifyEmailOtp,
+  resendVerificationOtp,
   requestPasswordReset,
   resetPassword,
   submitEnrollment,

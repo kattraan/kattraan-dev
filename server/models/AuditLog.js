@@ -9,7 +9,7 @@ const AuditLogSchema = new mongoose.Schema({
   action: {
     type: String,
     required: true,
-    enum: ['SIGNUP', 'LOGIN', 'LOGIN_FAILED', 'LOGOUT', 'LOGOUT_ALL', 'REFRESH_TOKEN', 'PASSWORD_RESET_REQUEST', 'PASSWORD_RESET_SUCCESS'],
+    enum: ['SIGNUP', 'EMAIL_VERIFIED', 'LOGIN', 'LOGIN_FAILED', 'LOGOUT', 'LOGOUT_ALL', 'REFRESH_TOKEN', 'PASSWORD_RESET_REQUEST', 'PASSWORD_RESET_SUCCESS'],
   },
   ip: {
     type: String,
