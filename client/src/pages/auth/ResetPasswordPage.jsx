@@ -78,7 +78,7 @@ const ResetPasswordPage = () => {
   };
 
   return (
-    <div className="min-h-screen h-screen bg-[#0c091a] relative overflow-hidden flex flex-col font-satoshi selection:bg-primary-pink/30">
+    <div className="min-h-[100dvh] bg-[#0c091a] relative overflow-x-hidden flex flex-col font-satoshi selection:bg-primary-pink/30">
       <img
         src={heroBackground}
         alt="Background"
@@ -94,8 +94,8 @@ const ResetPasswordPage = () => {
         </div>
       </div>
 
-      <main className="flex-grow flex items-center justify-center px-4 relative z-10 py-4">
-        <div className="w-full max-w-[480px] border border-white/10 rounded-[32px] p-8 shadow-[0_32px_120px_rgba(0,0,0,0.7)] bg-white/[0.02] backdrop-blur-3xl flex flex-col justify-center">
+      <main className="flex-grow flex items-center justify-center px-4 sm:px-6 relative z-10 py-24 sm:py-8 overflow-y-auto">
+        <div className="w-full max-w-[480px] my-auto border border-white/10 rounded-2xl sm:rounded-[32px] p-5 sm:p-8 shadow-[0_32px_120px_rgba(0,0,0,0.7)] bg-white/[0.02] backdrop-blur-3xl flex flex-col justify-center">
           
           <div className="mb-6">
              <h1 className="text-[26px] font-bold text-white tracking-tight mb-2">Set new password</h1>

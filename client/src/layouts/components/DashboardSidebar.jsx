@@ -44,6 +44,8 @@ const DashboardSidebar = ({
   sidebarVariant = "default",
   isCollapsed,
   setIsCollapsed,
+  isMobileOpen = false,
+  onMobileClose,
 }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -56,8 +58,9 @@ const DashboardSidebar = ({
   const isDarkOnly = sidebarVariant === "dark";
 
   const asideBase =
-    "flex-shrink-0 transition-all duration-300 flex flex-col z-50 sticky top-0 h-screen font-satoshi";
-  const asideWidth = isCollapsed ? "w-20" : "w-72";
+    "flex-shrink-0 transition-all duration-300 flex flex-col z-50 font-satoshi fixed lg:sticky inset-y-0 left-0 h-[100dvh] lg:h-screen";
+  const asideWidth = isCollapsed ? "lg:w-20 w-72" : "w-72";
+  const mobileTransform = isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0";
   const asideTheme = isDarkOnly
     ? "bg-[#06070d]/95 backdrop-blur-3xl border-r border-white/10 shadow-[8px_0_28px_rgba(0,0,0,0.55)]"
     : "bg-white/60 dark:bg-[#0a0b12]/92 backdrop-blur-3xl border-r border-gray-200 dark:border-white/10 shadow-none dark:shadow-[8px_0_28px_rgba(0,0,0,0.45)]";
@@ -76,7 +79,7 @@ const DashboardSidebar = ({
     : "text-gray-500 dark:text-white/50 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white/90 border border-transparent";
 
   return (
-    <aside className={`${asideWidth} ${asideTheme} ${asideBase}`}>
+    <aside className={`${asideWidth} ${asideTheme} ${asideBase} ${mobileTransform}`}>
       <div
         className={`h-[72px] flex items-center px-6 border-b ${logoBorder} ${isCollapsed ? "justify-center" : "justify-between"}`}
       >
@@ -90,7 +93,7 @@ const DashboardSidebar = ({
         <button
           type="button"
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className={collapseBtn}
+          className={`${collapseBtn} hidden lg:block`}
           aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
@@ -105,6 +108,7 @@ const DashboardSidebar = ({
               key={item.path}
               to={item.path}
               end={item.exact ?? false}
+              onClick={onMobileClose}
               className={({ isActive }) =>
                 `flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all group border ${
                   isActive ? `${linkActive} ${linkActiveText}` : linkInactive

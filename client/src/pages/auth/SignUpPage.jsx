@@ -129,7 +129,7 @@ const SignUpPage = () => {
   };
 
   return (
-    <div className="min-h-screen h-screen bg-[#0c091a] relative overflow-hidden flex flex-col font-satoshi selection:bg-primary-pink/30">
+    <div className="min-h-[100dvh] bg-[#0c091a] relative overflow-x-hidden flex flex-col font-satoshi selection:bg-primary-pink/30">
       <img
         src={heroBackground}
         alt="Background"
@@ -152,8 +152,8 @@ const SignUpPage = () => {
         </div>
       </div>
 
-      <main className="flex-grow flex items-center justify-center px-4 relative z-10 py-4">
-        <div className="w-full max-w-[520px] border border-white/10 rounded-[32px] p-6 md:p-8 shadow-[0_32px_120px_rgba(0,0,0,0.7)] bg-gradient-to-b from-white/[0.08] to-white/[0.02] backdrop-blur-3xl flex flex-col justify-center relative">
+      <main className="flex-grow flex items-center justify-center px-4 sm:px-6 relative z-10 py-24 sm:py-8 overflow-y-auto">
+        <div className="w-full max-w-[520px] my-auto border border-white/10 rounded-2xl sm:rounded-[32px] p-5 sm:p-6 md:p-8 shadow-[0_32px_120px_rgba(0,0,0,0.7)] bg-gradient-to-b from-white/[0.08] to-white/[0.02] backdrop-blur-3xl flex flex-col justify-center relative">
           
           {step === 'form' ? (
             <>
@@ -242,7 +242,7 @@ const SignUpPage = () => {
                         )}
                         
                         {/* Floating Requirements List Only */}
-                        <div className={`absolute left-0 right-0 top-full mt-2 z-50 transition-all duration-300 ease-out origin-top transform ${isPasswordFocused ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
+                        <div className={`hidden sm:block absolute left-0 right-0 top-full mt-2 z-50 transition-all duration-300 ease-out origin-top transform ${isPasswordFocused ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
                             <div className="bg-[#1a1625]/95 backdrop-blur-xl border border-white/10 p-4 rounded-xl shadow-2xl"> 
                                <div className="space-y-1.5">
                                     {[

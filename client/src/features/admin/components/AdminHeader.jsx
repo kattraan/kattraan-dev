@@ -5,6 +5,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "@/config/routes";
 import { logout } from "@/features/auth/store/authSlice";
+import DashboardMenuButton from "@/components/common/DashboardMenuButton";
 
 const AdminHeader = () => {
   const { user } = useSelector((state) => state.auth);
@@ -39,22 +40,23 @@ const AdminHeader = () => {
   };
 
   return (
-    <header className="h-[72px] bg-white/80 dark:bg-black/80 backdrop-blur-xl border-b border-gray-200 dark:border-white/5 flex items-center justify-between px-5 sticky top-0 z-50 transition-colors duration-300">
-      <div className="flex items-center gap-4">
-        <div className="px-4 py-1.5 rounded-full bg-primary-purple/10 dark:bg-primary-purple/10 border border-primary-purple/20 dark:border-primary-purple/20 flex items-center gap-2">
-          <Shield size={14} className="text-primary-purple" />
-          <span className="text-[10px] font-bold text-primary-purple uppercase tracking-widest">
+    <header className="h-[72px] bg-white/80 dark:bg-black/80 backdrop-blur-xl border-b border-gray-200 dark:border-white/5 flex items-center justify-between gap-2 sm:gap-4 px-3 sm:px-5 sticky top-0 z-50 transition-colors duration-300 min-w-0">
+      <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+        <DashboardMenuButton />
+        <div className="px-3 sm:px-4 py-1.5 rounded-full bg-primary-purple/10 dark:bg-primary-purple/10 border border-primary-purple/20 dark:border-primary-purple/20 flex items-center gap-2 min-w-0">
+          <Shield size={14} className="text-primary-purple flex-shrink-0" />
+          <span className="text-[9px] sm:text-[10px] font-bold text-primary-purple uppercase tracking-widest truncate">
             Admin Authorization Active
           </span>
         </div>
       </div>
 
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
         <button className="relative w-10 h-10 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500 dark:text-white/40 hover:text-gray-800 dark:hover:text-white transition-all">
           <Bell size={20} />
         </button>
-        <div className="relative flex items-center gap-4 pl-6 border-l border-gray-200 dark:border-white/10" ref={profileRef}>
-          <div className="text-right">
+        <div className="relative flex items-center gap-2 sm:gap-4 pl-3 sm:pl-6 border-l border-gray-200 dark:border-white/10" ref={profileRef}>
+          <div className="text-right hidden sm:block">
             <p className="text-gray-900 dark:text-white text-sm font-bold">{displayName}</p>
             <p className="text-primary-pink text-[10px] font-bold uppercase tracking-widest">System Admin</p>
           </div>

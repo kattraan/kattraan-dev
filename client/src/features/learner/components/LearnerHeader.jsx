@@ -15,6 +15,7 @@ import { hasRole } from "@/features/auth/utils/roleUtils";
 import { ROUTES } from "@/config/routes";
 import { logout } from "@/features/auth/store/authSlice";
 import { useCart } from "@/context/CartContext";
+import DashboardMenuButton from "@/components/common/DashboardMenuButton";
 
 const LearnerHeader = () => {
   const { user } = useSelector((state) => state.auth);
@@ -50,9 +51,11 @@ const LearnerHeader = () => {
   };
 
   return (
-    <header className="h-[72px] bg-white/80 dark:bg-black/80 backdrop-blur-xl border-b border-gray-200 dark:border-white/5 flex items-center justify-between px-5 sticky top-0 z-50 font-satoshi transition-colors duration-300">
+    <header className="h-[72px] bg-white/80 dark:bg-black/80 backdrop-blur-xl border-b border-gray-200 dark:border-white/5 flex items-center justify-between gap-2 sm:gap-4 px-3 sm:px-5 sticky top-0 z-50 font-satoshi transition-colors duration-300 min-w-0">
+      <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+      <DashboardMenuButton />
       {/* Search Bar */}
-      <div className="relative w-96 max-w-full hidden md:block">
+      <div className="relative w-96 max-w-full hidden md:block min-w-0">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-white/20" />
         <input
           type="text"
@@ -60,11 +63,12 @@ const LearnerHeader = () => {
           className="w-full bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/5 rounded-full pl-12 pr-6 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary-pink/30 transition-all placeholder:text-gray-400 dark:placeholder:text-white/20"
         />
       </div>
+      </div>
 
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
         {/* Role Switcher - Compact & Professional Toggle */}
         {hasRole(user, "instructor") && (
-          <div className="flex items-center bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-full p-1 group/switcher transition-all hover:bg-gray-200 dark:hover:bg-white/[0.08]">
+          <div className="hidden sm:flex items-center bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-full p-1 group/switcher transition-all hover:bg-gray-200 dark:hover:bg-white/[0.08]">
             <Link
               to="/dashboard"
               className="w-[70px] text-center py-1.5 rounded-full text-[10px] font-black tracking-[0.15em] transition-all bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] text-white shadow-lg shadow-pink-500/20"
@@ -100,7 +104,7 @@ const LearnerHeader = () => {
           <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-primary-pink rounded-full border-2 border-white dark:border-[#0c091a]" />
         </button>
 
-        <div className="relative flex items-center gap-4 pl-6 border-l border-gray-200 dark:border-white/10" ref={profileRef}>
+        <div className="relative flex items-center gap-2 sm:gap-4 pl-3 sm:pl-6 border-l border-gray-200 dark:border-white/10" ref={profileRef}>
           <div className="text-right hidden sm:block">
             <p className="text-gray-900 dark:text-white text-sm font-black transition-colors duration-300">
               {displayName}

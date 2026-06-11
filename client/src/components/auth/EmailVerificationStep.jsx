@@ -69,9 +69,9 @@ const EmailVerificationStep = ({
           <Mail className="text-primary-pink" size={24} />
         </div>
         <h2 className="text-[22px] font-bold text-white tracking-tight">Verify your email</h2>
-        <p className="text-white/50 text-sm mt-2">
-          We sent a 6-digit code to{' '}
-          <span className="text-white/80 font-medium">{email}</span>
+        <p className="text-white/50 text-sm mt-2 px-2">
+          We sent a 6-digit code to
+          <span className="block sm:inline sm:ml-1 text-white/80 font-medium break-all">{email}</span>
         </p>
       </div>
 
@@ -98,7 +98,7 @@ const EmailVerificationStep = ({
           value={otp}
           onChange={handleOtpChange}
           required
-          className="h-[46px] text-center text-lg tracking-[0.4em] font-bold"
+          className="h-[46px] text-center text-base sm:text-lg tracking-[0.2em] sm:tracking-[0.4em] font-bold"
           icon={Mail}
         />
 

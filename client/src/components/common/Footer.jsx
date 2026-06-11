@@ -46,7 +46,7 @@ const Footer = () => {
         <Link
           key={index}
           to={link.href}
-          className="text-white text-[14px] hover:opacity-80 transition-all font-satoshi"
+          className="text-white text-[14px] hover:opacity-80 transition-all font-satoshi break-words"
         >
           {link.name}
         </Link>
@@ -56,7 +56,7 @@ const Footer = () => {
       <a
         key={index}
         href={link.href || '#'}
-        className="text-white text-[14px] hover:opacity-80 transition-all font-satoshi"
+        className="text-white text-[14px] hover:opacity-80 transition-all font-satoshi break-words"
       >
         {link.name}
       </a>
@@ -67,7 +67,7 @@ const Footer = () => {
     <footer className="relative w-full pt-12 pb-8 px-4 font-satoshi bg-gradient-to-b from-[#090c03] via-[#2d1419] via-55% to-[#3d1a20] overflow-hidden">
       <div className="max-w-[1440px] mx-auto px-6 md:px-16 relative z-10 font-satoshi">
         {/* Main Footer Links */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-12 md:gap-14 mb-10 font-satoshi">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 sm:gap-12 md:gap-14 mb-10 font-satoshi">
           {['quickLinks', 'support', 'company'].map((section) => (
             <div key={section} className="font-satoshi">
               <h3 className="text-white text-[20px] font-bold mb-8 tracking-tight capitalize font-satoshi">
@@ -89,18 +89,18 @@ const Footer = () => {
 
         {/* Subscription & Socials */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-8 font-satoshi">
-          <form onSubmit={handleSubscribe} className="relative w-full md:w-[410px] font-satoshi">
+          <form onSubmit={handleSubscribe} className="w-full md:w-[410px] font-satoshi flex flex-col sm:block sm:relative gap-3">
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email Address"
-              className="w-full border border-white/10 rounded-xl pl-6 pr-32 py-4 text-white text-[15px] placeholder:text-white focus:outline-none focus:border-white/20 transition-all font-satoshi font-medium"
+              className="w-full border border-white/10 rounded-xl pl-6 sm:pr-32 py-4 text-white text-[15px] placeholder:text-white focus:outline-none focus:border-white/20 transition-all font-satoshi font-medium"
             />
             <button
               type="submit"
               disabled={isSubscribed}
-              className="absolute right-2 top-2 bottom-2 bg-[#312527] hover:bg-[#413537] border border-white/5 text-white text-[13px] font-bold px-7 rounded-lg transition-all font-satoshi disabled:opacity-70 disabled:cursor-not-allowed"
+              className="sm:absolute sm:right-2 sm:top-2 sm:bottom-2 w-full sm:w-auto bg-[#312527] hover:bg-[#413537] border border-white/5 text-white text-[13px] font-bold px-7 py-3 sm:py-0 rounded-lg transition-all font-satoshi disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {isSubscribed ? 'Subscribed!' : 'Subscribe'}
             </button>

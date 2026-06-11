@@ -20,7 +20,7 @@ const WaitingForApprovalPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0c091a] relative overflow-hidden flex flex-col font-satoshi selection:bg-primary-pink/30">
+    <div className="min-h-[100dvh] bg-[#0c091a] relative overflow-x-hidden flex flex-col font-satoshi selection:bg-primary-pink/30">
         <img src={heroBackground} alt="" className="absolute inset-0 w-full h-full object-cover opacity-30" loading="lazy" />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0c091a]/80 to-[#0c091a]" />
 

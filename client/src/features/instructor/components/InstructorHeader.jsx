@@ -13,6 +13,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { hasRole } from "@/features/auth/utils/roleUtils";
 import { ROUTES } from "@/config/routes";
 import { logout } from "@/features/auth/store/authSlice";
+import DashboardMenuButton from "@/components/common/DashboardMenuButton";
 
 const InstructorHeader = () => {
   const { user } = useSelector((state) => state.auth);
@@ -57,7 +58,9 @@ const InstructorHeader = () => {
   };
 
   return (
-    <header className="h-[72px] bg-white/80 dark:bg-black/80 backdrop-blur-xl border-b border-gray-200 dark:border-white/5 flex items-center justify-between px-5 sticky top-0 z-50 transition-colors duration-300">
+    <header className="h-[72px] bg-white/80 dark:bg-black/80 backdrop-blur-xl border-b border-gray-200 dark:border-white/5 flex items-center justify-between gap-2 sm:gap-4 px-3 sm:px-5 sticky top-0 z-50 transition-colors duration-300 min-w-0">
+      <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+      <DashboardMenuButton />
       {/* Search Bar */}
       <div className="relative w-96 max-w-full hidden md:block">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-white/20" />
@@ -67,11 +70,12 @@ const InstructorHeader = () => {
           className="w-full bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/5 rounded-full pl-12 pr-6 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary-pink/30 transition-all placeholder:text-gray-400 dark:placeholder:text-white/20"
         />
       </div>
+      </div>
 
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
         {/* Role Switcher - Professional pill toggle */}
         {hasRole(user, "instructor") && (
-          <div className="flex items-center rounded-full p-1 bg-gray-100/80 dark:bg-white/[0.06] border border-gray-200/80 dark:border-white/10 shadow-inner transition-colors duration-300">
+          <div className="hidden sm:flex items-center rounded-full p-1 bg-gray-100/80 dark:bg-white/[0.06] border border-gray-200/80 dark:border-white/10 shadow-inner transition-colors duration-300">
             <Link
               to="/dashboard"
               className={`min-w-[76px] px-4 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200 ${
@@ -104,7 +108,7 @@ const InstructorHeader = () => {
         </button>
 
         <div
-          className="relative flex items-center gap-4 pl-6 border-l border-gray-200 dark:border-white/10"
+          className="relative flex items-center gap-2 sm:gap-4 pl-3 sm:pl-6 border-l border-gray-200 dark:border-white/10"
           ref={profileRef}
         >
           <div className="text-right hidden sm:block">

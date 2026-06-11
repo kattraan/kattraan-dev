@@ -59,7 +59,7 @@ const TestimonialCard = ({ testimonial, position, isCenter, carouselRadius = 460
         ref={cardRef}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
-        className="relative w-[380px] min-h-[320px] rounded-[32px] transition-all duration-700"
+        className="relative w-[min(100vw-2rem,380px)] max-w-[380px] min-h-[280px] sm:min-h-[320px] rounded-2xl sm:rounded-[32px] transition-all duration-700"
         style={{
           transform: `rotateY(${style.rotateY}deg) rotateX(${tilt.y}deg) rotateY(${tilt.x}deg)`,
           transformStyle: 'preserve-3d',
@@ -152,7 +152,10 @@ const TestimonialsSection = () => {
 
   useEffect(() => {
     const updateRadius = () => {
-      setCarouselRadius(window.innerWidth < 768 ? 280 : 460);
+      const width = window.innerWidth;
+      if (width < 480) setCarouselRadius(140);
+      else if (width < 768) setCarouselRadius(200);
+      else setCarouselRadius(460);
     };
     updateRadius();
     window.addEventListener('resize', updateRadius);
@@ -266,7 +269,7 @@ const TestimonialsSection = () => {
       </div>
 
       {/* Main Content Container (Background + Carousel) */}
-      <div className="relative w-full max-w-[1400px] h-[700px] rounded-[32px] border border-white/10 overflow-hidden shadow-2xl">
+      <div className="relative w-full max-w-[1400px] min-h-[480px] sm:min-h-[560px] lg:h-[700px] rounded-2xl sm:rounded-[32px] border border-white/10 overflow-hidden shadow-2xl">
         
         {/* Absolute Background Images - Copied from BlogSection */}
         <div className="absolute inset-0 pointer-events-none z-0 opacity-60">
@@ -301,7 +304,7 @@ const TestimonialsSection = () => {
           
           {/* Original Carousel Logic */}
           <div 
-            className="relative h-[650px] w-full"
+            className="relative h-[420px] sm:h-[520px] lg:h-[650px] w-full"
             onMouseEnter={() => setIsAutoPlaying(false)}
             onMouseLeave={() => setIsAutoPlaying(true)}
           >

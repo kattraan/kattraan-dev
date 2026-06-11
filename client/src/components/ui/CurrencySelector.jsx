@@ -7,7 +7,7 @@ import { CURRENCY_SYMBOLS, CURRENCY_NAMES } from '@/utils/currency';
  * CurrencySelector — compact dropdown for the Navbar.
  * Lets the user switch their display currency. Selection persists in localStorage.
  */
-export default function CurrencySelector() {
+export default function CurrencySelector({ buttonClassName = '' }) {
   const { userCurrency, supportedCurrencies, changeCurrency, loading } = useCurrency();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -30,7 +30,7 @@ export default function CurrencySelector() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 text-white/80 hover:text-white text-sm font-medium transition-colors px-2 py-1.5 rounded-lg hover:bg-white/10"
+        className={`flex items-center gap-1.5 text-sm font-medium transition-colors px-2 py-1.5 rounded-lg ${buttonClassName || 'text-white/80 hover:text-white hover:bg-white/10'}`}
         aria-label="Change currency"
       >
         <span className="font-bold">{symbol}</span>

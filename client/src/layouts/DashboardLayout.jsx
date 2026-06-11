@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { DashboardLayoutContext } from "@/layouts/DashboardLayoutContext";
 import { Outlet, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { getDashboardConfig, DASHBOARD_ROLES } from "@/config/dashboardConfig";
@@ -16,8 +17,12 @@ import heroBackground from "@/assets/hero-background.png";
  */
 const DashboardLayout = ({ role = DASHBOARD_ROLES.LEARNER }) => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const { user } = useSelector((state) => state.auth);
   const navigate = useNavigate();
+
+  const openMobileSidebar = useCallback(() => setIsMobileSidebarOpen(true), []);
+  const closeMobileSidebar = useCallback(() => setIsMobileSidebarOpen(false), []);
 
   const config = getDashboardConfig(role);
 
@@ -40,7 +45,8 @@ const DashboardLayout = ({ role = DASHBOARD_ROLES.LEARNER }) => {
   };
 
   return (
-    <div className="h-screen bg-gray-100 dark:bg-black flex font-satoshi selection:bg-primary-pink/30 relative overflow-hidden transition-colors duration-300">
+    <DashboardLayoutContext.Provider value={{ openMobileSidebar, closeMobileSidebar }}>
+    <div className="min-h-[100dvh] h-[100dvh] bg-gray-100 dark:bg-black flex font-satoshi selection:bg-primary-pink/30 relative overflow-hidden transition-colors duration-300">
       {/* Background */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <img
@@ -53,12 +59,23 @@ const DashboardLayout = ({ role = DASHBOARD_ROLES.LEARNER }) => {
         <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-primary-purple/5 blur-[150px] -z-10 rounded-full" />
       </div>
 
-      {/* Sidebar – sticky for the full viewport height */}
+      {isMobileSidebarOpen && (
+        <button
+          type="button"
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          aria-label="Close navigation menu"
+          onClick={closeMobileSidebar}
+        />
+      )}
+
+      {/* Sidebar – drawer on mobile, sticky on desktop */}
       <DashboardSidebar
         navItems={config.navItems}
         sidebarVariant={config.sidebarVariant || "default"}
         isCollapsed={isSidebarCollapsed}
         setIsCollapsed={setIsSidebarCollapsed}
+        isMobileOpen={isMobileSidebarOpen}
+        onMobileClose={closeMobileSidebar}
       />
 
       {/* Right column */}
@@ -67,7 +84,7 @@ const DashboardLayout = ({ role = DASHBOARD_ROLES.LEARNER }) => {
         <div className="flex-shrink-0 w-full min-w-0">{renderHeader()}</div>
 
         {/* Content area: margin on top / left / right, flush at bottom */}
-        <div className="flex-1 min-h-0 px-4 pt-4 pb-0 overflow-hidden">
+        <div className="flex-1 min-h-0 px-3 sm:px-4 pt-3 sm:pt-4 pb-0 overflow-hidden">
           {/* White scrollable container – rounded top corners, open bottom */}
           <div className="h-full bg-white dark:bg-[#070709] rounded-t-2xl overflow-y-auto scrollbar-hide border border-b-0 border-gray-200 dark:border-white/[0.08] shadow-sm dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]">
             <div className={`${config.contentPadding}`}>
@@ -77,6 +94,7 @@ const DashboardLayout = ({ role = DASHBOARD_ROLES.LEARNER }) => {
         </div>
       </div>
     </div>
+    </DashboardLayoutContext.Provider>
   );
 };
 

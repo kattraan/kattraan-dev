@@ -12,7 +12,6 @@ import {
   CheckCircle2
 } from "lucide-react";
 import { logger } from "@/utils/logger";
-
 const Contact = () => {
   const [formState, setFormState] = useState({
     name: "",

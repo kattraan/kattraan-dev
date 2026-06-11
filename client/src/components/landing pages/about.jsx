@@ -18,7 +18,6 @@ import {
   ShieldCheck
 } from "lucide-react";
 import { ROUTES } from "@/config/routes";
-
 const About = () => {
   return (
     <div className="relative w-full overflow-hidden bg-[#090C03] text-white">

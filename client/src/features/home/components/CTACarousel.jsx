@@ -149,7 +149,7 @@ const CTACarousel = () => {
         </button>
 
         {/* Gray Background Container */}
-        <div className="backdrop-blur-xl bg-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.1)] rounded-[45px] p-4 md:p-6 border border-white/20 relative overflow-hidden group/main">
+        <div className="backdrop-blur-xl bg-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.1)] rounded-3xl sm:rounded-[45px] p-3 sm:p-4 md:p-6 border border-white/20 relative overflow-hidden group/main">
           
           {/* Wrapper */}
           <div className="relative w-full overflow-hidden">
@@ -161,15 +161,15 @@ const CTACarousel = () => {
                 {slides.map((slide, index) => (
                   <div key={`${slide.id}-${index}`} className="w-full flex-shrink-0 snap-center p-2">
                     <div className="relative h-full bg-gradient-to-r from-[#cf4a69] to-[#de7388] rounded-[30px] p-[1px] overflow-hidden shadow-2xl">
-                      <div className="relative bg-gradient-to-r from-[#cf4a69] to-[#de7388] rounded-[28px] p-8 md:p-12 flex items-center justify-between overflow-hidden h-[420px] sm:h-[360px] md:h-[310px]">
-                        <div className="flex-1 z-10 flex flex-col h-full">
+                      <div className="relative bg-gradient-to-r from-[#cf4a69] to-[#de7388] rounded-[28px] p-6 sm:p-8 md:p-12 flex flex-col md:flex-row items-start md:items-center justify-between overflow-hidden min-h-[320px] sm:min-h-[300px] md:h-[310px]">
+                        <div className="flex-1 z-10 flex flex-col h-full min-w-0 w-full">
                           <div className="flex items-center gap-2 mb-3">
                             <Sparkles className="w-4 h-4 text-[#fea76e] fill-[#fea76e]" />
                             <span className="text-white/90 text-[12px] font-medium tracking-wide">
                               {slide.tag}
                             </span>
                           </div>
-                          <h3 className="text-white text-[24px] md:text-[32px] font-bold mb-3 leading-tight min-h-[64px] md:min-h-[80px] flex items-center">
+                          <h3 className="text-white text-xl sm:text-[24px] md:text-[32px] font-bold mb-3 leading-tight min-h-0 md:min-h-[80px]">
                             {slide.title}
                           </h3>
                           <p className="text-white/90 text-[14px] leading-relaxed mb-6 max-w-[500px] flex-1">

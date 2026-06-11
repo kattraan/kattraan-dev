@@ -9,7 +9,6 @@ import {
   Headphones,
   Building2,
 } from "lucide-react";
-
 const faqData = [
   {
     question: "How do I enroll in a course?",
@@ -105,13 +104,16 @@ const AccordionItem = ({ item, isOpen, onToggle, index }) => {
         role="region"
         aria-labelledby={`faq-question-${index}`}
         className={`overflow-hidden transition-all duration-500 ease-in-out ${
-          isOpen ? "max-h-60 opacity-100" : "max-h-0 opacity-0"
+          isOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
         }`}
       >
-        <div className="px-6 md:px-7 pb-6 md:pb-7 pl-[72px] md:pl-[84px]">
+        <div className="px-6 md:px-7 pb-6 md:pb-7 flex gap-4 md:gap-5">
+          <div className="w-10 flex-shrink-0" aria-hidden="true" />
+          <div className="flex-1 min-w-0">
           <p className="text-white/65 text-sm md:text-base font-light leading-relaxed">
             {item.answer}
           </p>
+          </div>
         </div>
       </div>
     </div>

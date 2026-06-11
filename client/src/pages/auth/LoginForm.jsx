@@ -76,7 +76,7 @@ export default function LoginForm({ instructorSignupSuccess }) {
             <Input label="Email" name="email" type="email" placeholder="name@gmail.com" value={formData.email} onChange={handleChange} error={emailError} required className="h-[44px]" icon={Mail} />
             <div className="space-y-1">
               <Input label="Password" name="password" type="password" placeholder="••••••••" value={formData.password} onChange={handleChange} required className="h-[44px]" icon={Lock} />
-              <div className="flex justify-between items-center pt-1">
+              <div className="flex flex-wrap justify-between items-center gap-y-2 pt-1">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <div className="w-3.5 h-3.5 rounded border border-white/20 bg-white/5 flex items-center justify-center" />
                   <span className="text-[12px] text-white/50">Remember me</span>

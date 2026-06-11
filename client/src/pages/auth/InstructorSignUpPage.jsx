@@ -123,7 +123,7 @@ const InstructorSignUpPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0c091a] relative overflow-hidden flex flex-col font-satoshi selection:bg-primary-pink/30">
+    <div className="min-h-[100dvh] bg-[#0c091a] relative overflow-x-hidden flex flex-col font-satoshi selection:bg-primary-pink/30">
         <img src={heroBackground} alt="" className="absolute inset-0 w-full h-full object-cover opacity-60" loading="lazy" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-[#0c091a]/40 to-[#0c091a]" />
 
@@ -135,11 +135,11 @@ const InstructorSignUpPage = () => {
         </div>
       </div>
 
-      <main className="flex-grow flex items-center justify-center pt-24 pb-16 px-4 relative z-10">
-        <div className="w-full max-w-[950px] border border-white/10 rounded-[40px] overflow-hidden shadow-[0_32px_120px_rgba(0,0,0,0.8)] bg-gradient-to-br from-white/[0.05] to-white/[0.01] backdrop-blur-3xl flex flex-col md:flex-row">
+      <main className="flex-grow flex items-center justify-center pt-24 pb-16 px-4 sm:px-6 relative z-10 overflow-y-auto">
+        <div className="w-full max-w-[950px] border border-white/10 rounded-2xl sm:rounded-[40px] overflow-hidden shadow-[0_32px_120px_rgba(0,0,0,0.8)] bg-gradient-to-br from-white/[0.05] to-white/[0.01] backdrop-blur-3xl flex flex-col md:flex-row">
           
           {/* Left panel: Info & Branding */}
-          <div className="bg-gradient-to-br from-[#FF8C42]/20 to-[#FF3FB4]/20 p-10 md:p-14 flex flex-col justify-between md:w-[42%] relative overflow-hidden border-r border-white/5">
+          <div className="hidden md:flex bg-gradient-to-br from-[#FF8C42]/20 to-[#FF3FB4]/20 p-8 lg:p-14 flex-col justify-between md:w-[42%] relative overflow-hidden border-r border-white/5">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-[#FF3FB4]/10 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/2" />
                 
                 <div className="relative z-10">
@@ -167,7 +167,7 @@ const InstructorSignUpPage = () => {
           </div>
 
           {/* Right panel: Form */}
-          <div className="p-8 md:p-14 md:w-[58%] flex flex-col justify-center">
+          <div className="p-6 sm:p-8 md:p-14 md:w-[58%] flex flex-col justify-center w-full">
             <div className="mb-10">
               <h1 className="text-3xl font-bold text-white mb-2">{isAuthenticated ? "Become an Instructor" : "Instructor Sign Up"}</h1>
               <p className="text-white/40 text-[15px]">{isAuthenticated ? "Upgrade your account to start teaching." : "Create your account to start the enrollment process."}</p>
@@ -257,7 +257,7 @@ const InstructorSignUpPage = () => {
                       )}
 
                       {/* Floating Requirements List */}
-                      <div className={`absolute left-0 right-0 top-full mt-4 z-50 transition-all duration-300 ease-out origin-top transform ${isPasswordFocused ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
+                      <div className={`hidden sm:block absolute left-0 right-0 top-full mt-4 z-50 transition-all duration-300 ease-out origin-top transform ${isPasswordFocused ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
                           <div className="bg-[#1a1625]/95 backdrop-blur-2xl border border-white/10 p-5 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)]"> 
                              <div className="space-y-2">
                                   {[
