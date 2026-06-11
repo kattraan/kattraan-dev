@@ -55,6 +55,16 @@ function setStoredPlaybackSpeed(rate) {
 /** If still loading after this, clear spinner so user can interact (e.g. retry play). */
 const LOADING_TIMEOUT_MS = 20000;
 
+/** Reposition watermark every N seconds of playback. */
+const WATERMARK_MOVE_INTERVAL_SEC = 10;
+
+function randomWatermarkPosition() {
+  return {
+    top: 8 + Math.random() * 75,
+    left: 8 + Math.random() * 84,
+  };
+}
+
 export default function LMSVideoPlayer({
   activeChapter,
   posterUrl,
@@ -75,7 +85,10 @@ export default function LMSVideoPlayer({
   const speedMenuRef = useRef(null);
   const [qualityMenuPos, setQualityMenuPos] = useState(null);
   const [speedMenuPos, setSpeedMenuPos] = useState(null);
-  const userEmail = useSelector((state) => state.auth?.user?.email ?? '');
+  const loginEmail = useSelector((state) => {
+    const user = state.auth?.user;
+    return user?.userEmail || user?.email || '';
+  });
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPiP, setIsPiP] = useState(false);
@@ -98,11 +111,9 @@ export default function LMSVideoPlayer({
   /** User intent: false after explicit pause; true after explicit play. Prevents canplay/buffer from auto-resuming. */
   const userWantsPlaybackRef = useRef(autoPlay);
 
-  const [watermark, setWatermark] = useState(() => ({
-    top: 12,
-    left: 10,
-    ts: new Date().toLocaleString(),
-  }));
+  const [watermarkPos, setWatermarkPos] = useState(randomWatermarkPosition);
+  const [wallClockTs, setWallClockTs] = useState(() => new Date().toLocaleString());
+  const watermarkSegmentRef = useRef(-1);
 
   const videoContent = activeChapter?.contents?.find((c) => c.type === 'video');
   const videoContentId = videoContent?._id || videoContent?.id;
@@ -390,19 +401,30 @@ export default function LMSVideoPlayer({
     };
   }, [showSpeedMenu]);
 
-  // Watermark: update position and timestamp every 10s to deter cropping
+  // Reset watermark when the lesson changes
   useEffect(() => {
-    const update = () => {
-      setWatermark({
-        top: 5 + Math.random() * 80,
-        left: 5 + Math.random() * 80,
-        ts: new Date().toLocaleString(),
-      });
-    };
-    const t = setInterval(update, 10000);
-    update();
-    return () => clearInterval(t);
+    watermarkSegmentRef.current = -1;
+    setWatermarkPos(randomWatermarkPosition());
+    setWallClockTs(new Date().toLocaleString());
   }, [videoContentId]);
+
+  // Live date & time while the video is playing
+  useEffect(() => {
+    if (!isPlaying) return;
+    const tick = () => setWallClockTs(new Date().toLocaleString());
+    tick();
+    const t = setInterval(tick, 1000);
+    return () => clearInterval(t);
+  }, [isPlaying, videoContentId]);
+
+  // Moving watermark: jump position every N seconds of playback time
+  useEffect(() => {
+    if (!isPlaying) return;
+    const segment = Math.floor(currentTime / WATERMARK_MOVE_INTERVAL_SEC);
+    if (segment === watermarkSegmentRef.current) return;
+    watermarkSegmentRef.current = segment;
+    setWatermarkPos(randomWatermarkPosition());
+  }, [currentTime, isPlaying]);
 
   // If source hangs, stop holding internal loading flag (controls stay usable)
   useEffect(() => {
@@ -658,18 +680,19 @@ export default function LMSVideoPlayer({
         onError={handleError}
       />
 
-      {/* Dynamic watermark: position changes every 10s to prevent cropping */}
-      {(userEmail || watermark.ts) && (
+      {/* Dynamic watermark: user email + live date/time while playing */}
+      {isPlaying && (
         <div
-          className="absolute z-[8] pointer-events-none text-white/70 text-[10px] sm:text-xs font-medium whitespace-nowrap drop-shadow-md"
+          className="absolute z-[8] pointer-events-none text-white/75 text-[10px] sm:text-xs font-medium whitespace-nowrap drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] transition-all duration-700 ease-in-out select-none"
           style={{
-            top: `${watermark.top}%`,
-            left: `${watermark.left}%`,
+            top: `${watermarkPos.top}%`,
+            left: `${watermarkPos.left}%`,
             transform: 'translate(-50%, -50%)',
           }}
+          aria-hidden
         >
-          {userEmail && <span className="block truncate max-w-[180px]">{userEmail}</span>}
-          <span>{watermark.ts}</span>
+          {loginEmail && <span className="block truncate max-w-[220px]">{loginEmail}</span>}
+          <span className="block tabular-nums">{wallClockTs}</span>
         </div>
       )}
 

@@ -116,39 +116,68 @@ router.get(
 router.post("/google/one-tap", ...validateGoogleOneTap, googleOneTapLogin);
 
 
-// Protected route to check authentication
-router.get("/check-auth", authenticateMiddleware, async (req, res) => {
+// Check authentication — always returns 200 to avoid browser console 401 noise.
+// Unauthenticated users get { isAuthenticated: false }; authenticated users get their profile.
+router.get("/check-auth", async (req, res) => {
   try {
+    const jwt = require("jsonwebtoken");
+    const Blacklist = require("../../models/Blacklist");
     const User = require("../../models/User");
     const Role = require("../../models/Role");
-    const user = await User.findById(req.user._id);
 
-    if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
+    // Extract token from Authorization header or HttpOnly cookie
+    let token = null;
+    const authHeader = req.headers.authorization || "";
+    if (authHeader.startsWith("Bearer ")) {
+      token = authHeader.slice(7).trim();
+    } else if (req.cookies?.accessToken) {
+      token = req.cookies.accessToken;
     }
 
-    // Fetch all roles for multi-role awareness
+    if (!token) {
+      return res.status(200).json({ success: true, isAuthenticated: false });
+    }
+
+    // Check blacklist
+    const blacklisted = await Blacklist.findOne({ token });
+    if (blacklisted) {
+      return res.status(200).json({ success: true, isAuthenticated: false });
+    }
+
+    // Verify JWT — expired / invalid → treat as unauthenticated
+    let payload;
+    try {
+      payload = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+    } catch {
+      return res.status(200).json({ success: true, isAuthenticated: false });
+    }
+
+    const user = await User.findById(payload._id || payload.user_id);
+    if (!user) {
+      return res.status(200).json({ success: true, isAuthenticated: false });
+    }
+
     const rolesData = await Role.find({ roleId: { $in: user.roles } });
     const roleNames = rolesData.map(r => r.roleName);
 
-    // Minimal profile for UI (NO UUIDs, NO sessions, NO internal structures)
     const safeProfile = {
       _id: user._id,
       userName: user.userName,
       userEmail: user.userEmail,
       status: user.status,
       roles: roleNames,
-      role: roleNames.includes('admin') ? 'admin' : (roleNames.includes('instructor') ? 'instructor' : 'learner')
+      role: roleNames.includes('admin') ? 'admin' : (roleNames.includes('instructor') ? 'instructor' : 'learner'),
     };
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
+      isAuthenticated: true,
       message: "Authenticated user!",
       data: { user: safeProfile },
     });
   } catch (error) {
     console.error("Check Auth Error:", error);
-    res.status(500).json({ success: false, message: "Server error" });
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 });
 

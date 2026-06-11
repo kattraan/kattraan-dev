@@ -8,7 +8,7 @@ export const login = createAsyncThunk('auth/login', async ({ email, password }, 
         const response = await authService.login(email, password);
         // Sequential call: Fetch profile after successful login
         const userResponse = await authService.checkAuth();
-        return { ...response, user: userResponse.data.user };
+        return { ...response, user: userResponse.data?.user };
     } catch (error) {
         const message = error.response?.data?.message || error.message;
         return thunkAPI.rejectWithValue(message);
@@ -22,7 +22,7 @@ export const register = createAsyncThunk('auth/register', async (userData, thunk
         const response = await authService.login(userData.email, userData.password);
         // Sequential call: Fetch profile
         const userResponse = await authService.checkAuth();
-        return { ...response, user: userResponse.data.user };
+        return { ...response, user: userResponse.data?.user };
     } catch (error) {
         const message = error.response?.data?.message || error.message;
         return thunkAPI.rejectWithValue(message);
@@ -83,7 +83,12 @@ export const becomeLearner = createAsyncThunk('auth/becomeLearner', async (_, th
 export const checkAuth = createAsyncThunk('auth/checkAuth', async (_, thunkAPI) => {
     try {
         const response = await authService.checkAuth();
-        return response.data.user; // expecting { success: true, data: { user } }
+        // Server now returns { success, isAuthenticated, data?: { user } } with HTTP 200 always.
+        // Reject silently (no thrown error) when the user is not logged in.
+        if (!response?.isAuthenticated) {
+            return thunkAPI.rejectWithValue(null);
+        }
+        return response.data?.user;
     } catch (error) {
         return thunkAPI.rejectWithValue(null);
     }
@@ -104,7 +109,7 @@ export const googleOneTapLoginAction = createAsyncThunk('auth/googleOneTapLogin'
         const response = await authService.googleOneTapLogin(idToken);
         // Sequential call: Fetch profile
         const userResponse = await authService.checkAuth();
-        return userResponse.data.user;
+        return userResponse.data?.user;
     } catch (error) {
         const message = error.response?.data?.message || error.message;
         return thunkAPI.rejectWithValue(message);

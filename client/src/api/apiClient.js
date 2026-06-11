@@ -69,8 +69,12 @@ apiClient.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
-        // SKIP refresh logic for login or refresh requests themselves to avoid infinite loops
-        if (originalRequest.url.includes('/auth/login') || originalRequest.url.includes('/auth/refresh')) {
+        // SKIP refresh logic for login, refresh, or check-auth to avoid infinite loops / pointless retries
+        if (
+          originalRequest.url.includes('/auth/login') ||
+          originalRequest.url.includes('/auth/refresh') ||
+          originalRequest.url.includes('/auth/check-auth')
+        ) {
             return Promise.reject(error);
         }
 
