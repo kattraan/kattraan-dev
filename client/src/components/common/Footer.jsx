@@ -126,8 +126,8 @@ const Footer = () => {
           </div> */}
 
           <div className="pt-2">
-            <p className="text-white text-[12px] font-medium tracking-widest uppercase font-satoshi leading-relaxed">
-              © 2026 All Rights Reserved
+            <p className="text-white text-[11px] font-medium tracking-widest uppercase font-satoshi leading-relaxed">
+              Copyright © 2026 Urbancode Edutech Solutions Private Limited. All rights reserved.
             </p>
           </div>
         </div>

@@ -201,8 +201,7 @@ const Contact = () => {
                   <div>
                     <p className="text-xs text-white/50 uppercase tracking-wider font-bold">Registered Office</p>
                     <p className="text-white/80 font-light text-sm leading-relaxed mt-1">
-                      Urbancode Training And Solutions
-                      Private Limited,<br />
+                      Urbancode Edutech Solutions Private Limited,<br />
                       9/29, 5th St, Kamakoti Nagar, Pallikaranai, Chennai, Tamil Nadu, 600100
                     </p>
                   </div>
