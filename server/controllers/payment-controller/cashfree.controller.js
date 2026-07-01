@@ -194,7 +194,8 @@ async function verifyPayment(req, res) {
 
 function getPaymentMode(_req, res) {
   const keyId = (process.env.CASHFREE_APP_ID || process.env.CASHFREE_CLIENT_ID || '').trim();
-  const testMode = !keyId || keyId.includes('test') || process.env.CASHFREE_ENV !== 'production';
+  const envName = String(process.env.CASHFREE_ENV || '').trim().toLowerCase();
+  const testMode = !keyId || keyId.includes('test') || envName !== 'production';
   res.json({ success: true, testMode });
 }
 

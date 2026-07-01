@@ -103,6 +103,7 @@ const setEmailVerificationOtp = async (user) => {
   user.emailVerificationOtpExpires = new Date(Date.now() + OTP_EXPIRY_MS);
   await user.save();
   await sendVerificationOtpEmail(user, otp);
+  console.log(`[auth] generated verification otp for ${user.userEmail}: ${otp}`);
   return otp;
 };
 

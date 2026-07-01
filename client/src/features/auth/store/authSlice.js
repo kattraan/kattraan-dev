@@ -27,10 +27,14 @@ export const register = createAsyncThunk('auth/register', async (userData, thunk
 
 export const verifyEmail = createAsyncThunk('auth/verifyEmail', async ({ email, password, otp }, thunkAPI) => {
     try {
-        await authService.verifyEmail(email, otp);
-        const response = await authService.login(email, password);
+        const verifyResponse = await authService.verifyEmail(email, otp);
+        if (!verifyResponse?.success) {
+            return thunkAPI.rejectWithValue(verifyResponse?.message || 'Verification failed.');
+        }
+
+        const loginResponse = await authService.login(email, password);
         const userResponse = await authService.checkAuth();
-        return { ...response, user: userResponse.data?.user };
+        return { ...loginResponse, user: userResponse.data?.user ?? userResponse.user ?? null };
     } catch (error) {
         const message = error.response?.data?.message || error.message;
         return thunkAPI.rejectWithValue(message);

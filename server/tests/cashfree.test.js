@@ -1,4 +1,4 @@
-const { createOrder } = require('../controllers/payment-controller/cashfree.controller');
+const { createOrder, getPaymentMode } = require('../controllers/payment-controller/cashfree.controller');
 
 jest.mock('../helpers/cashfree', () => ({
   createOrder: jest.fn(),
@@ -206,6 +206,20 @@ describe('Cashfree create-order controller', () => {
         }),
       }),
     );
+  });
+
+  it('reports production mode when CASHFREE_ENV is set to PRODUCTION', () => {
+    process.env.CASHFREE_ENV = 'PRODUCTION';
+    process.env.CASHFREE_APP_ID = '1322230d8063a5f44ed9e2114a90322231';
+    process.env.CASHFREE_SECRET_KEY = 'cfsk_ma_prod_example';
+
+    const res = {
+      json: jest.fn(),
+    };
+
+    getPaymentMode({}, res);
+
+    expect(res.json).toHaveBeenCalledWith({ success: true, testMode: false });
   });
 
   it('builds a frontend return URL that preserves the checkout route', async () => {

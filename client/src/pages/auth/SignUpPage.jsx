@@ -116,10 +116,11 @@ const SignUpPage = () => {
 
   const handleVerifyOtp = (otp) => {
     if (!pendingCredentials) return;
+    const normalizedOtp = String(otp || '').trim();
     dispatch(verifyEmail({
       email: pendingCredentials.email,
       password: pendingCredentials.password,
-      otp,
+      otp: normalizedOtp,
     }));
   };
 

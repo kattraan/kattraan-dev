@@ -38,11 +38,13 @@ const EmailVerificationStep = ({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (otp.length !== 6) {
+    const normalizedOtp = otp.replace(/\D/g, '').slice(0, 6);
+    if (normalizedOtp.length !== 6) {
       setOtpError('Please enter the 6-digit code');
       return;
     }
-    onVerify(otp);
+    setOtp(normalizedOtp);
+    onVerify(normalizedOtp);
   };
 
   const handleResend = async () => {
