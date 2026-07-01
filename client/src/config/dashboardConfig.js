@@ -41,6 +41,11 @@ const dashboardConfig = {
       },
       { label: "User Center", path: ROUTES.ADMIN_USERS, icon: "Users" },
       {
+        label: "Communities",
+        path: ROUTES.ADMIN_COMMUNITIES,
+        icon: "MessageCircle",
+      },
+      {
         label: "System Settings",
         path: ROUTES.ADMIN_SETTINGS,
         icon: "Settings",
@@ -68,6 +73,11 @@ const dashboardConfig = {
         label: "Analytics",
         path: ROUTES.INSTRUCTOR_ANALYTICS,
         icon: "BarChart3",
+      },
+      {
+        label: "Community",
+        path: ROUTES.INSTRUCTOR_COMMUNITY,
+        icon: "MessageCircle",
       },
       { label: "Settings", path: ROUTES.INSTRUCTOR_SETTINGS, icon: "Settings" },
     ],
@@ -99,6 +109,7 @@ const dashboardConfig = {
         path: ROUTES.DASHBOARD_CERTIFICATES,
         icon: "GraduationCap",
       },
+      { label: "Community", path: ROUTES.COMMUNITY, icon: "MessageCircle" },
       { label: "Profile", path: ROUTES.DASHBOARD_PROFILE, icon: "User" },
     ],
   },

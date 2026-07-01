@@ -99,16 +99,6 @@ describe("POST /api/auth/register", () => {
     expect(res.body.success).toBe(false);
   });
 
-  it("should return 400 for non-Gmail email", async () => {
-    const res = await request(app)
-      .post("/api/auth/register")
-      .send({ ...validUser, userEmail: "user@yahoo.com" })
-      .expect("Content-Type", /json/);
-
-    expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/gmail/i);
-  });
-
   it("should return 400 for weak password", async () => {
     const res = await request(app)
       .post("/api/auth/register")

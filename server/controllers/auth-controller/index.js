@@ -68,28 +68,30 @@ const OTP_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
 const generateOtp = () => String(crypto.randomInt(100000, 1000000));
 
 const sendVerificationOtpEmail = async (user, otp) => {
-  const message = `
-      <h2 style="color: #ffffff; margin-top: 0;">Verify Your Email</h2>
-      <p>Hi ${user.userName},</p>
-      <p>Welcome to Kattraan! Use the verification code below to complete your registration:</p>
-      <div style="text-align: center; margin: 32px 0;">
-        <span style="display: inline-block; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #ff3fb4; background: rgba(255,63,180,0.1); padding: 16px 32px; border-radius: 12px; border: 1px solid rgba(255,63,180,0.3);">${otp}</span>
-      </div>
-      <p>This code will expire in 10 minutes.</p>
-      <p style="font-size: 14px; opacity: 0.7;">If you did not create an account, please ignore this email.</p>
-    `;
-
   const path = require("path");
+
+  const content = `
+    <h2>Verify Your Email</h2>
+    <p>Hi <strong>${user.userName}</strong>, welcome to Kattraan!</p>
+    <p>Use the code below to complete your registration:</p>
+    <div class="otp-card">
+      <div class="otp-digits">${otp}</div>
+      <div class="otp-label">Verification Code</div>
+    </div>
+    <div class="expiry-pill">&#x23F1; Expires in 10 minutes</div>
+    <hr class="rule" />
+    <p class="note">Didn't create an account? You can safely ignore this email.</p>
+  `;
 
   await sendEmail({
     to: user.userEmail,
     subject: "Verify your Kattraan account",
-    message: createEmailTemplate("Email Verification", message),
+    message: createEmailTemplate("Email Verification", content),
     attachments: [
       {
-        filename: 'logo.png',
-        path: path.join(__dirname, '../../../client/src/assets/logo.png'),
-        cid: 'kattranLogo',
+        filename: "logo.png",
+        path: path.join(__dirname, "../../../client/src/assets/logo.png"),
+        cid: "kattranLogo",
       },
     ],
   });
@@ -110,11 +112,6 @@ const setEmailVerificationOtp = async (user) => {
 // in controllers/auth-controller/index.js
 const registerUser = async (req, res) => {
   const { userName, userEmail, password, roles: requestedRoles } = req.body;
-
-  // Validate Gmail domain
-  if (!userEmail || !userEmail.toLowerCase().endsWith('@gmail.com')) {
-    return res.status(400).json({ success: false, message: "Only @gmail.com email addresses are allowed." });
-  }
 
   // Fetch roles from database
   const learnerRole = await Role.findOne({ roleName: 'learner' });
@@ -633,10 +630,6 @@ const verifyEmailOtp = async (req, res) => {
       return res.status(400).json({ success: false, message: "Email and OTP are required." });
     }
 
-    if (!userEmail.toLowerCase().endsWith('@gmail.com')) {
-      return res.status(400).json({ success: false, message: "Only @gmail.com email addresses are allowed." });
-    }
-
     const user = await User.findOne({ userEmail: userEmail.toLowerCase() });
     if (!user) {
       return res.status(400).json({ success: false, message: "Invalid verification code." });
@@ -677,10 +670,6 @@ const resendVerificationOtp = async (req, res) => {
       return res.status(400).json({ success: false, message: "Email is required." });
     }
 
-    if (!userEmail.toLowerCase().endsWith('@gmail.com')) {
-      return res.status(400).json({ success: false, message: "Only @gmail.com email addresses are allowed." });
-    }
-
     const user = await User.findOne({ userEmail: userEmail.toLowerCase() });
     if (!user) {
       return res.status(200).json({
@@ -707,10 +696,6 @@ const requestPasswordReset = async (req, res) => {
   const { userEmail } = req.body;
   if (!userEmail) {
     return res.status(400).json({ success: false, message: "Email required" });
-  }
-
-  if (!userEmail.toLowerCase().endsWith('@gmail.com')) {
-    return res.status(400).json({ success: false, message: "Only @gmail.com email addresses are supported." });
   }
 
   const user = await User.findOne({ userEmail: userEmail.toLowerCase() });

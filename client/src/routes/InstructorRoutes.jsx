@@ -16,6 +16,8 @@ const CreateCourse = lazy(
 const Learners = lazy(() => import("../pages/instructor/courses/LearnersPage"));
 const Analytics = lazy(() => import("../pages/instructor/AnalyticsPage"));
 const Settings = lazy(() => import("../pages/instructor/SettingsPage"));
+const Community = lazy(() => import("../pages/instructor/community/ManageCommunityPage"));
+const CommunityRoom = lazy(() => import("../pages/community/CommunityRoomPage"));
 
 /**
  * Specialized Routing Module for the Instructor Dashboard.
@@ -74,6 +76,22 @@ const InstructorRoutes = () => {
             element={
               <Suspense fallback={null}>
                 <Analytics />
+              </Suspense>
+            }
+          />
+          <Route
+            path="community"
+            element={
+              <Suspense fallback={null}>
+                <Community />
+              </Suspense>
+            }
+          />
+          <Route
+            path="community/:id"
+            element={
+              <Suspense fallback={null}>
+                <CommunityRoom />
               </Suspense>
             }
           />

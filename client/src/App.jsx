@@ -39,6 +39,9 @@ const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage')
 const InstructorApprovalsPage = lazy(() => import('@/pages/admin/InstructorApprovalsPage'));
 const CourseReviewPage = lazy(() => import('@/pages/admin/CourseReviewPage'));
 const CourseReviewDetailPage = lazy(() => import('@/pages/admin/CourseReviewDetailPage'));
+const AdminCommunitiesPage = lazy(() => import('@/pages/admin/community/AdminCommunitiesPage'));
+const CommunityHubPage = lazy(() => import('@/pages/community/CommunityHubPage'));
+const CommunityRoomPage = lazy(() => import('@/pages/community/CommunityRoomPage'));
 const CourseDetailsPage = lazy(() => import('@/pages/courses/CourseDetailsPage'));
 const ViewCoursePage = lazy(() => import('@/pages/courses/ViewCoursePage'));
 const CourseWatchPage = lazy(() => import('@/pages/courses/CourseWatchPage'));
@@ -128,6 +131,8 @@ function App() {
                 <Route path={ROUTES.DASHBOARD_PAYMENT_DETAILS} element={<PaymentDetailsPage />} />
                 <Route path={ROUTES.DASHBOARD_UPDATE_CONTACT} element={<UpdateContactPage />} />
                 <Route path={ROUTES.DASHBOARD_SETTINGS} element={<SettingsPage />} />
+                <Route path={ROUTES.COMMUNITY} element={<CommunityHubPage />} />
+                <Route path={`${ROUTES.COMMUNITY}/:id`} element={<CommunityRoomPage />} />
               </Route>
               <Route path={ROUTES.LEARNER_DASHBOARD} element={<Navigate to={ROUTES.DASHBOARD} replace />} />
               <Route path={ROUTES.COURSES} element={<MainLayout><CourseList /></MainLayout>} />
@@ -153,6 +158,8 @@ function App() {
                 <Route path={ROUTES.ADMIN_INSTRUCTORS} element={<InstructorApprovalsPage />} />
                 <Route path={`${ROUTES.ADMIN_COURSE_REVIEW}/:courseId`} element={<CourseReviewDetailPage />} />
                 <Route path={ROUTES.ADMIN_COURSES} element={<CourseReviewPage />} />
+                <Route path={ROUTES.ADMIN_COMMUNITIES} element={<AdminCommunitiesPage />} />
+                <Route path={`${ROUTES.ADMIN_COMMUNITIES}/:id`} element={<CommunityRoomPage />} />
                 <Route path={ROUTES.ADMIN_SETTINGS} element={<SettingsPage />} />
               </Route>
             </Route>

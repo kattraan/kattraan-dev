@@ -26,10 +26,13 @@ const instructorStatsRoutes = require("./routes/instructor-routes/stats.routes")
 const instructorChapterEngagementTemplateRoutes = require("./routes/instructor-routes/chapter-engagement-templates.routes");
 const exchangeRoutes = require("./routes/exchange-routes/exchange.routes");
 const razorpayRoutes = require("./routes/payment-routes/razorpay.routes");
+const cashfreeRoutes = require("./routes/payment-routes/cashfree.routes");
 const cartRoutes = require("./routes/cart-routes/cart.routes");
 const videoRoutes = require("./routes/video-routes/video.routes");
+const communityRoutes = require("./routes/community-routes");
 const webhooksRoutes = require("./routes/webhooks/bunnyStream.routes");
 const razorpayWebhookRoutes = require("./routes/webhooks/razorpay.routes");
+const cashfreeWebhookRoutes = require("./routes/webhooks/cashfree.routes");
 const csrfProtection = require("./middleware/csrf");
 
 const app = express();
@@ -45,6 +48,11 @@ app.use(
   "/api/payments/webhook",
   express.raw({ type: () => true, limit: "1mb" }),
   razorpayWebhookRoutes,
+);
+app.use(
+  "/api/webhooks/cashfree",
+  express.json({ type: () => true }),
+  cashfreeWebhookRoutes,
 );
 
 app.use(express.json());
@@ -175,6 +183,9 @@ app.use(
 );
 app.options("*", cors());
 
+// Exposed for the Socket.IO server (server/socket/index.js) so CORS config stays in sync.
+app.clientOrigin = clientOrigin;
+
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api", courseRoutes);
@@ -193,8 +204,10 @@ app.use(
 );
 app.use("/api/exchange-rates", exchangeRoutes);
 app.use("/api/payment/razorpay", razorpayRoutes);
+app.use("/api/payment/cashfree", cashfreeRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/videos", videoRoutes);
+app.use("/api/community", communityRoutes);
 app.use("/api/webhooks", webhooksRoutes);
 
 // 404 Handler

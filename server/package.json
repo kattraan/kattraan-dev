@@ -6,7 +6,8 @@
   "scripts": {
     "test": "cross-env NODE_ENV=test jest --runInBand --forceExit",
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "dev:https": "cross-env CLIENT_URL=https://localhost:5173 HTTPS_DEV=true nodemon server.js"
   },
   "keywords": [],
   "author": "",
@@ -16,12 +17,14 @@
     "jest": "^29.7.0",
     "mongodb-memory-server": "^9.3.0",
     "nodemon": "^3.1.6",
+    "selfsigned": "^5.5.0",
     "supertest": "^7.0.0"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.806.0",
     "axios": "^1.7.9",
     "bcryptjs": "^2.4.3",
+    "cashfree-pg": "^6.0.4",
     "cloudinary": "^2.5.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -43,6 +46,8 @@
     "razorpay": "^2.9.6",
     "react-router-dom": "^7.0.2",
     "redis": "^5.10.0",
-    "swagger-ui-express": "^5.0.1"
+    "socket.io": "^4.8.3",
+    "swagger-ui-express": "^5.0.1",
+    "uuid": "^14.0.1"
   }
 }

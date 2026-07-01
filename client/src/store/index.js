@@ -2,6 +2,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import authReducer from '@/features/auth/store/authSlice';
 import courseReducer from '@/features/courses/store/courseSlice';
 import { coursesApi } from '@/features/courses/api/coursesApi';
+import communityReducer from '@/features/community/store/communitySlice';
 
 /**
  * Central Redux Store Configuration
@@ -11,6 +12,7 @@ export const store = configureStore({
     reducer: {
         auth: authReducer,
         courses: courseReducer,
+        community: communityReducer,
         [coursesApi.reducerPath]: coursesApi.reducer,
     },
     middleware: (getDefaultMiddleware) =>

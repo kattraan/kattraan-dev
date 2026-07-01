@@ -40,6 +40,7 @@ export const ROUTES = {
   DASHBOARD_PAYMENT_DETAILS: "/dashboard/my-account/payment-details",
   DASHBOARD_UPDATE_CONTACT: "/dashboard/my-account/update-contact",
   LEARNER_DASHBOARD: "/learner-dashboard", // redirects to DASHBOARD
+  COMMUNITY: "/dashboard/community", // Hub + live chat room, nested in the learner dashboard
 
   // Instructor dashboard
   INSTRUCTOR_DASHBOARD: "/instructor-dashboard",
@@ -48,6 +49,7 @@ export const ROUTES = {
   INSTRUCTOR_LEARNERS: "/instructor-dashboard/learners",
   INSTRUCTOR_ANALYTICS: "/instructor-dashboard/analytics",
   INSTRUCTOR_SETTINGS: "/instructor-dashboard/settings",
+  INSTRUCTOR_COMMUNITY: "/instructor-dashboard/community",
 
   // Admin dashboard
   ADMIN_DASHBOARD: "/admin-dashboard",
@@ -55,6 +57,7 @@ export const ROUTES = {
   ADMIN_COURSES: "/admin-dashboard/courses",
   ADMIN_COURSE_REVIEW: "/admin-dashboard/courses/review",
   ADMIN_USERS: "/admin-dashboard/users",
+  ADMIN_COMMUNITIES: "/admin-dashboard/communities",
 
   // Cart & Checkout
   CART: "/cart",

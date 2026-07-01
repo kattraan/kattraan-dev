@@ -18,6 +18,7 @@ import {
   User,
   GraduationCap,
   ShieldCheck,
+  MessageCircle,
 } from "lucide-react";
 import { ROUTES } from "@/config/routes";
 
@@ -32,6 +33,7 @@ const ICON_MAP = {
   User,
   GraduationCap,
   ShieldCheck,
+  MessageCircle,
   LogOut,
 };
 

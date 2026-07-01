@@ -10,13 +10,14 @@ import {
   AlertCircle,
   Info,
 } from 'lucide-react';
+import { load as loadCashfree } from '@cashfreepayments/cashfree-js';
 import apiClient from '@/api/apiClient';
 import { useCurrency } from '@/context/CurrencyContext';
 import { ROUTES } from '@/config/routes';
 import { useToast } from '@/components/ui/Toast';
 
 /**
- * CheckoutPage — handles Razorpay payment for a paid course.
+ * CheckoutPage — handles Cashfree payment for a paid course.
  * Route: /checkout/:courseId
  */
 export default function CheckoutPage() {
@@ -31,10 +32,7 @@ export default function CheckoutPage() {
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState(null);
   const [paid, setPaid] = useState(false);
-  const [razorpayTestMode, setRazorpayTestMode] = useState(false);
-
-  const RAZORPAY_TEST_DOCS =
-    'https://razorpay.com/docs/payments/payments/test-card-upi-details/';
+  const [cashfreeTestMode, setCashfreeTestMode] = useState(false);
 
   // Load course details
   useEffect(() => {
@@ -51,24 +49,47 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     apiClient
-      .get('/payment/razorpay/mode')
-      .then((res) => setRazorpayTestMode(!!res.data?.testMode))
-      .catch(() => setRazorpayTestMode(false));
+      .get('/payment/cashfree/mode')
+      .then((res) => setCashfreeTestMode(!!res.data?.testMode))
+      .catch(() => setCashfreeTestMode(false));
   }, []);
 
-  // Preload Razorpay Checkout script (opened only after load succeeds in handlePayment)
   useEffect(() => {
-    if (document.getElementById('razorpay-script')) return;
-    const script = document.createElement('script');
-    script.id = 'razorpay-script';
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.async = true;
-    document.body.appendChild(script);
-    return () => {
-      const s = document.getElementById('razorpay-script');
-      if (s) document.body.removeChild(s);
-    };
-  }, []);
+    const params = new URLSearchParams(window.location.search);
+    const paymentStatus = params.get('payment');
+    const orderId = params.get('orderId');
+    if (paymentStatus !== 'success' || !orderId) return;
+
+    const pendingOrder = localStorage.getItem('cashfreePendingOrder');
+    if (!pendingOrder) return;
+
+    let parsed;
+    try {
+      parsed = JSON.parse(pendingOrder);
+    } catch {
+      return;
+    }
+
+    if (!parsed.paymentSessionId) return;
+
+    apiClient.post('/payment/cashfree/verify', {
+      orderId,
+      paymentSessionId: parsed.paymentSessionId,
+      courseId,
+      displayCurrency: userCurrency,
+      displayAmount: parsed.displayAmount,
+    })
+      .then((verifyRes) => {
+        if (verifyRes.data.success) {
+          setPaid(true);
+          toast?.success('Payment successful! You are now enrolled.');
+          localStorage.removeItem('cashfreePendingOrder');
+        }
+      })
+      .catch(() => {
+        setError('Payment completed, but verification did not finish. Please check My Courses or try again.');
+      });
+  }, [courseId, toast, userCurrency]);
 
   const handlePayment = useCallback(async () => {
     if (!course || paying) return;
@@ -76,34 +97,8 @@ export default function CheckoutPage() {
     setError(null);
 
     try {
-      await new Promise((resolve, reject) => {
-        if (typeof window !== 'undefined' && window.Razorpay) {
-          resolve();
-          return;
-        }
-        const existing = document.getElementById('razorpay-script');
-        if (existing) {
-          if (window.Razorpay) {
-            resolve();
-            return;
-          }
-          existing.addEventListener('load', () => {
-            if (window.Razorpay) resolve();
-            else reject(new Error('Payment widget failed to initialize. Refresh and try again.'));
-          }, { once: true });
-          existing.addEventListener(
-            'error',
-            () => reject(new Error('Could not load payment widget. Check your connection and try again.')),
-            { once: true },
-          );
-          return;
-        }
-        reject(new Error('Payment widget is not ready. Refresh the page and try again.'));
-      });
-
-      // Step 1: Create Razorpay order on server
       const displayAmt = convertFromINR(course.price);
-      const { data } = await apiClient.post('/payment/razorpay/create-order', {
+      const { data } = await apiClient.post('/payment/cashfree/create-order', {
         courseId,
         displayCurrency: userCurrency,
         displayAmount: displayAmt,
@@ -111,82 +106,18 @@ export default function CheckoutPage() {
 
       if (!data.success) throw new Error(data.message || 'Failed to create order');
 
-      const { orderId, amount, currency, keyId } = data;
+      const { paymentSessionId, orderId, displayAmount } = data;
+      if (!paymentSessionId) throw new Error('Cashfree payment session was not returned.');
 
-      // Step 2: Open Razorpay modal
-      const options = {
-        key: keyId,
-        amount,
-        currency,
-        name: 'Kattraan',
-        description: course.title,
-        image: course.thumbnail || '/favicon.ico',
-        order_id: orderId,
-        prefill: {
-          name: user?.userName || user?.name || '',
-          email: user?.userEmail || user?.email || '',
-        },
-        // Test mode: web checkout often shows only UPI QR (no UPI ID field). Disable UPI so Card / Netbanking work for sandbox.
-        ...(razorpayTestMode
-          ? {
-              method: {
-                upi: false,
-                card: true,
-                netbanking: true,
-                wallet: false,
-                emi: false,
-              },
-            }
-          : {}),
-        notes: { courseId },
-        theme: { color: '#c1269d' },
-        handler: async (response) => {
-          // Step 3: Verify on server
-          try {
-            const verifyRes = await apiClient.post('/payment/razorpay/verify', {
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-              courseId,
-              displayCurrency: userCurrency,
-              displayAmount: displayAmt,
-            });
-            if (verifyRes.data.success) {
-              setPaid(true);
-              toast?.success('Payment successful! You are now enrolled.');
-            } else {
-              throw new Error(verifyRes.data.message || 'Verification failed');
-            }
-          } catch (err) {
-            const msg =
-              err?.response?.data?.message ||
-              err.message ||
-              'Payment verification failed. If money was debited, your enrollment will update shortly — check My Courses.';
-            setError(msg);
-          } finally {
-            setPaying(false);
-          }
-        },
-        modal: {
-          ondismiss: () => {
-            setPaying(false);
-            toast?.info('Payment cancelled');
-          },
-        },
-      };
+      localStorage.setItem('cashfreePendingOrder', JSON.stringify({ orderId, paymentSessionId, displayAmount }));
 
-      // eslint-disable-next-line no-undef
-      const rzp = new Razorpay(options);
-      rzp.on('payment.failed', (response) => {
-        setError(response.error?.description || 'Payment failed. Please try again.');
-        setPaying(false);
-      });
-      rzp.open();
+      const cashfree = await loadCashfree({ mode: cashfreeTestMode ? 'sandbox' : 'production' });
+      await cashfree.checkout({ paymentSessionId, redirectTarget: '_self' });
     } catch (err) {
       setError(err?.response?.data?.message || err.message || 'Something went wrong');
       setPaying(false);
     }
-  }, [course, courseId, paying, userCurrency, convertFromINR, user, toast, razorpayTestMode]);
+  }, [course, courseId, paying, userCurrency, convertFromINR, user, toast, cashfreeTestMode]);
 
   // ─── Paid success screen ─────────────────────────────────────────────────
   if (paid) {
@@ -293,7 +224,7 @@ export default function CheckoutPage() {
             <span className="text-white font-bold">Total charged</span>
             <span className="text-white font-black text-lg">{formatINR(priceINR)}</span>
           </div>
-          <p className="text-white/40 text-[11px]">Payment is processed in INR via Razorpay. Your card may show a conversion fee if your bank account is in another currency.</p>
+          <p className="text-white/40 text-[11px]">Payment is processed in INR via Cashfree. Your card may show a conversion fee if your bank account is in another currency.</p>
         </div>
 
         {/* Error banner */}
@@ -304,30 +235,13 @@ export default function CheckoutPage() {
           </div>
         )}
 
-        {razorpayTestMode && (
+        {cashfreeTestMode && (
           <div className="mb-6 flex gap-3 items-start p-4 bg-amber-500/10 border border-amber-500/35 rounded-xl text-amber-100/95 text-sm">
             <Info className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-400" />
             <div className="space-y-3 min-w-0">
-              <p className="font-semibold text-amber-200">Razorpay test mode</p>
+              <p className="font-semibold text-amber-200">Cashfree test mode</p>
               <p className="text-white/80 text-xs leading-relaxed">
-                On <strong className="text-white">desktop web</strong>, Razorpay often shows only <strong className="text-white">UPI QR</strong> and may{' '}
-                <strong className="text-white">not</strong> show an “enter UPI ID” field — that is normal. Scanning that QR with a real UPI app will fail.
-              </p>
-              <p className="text-white/80 text-xs leading-relaxed">
-                This checkout opens with <strong className="text-white">Card</strong> and <strong className="text-white">Netbanking</strong> for sandbox. Use Razorpay&apos;s{' '}
-                <strong className="text-white">test card</strong> numbers (or the mock bank flow for netbanking). See{' '}
-                <a
-                  href={RAZORPAY_TEST_DOCS}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[#ff8ec4] hover:underline"
-                >
-                  test card &amp; UPI reference
-                </a>
-                .
-              </p>
-              <p className="text-white/55 text-[11px] leading-relaxed">
-                Live mode still offers full UPI for real customers. For UPI collect on mobile, Razorpay is changing flows per NPCI; use test cards for reliable end-to-end tests.
+                Checkout will open in a new tab. Use Cashfree&apos;s sandbox test payment methods to complete the flow and then return here to continue.
               </p>
             </div>
           </div>
@@ -355,7 +269,7 @@ export default function CheckoutPage() {
         {/* Trust badges */}
         <div className="mt-6 flex items-center justify-center gap-2 text-white/30 text-xs">
           <ShieldCheck className="w-4 h-4" />
-          <span>Secured by Razorpay · 30-day money-back guarantee</span>
+          <span>Secured by Cashfree · 30-day money-back guarantee</span>
         </div>
       </div>
     </div>
