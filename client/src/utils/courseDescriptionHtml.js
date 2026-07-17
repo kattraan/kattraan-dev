@@ -13,16 +13,19 @@ export const COURSE_DESC_ALLOWED_TAGS = [
   'li',
   'a',
   'span',
-  'div',
 ];
 
-export const COURSE_DESC_ALLOWED_ATTR = ['href', 'target', 'rel', 'class'];
+export const COURSE_DESC_ALLOWED_ATTR = ['href', 'target', 'rel'];
 
 export function sanitizeCourseDescriptionHtml(html) {
-  return DOMPurify.sanitize(html || '', {
+  let sanitized = DOMPurify.sanitize(html || '', {
     ALLOWED_TAGS: COURSE_DESC_ALLOWED_TAGS,
     ALLOWED_ATTR: COURSE_DESC_ALLOWED_ATTR,
   });
+  
+  // Strip empty paragraphs that might push content out of view
+  sanitized = sanitized.replace(/<p>(\s|&nbsp;|<br\s*\/?>)*<\/p>/gi, '');
+  return sanitized.trim();
 }
 
 /** True when description was saved from the rich editor (HTML). */

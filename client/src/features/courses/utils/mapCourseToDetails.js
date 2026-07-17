@@ -33,11 +33,17 @@ export function mapCourseToDetails(course) {
     .map((v) => (typeof v === 'string' ? v.trim() : ''))
     .find(Boolean) || '';
   const instructorBio = createdBy?.enrollmentData?.bio ?? course.instructor?.bio ?? '';
-  const instructorImage = course.instructor?.image ?? course.instructor?.avatar ?? createdBy?.avatar ?? createdBy?.profileImage ?? null;
+  let instructorImage = course.instructor?.image ?? course.instructor?.avatar ?? createdBy?.avatar ?? createdBy?.profileImage ?? null;
   const whatYouWillLearn = course.whatYouWillLearn && Array.isArray(course.whatYouWillLearn)
     ? course.whatYouWillLearn
     : descriptionPoints;
-  const videoPreview = course.thumbnail || course.image || course.thumbnailUrl || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80';
+  let videoPreview = course.thumbnail || course.image || course.thumbnailUrl || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80';
+  if (typeof videoPreview === 'string') {
+    videoPreview = videoPreview.replace('vz-81730109-16e.b-cdn.net', 'kattraan.b-cdn.net').replace('kattraan-storage.b-cdn.net', 'kattraan.b-cdn.net');
+  }
+  if (typeof instructorImage === 'string') {
+    instructorImage = instructorImage.replace('vz-81730109-16e.b-cdn.net', 'kattraan.b-cdn.net').replace('kattraan-storage.b-cdn.net', 'kattraan.b-cdn.net');
+  }
 
   return {
     _id: course._id,

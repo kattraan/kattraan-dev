@@ -39,6 +39,10 @@ const CourseDetailsPage = () => {
         }
       } catch (err) {
         if (!cancelled) {
+          if (err.response?.status === 401) {
+            navigate(ROUTES.LOGIN, { state: { from: window.location.pathname } });
+            return;
+          }
           setError(err.response?.data?.message || err.message || 'Failed to load course.');
         }
       } finally {

@@ -28,11 +28,11 @@ const CreateCommunityModal = ({ isOpen, onClose, courses, onCreate, loading = fa
                         required
                         className="w-full bg-gray-50 dark:bg-white/[0.05] border border-gray-200 dark:border-white/10 rounded-xl py-2.5 px-6 text-gray-900 dark:text-white text-[14px] focus:outline-none focus:border-gray-400 dark:focus:border-white/70"
                     >
-                        <option value="" disabled>
+                        <option value="" disabled className="bg-white dark:bg-[#1a1625] text-gray-900 dark:text-white">
                             Select a course…
                         </option>
                         {courses.map((c) => (
-                            <option key={c._id} value={c._id}>
+                            <option key={c._id} value={c._id} className="bg-white dark:bg-[#1a1625] text-gray-900 dark:text-white">
                                 {c.title}
                             </option>
                         ))}
