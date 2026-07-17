@@ -1,5 +1,9 @@
 // controllers/common/crud.controller.js
 
+function modelSupportsSoftDelete(Model) {
+  return !!(Model?.schema?.paths?.isDeleted);
+}
+
 // Generic CRUD controller factory for any Mongoose model
 function createCrudController(Model) {
   return {
@@ -40,8 +44,20 @@ function createCrudController(Model) {
     },
     async delete(req, res) {
       try {
-        const item = await Model.findByIdAndDelete(req.params.id);
-        if (!item) return res.status(404).json({ success: false, message: 'Not found' });
+        const item = await Model.findById(req.params.id);
+        if (!item || item.isDeleted) {
+          return res.status(404).json({ success: false, message: 'Not found' });
+        }
+
+        if (modelSupportsSoftDelete(Model)) {
+          item.isDeleted = true;
+          item.deletedAt = new Date();
+          if (req.user?._id) item.deletedBy = String(req.user._id);
+          await item.save();
+          return res.json({ success: true, message: 'Deleted' });
+        }
+
+        await Model.findByIdAndDelete(req.params.id);
         res.json({ success: true, message: 'Deleted' });
       } catch (err) {
         res.status(500).json({ success: false, message: err.message });

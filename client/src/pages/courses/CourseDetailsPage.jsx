@@ -1,22 +1,27 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import Navbar from '@/components/common/Navbar';
 import Footer from '@/components/common/Footer';
-import heroBackground from '@/assets/hero-background.png';
+import heroBackground from '@/assets/hero-background.webp';
 import CourseDetails from '@/features/courses/components/details/CourseDetails';
 import CourseSidebar from '@/features/courses/components/details/CourseSidebar';
 // import RelatedCourses from '@/features/courses/components/details/RelatedCourses';
 import courseService from '@/features/courses/services/courseService';
+import { checkEnrollment } from '@/features/learner/services/learnerCoursesService';
 import { mapCourseToDetails } from '@/features/courses/utils/mapCourseToDetails';
 import { ROUTES } from '@/config/routes';
 
 const CourseDetailsPage = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
+  const isAuthenticated = useSelector((state) => state.auth?.isAuthenticated);
   const [courseData, setCourseData] = useState(null);
   const [loading, setLoading] = useState(!!courseId);
   const [error, setError] = useState(null);
+  const [isEnrolled, setIsEnrolled] = useState(false);
+  const [enrollmentLoading, setEnrollmentLoading] = useState(false);
 
   useEffect(() => {
     if (!courseId) {
@@ -51,6 +56,33 @@ const CourseDetailsPage = () => {
     })();
     return () => { cancelled = true; };
   }, [courseId]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      if (!courseId || !isAuthenticated) {
+        setIsEnrolled(false);
+        setEnrollmentLoading(false);
+        return;
+      }
+
+      setEnrollmentLoading(true);
+      try {
+        const res = await checkEnrollment(courseId);
+        if (!cancelled) setIsEnrolled(!!res?.enrolled);
+      } catch {
+        if (!cancelled) setIsEnrolled(false);
+      } finally {
+        if (!cancelled) setEnrollmentLoading(false);
+      }
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [courseId, isAuthenticated]);
 
   if (!courseId) {
     return (
@@ -103,16 +135,22 @@ const CourseDetailsPage = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">
             <CourseDetails
               courseData={courseData}
+              isEnrolled={isEnrolled}
+              enrollmentLoading={enrollmentLoading}
               // Used by CourseDetails -> watch links so "Back to course"
               // returns to the same course details screen (not /view-course).
               returnToUrl={`${ROUTES.COURSE_DETAILS}/${courseId}`}
             />
-            <CourseSidebar courseData={courseData} />
+            <CourseSidebar
+              courseData={courseData}
+              isEnrolled={isEnrolled}
+              enrollmentCheckLoading={enrollmentLoading}
+              onEnrollmentChange={setIsEnrolled}
+            />
           </div>
 
-          {/* Fullstack Development Career Track — hidden for now
-          <RelatedCourses courseData={courseData} />
-          */}
+          {/* Related courses — only when a real list is available */}
+          {/* <RelatedCourses courses={relatedCourses} /> */}
 
         </div>
       </main>

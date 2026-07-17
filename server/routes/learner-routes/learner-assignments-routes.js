@@ -3,6 +3,7 @@ const {
   getMyAssignments,
   submitAssignment,
   getAssignmentSubmissionForContent,
+  getAssignmentSummariesByContentIds,
 } = require("../../controllers/learner-controller/learnerAssignmentsController");
 const authenticate = require("../../middleware/auth-middleware");
 const authorizeRoles = require("../../middleware/role-middleware");
@@ -13,6 +14,7 @@ router.use(authenticate);
 router.use(authorizeRoles("learner", "instructor", "admin"));
 
 router.get("/", getMyAssignments);
+router.get("/summaries", getAssignmentSummariesByContentIds);
 router.get("/by-content/:contentId", getAssignmentSubmissionForContent);
 router.post("/:contentId/submit", submitAssignment);
 

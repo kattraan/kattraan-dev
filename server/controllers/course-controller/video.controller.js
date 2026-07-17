@@ -72,14 +72,19 @@ exports.updateVideoContent = async (req, res) => {
   }
 };
 
-// Delete video content AND remove from chapter
+// Delete video content (soft-delete) AND remove from chapter
 exports.deleteVideoContent = async (req, res) => {
   try {
-    const video = await VideoContent.findByIdAndDelete(req.params.id);
-    if (!video)
+    const video = await VideoContent.findById(req.params.id);
+    if (!video || video.isDeleted) {
       return res.status(404).json({ success: false, message: "Not found" });
+    }
 
-    // Remove content reference from parent chapter
+    video.isDeleted = true;
+    video.deletedAt = new Date();
+    if (req.user?._id) video.deletedBy = String(req.user._id);
+    await video.save();
+
     if (video.chapter) {
       await Chapter.findByIdAndUpdate(video.chapter, {
         $pull: { contents: video._id },

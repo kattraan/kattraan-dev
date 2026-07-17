@@ -61,16 +61,31 @@ export default function CheckoutPage() {
     if (paymentStatus !== 'success' || !orderId) return;
 
     const pendingOrder = localStorage.getItem('cashfreePendingOrder');
-    if (!pendingOrder) return;
+    if (!pendingOrder) {
+      setError('Payment return is missing local order details. Please check My Courses or contact support.');
+      return;
+    }
 
     let parsed;
     try {
       parsed = JSON.parse(pendingOrder);
     } catch {
+      localStorage.removeItem('cashfreePendingOrder');
+      setError('Saved payment details were invalid. Please check My Courses or try again.');
       return;
     }
 
-    if (!parsed.paymentSessionId) return;
+    if (!parsed.paymentSessionId || !parsed.orderId) {
+      localStorage.removeItem('cashfreePendingOrder');
+      setError('Saved payment details were incomplete. Please check My Courses or try again.');
+      return;
+    }
+
+    if (String(parsed.orderId) !== String(orderId)) {
+      localStorage.removeItem('cashfreePendingOrder');
+      setError('Payment order mismatch. Please check My Courses or start checkout again.');
+      return;
+    }
 
     apiClient.post('/payment/cashfree/verify', {
       orderId,

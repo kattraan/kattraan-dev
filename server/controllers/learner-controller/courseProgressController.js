@@ -18,20 +18,21 @@ async function getProgress(req, res) {
     const data = await progressService.fetchProgress(userId, courseId);
     res.json({ success: true, data });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    const status = err.statusCode && err.statusCode < 500 ? err.statusCode : 500;
+    res.status(status).json({ success: false, message: err.message });
   }
 }
 
 /**
  * PATCH /api/learner/course-progress
- * Body: { courseId, chapterId, currentTime, duration, watchedPercentage }
+ * Body: { courseId, chapterId, currentTime, duration }
  * Responds with 403 when the user is not enrolled.
- * Completion is determined server-side (anti-cheat).
+ * Completion is derived server-side from currentTime/duration (anti-cheat).
  */
 async function updateProgress(req, res) {
   try {
     const userId = req.user._id.toString();
-    const { courseId, chapterId, currentTime, duration, watchedPercentage } = req.body;
+    const { courseId, chapterId, currentTime, duration } = req.body;
 
     if (!courseId || !chapterId) {
       return res.status(400).json({ success: false, message: 'courseId and chapterId are required' });
@@ -47,7 +48,6 @@ async function updateProgress(req, res) {
       chapterId,
       currentTime,
       duration,
-      watchedPercentage,
     });
 
     res.json({
@@ -62,7 +62,8 @@ async function updateProgress(req, res) {
       },
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    const status = err.statusCode && err.statusCode < 500 ? err.statusCode : 500;
+    res.status(status).json({ success: false, message: err.message });
   }
 }
 

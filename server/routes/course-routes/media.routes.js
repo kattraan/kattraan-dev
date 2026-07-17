@@ -1,6 +1,4 @@
 const express = require("express");
-const fs = require("fs");
-const multer = require("multer");
 const path = require("path");
 
 const {
@@ -12,25 +10,22 @@ const { ensureUserCanEditCourse } = require("../../middleware/courseOwnership");
 const { requireMediaOwner } = require("../../middleware/courseOwnership");
 const { validateDeleteKey, validateUploadBody } = require("../../validations/media");
 const { signStorageCdnUrl } = require("../../helpers/bunnyToken");
+const { createHardenedUpload, handleUploadErrors } = require("../../config/uploadSecurity");
 const Media = require("../../models/Media");
 
 /** Client-facing URL TTL when pull-zone token auth is enabled (pathname-based re-sign on API reads still works). */
 const UPLOAD_URL_TTL_SEC = 60 * 60 * 24 * 7;
 
 const UPLOADS_DIR = path.join(__dirname, "..", "..", "uploads");
-fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
 const router = express.Router();
 router.use(authenticate);
 
-const storage = multer.diskStorage({
-  destination: UPLOADS_DIR,
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${Date.now()}-${file.fieldname}${ext}`);
-  },
+const upload = createHardenedUpload({
+  uploadsDir: UPLOADS_DIR,
+  maxFileSizeBytes: 50 * 1024 * 1024, // 50MB per file
+  maxFiles: 10,
 });
-const upload = multer({ storage });
 
 // Single file upload: requires courseId in body; enforces course ownership
 router.post(
@@ -137,5 +132,8 @@ router.delete(
     }
   }
 );
+
+// Convert multer/file-filter rejections into clean 400s.
+router.use(handleUploadErrors);
 
 module.exports = router;

@@ -1,10 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Clock } from 'lucide-react';
 
 // Images
-import blogBg from '@/assets/blog.png';
-import blogBg2 from '@/assets/blog 1.png';
+import blogBg from '@/assets/blog.webp';
+import blogBg2 from '@/assets/blog-1.webp';
 import { articles } from '@/data/blogData';
 
 const BlogCard = ({ article, alignment = 'left', variant = 'large' }) => {

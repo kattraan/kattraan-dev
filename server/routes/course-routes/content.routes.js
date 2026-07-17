@@ -9,6 +9,7 @@ const authenticate = require('../../middleware/auth-middleware');
 const authorizeRoles = require('../../middleware/role-middleware');
 const { createContent, updateContent } = require('../../validations/content');
 const { requireContentChapterOwner, requireContentOwner, requireCourseNotPendingReview } = require('../../middleware/courseOwnership');
+const { requireContentListAccess, requireContentReadAccess } = require('../../middleware/contentAccess');
 
 const getCourseIdFromChapterBody = async (req) => {
   const ch = await Chapter.findById(req.body.chapter).select('section').lean();
@@ -27,8 +28,8 @@ const getCourseIdFromContentParam = async (req) => {
 
 router.use(authenticate);
 
-router.get('/', authorizeRoles('learner', 'instructor', 'admin'), contentController.getAllContents);
-router.get('/:id', authorizeRoles('learner', 'instructor', 'admin'), contentController.getContentById);
+router.get('/', authorizeRoles('learner', 'instructor', 'admin'), requireContentListAccess(), contentController.getAllContents);
+router.get('/:id', authorizeRoles('learner', 'instructor', 'admin'), requireContentReadAccess('id'), contentController.getContentById);
 router.post('/', authorizeRoles('instructor', 'admin'), requireContentChapterOwner('chapter'), requireCourseNotPendingReview(getCourseIdFromChapterBody), ...createContent, contentController.createContent);
 router.put('/:id', authorizeRoles('instructor', 'admin'), requireContentOwner('id'), requireCourseNotPendingReview(getCourseIdFromContentParam), ...updateContent, contentController.updateContent);
 router.delete('/:id', authorizeRoles('instructor', 'admin'), requireContentOwner('id'), requireCourseNotPendingReview(getCourseIdFromContentParam), contentController.deleteContent);

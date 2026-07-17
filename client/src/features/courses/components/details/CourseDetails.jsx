@@ -1,14 +1,12 @@
 
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Star, CheckCircle, PlayCircle, Plus, Minus, ChevronDown, MessageSquare, Users, Eye, Lock } from 'lucide-react'
-import { useSelector } from 'react-redux'
-import heroBackground from '@/assets/hero-background.png'
+import heroBackground from '@/assets/hero-background.webp'
 import { ROUTES } from '@/config/routes'
-import { checkEnrollment } from '@/features/learner/services/learnerCoursesService'
 import {
     isCourseDescriptionHtml,
-    sanitizeCourseDescriptionHtml,
+    getCourseDescriptionDisplayHtml,
     courseDescriptionPlainLength,
 } from '@/utils/courseDescriptionHtml'
 import CourseDetailsReviewsSection from '@/features/courses/components/details/CourseDetailsReviewsSection'
@@ -20,13 +18,18 @@ function getInitials(name) {
     return name.slice(0, 2).toUpperCase();
 }
 
-const CourseDetails = ({ courseData, returnToUrl }) => {
+const CourseDetails = ({
+    courseData,
+    returnToUrl,
+    isEnrolled = false,
+    enrollmentLoading = false,
+}) => {
     const navigate = useNavigate();
     const [expandedSection, setExpandedSection] = useState(0);
     const [showFullDescription, setShowFullDescription] = useState(false);
     const descRaw = courseData.description || ''
     const descIsHtml = isCourseDescriptionHtml(descRaw)
-    const descriptionHtml = descIsHtml ? sanitizeCourseDescriptionHtml(descRaw) : ''
+    const descriptionHtml = getCourseDescriptionDisplayHtml(descRaw)
     const descriptionLines = descIsHtml
         ? []
         : descRaw
@@ -37,11 +40,7 @@ const CourseDetails = ({ courseData, returnToUrl }) => {
         ? courseDescriptionPlainLength(descRaw) > 0
         : descriptionLines.length > 0
 
-    const isAuthenticated = useSelector((state) => state.auth?.isAuthenticated);
     const courseId = courseData?._id;
-    const isPaidCourse = Number(courseData?.price) > 0;
-    const [isEnrolled, setIsEnrolled] = useState(false);
-    const [enrollmentLoading, setEnrollmentLoading] = useState(false);
     const [reviewStats, setReviewStats] = useState(null);
 
     const displayRating = reviewStats
@@ -54,56 +53,19 @@ const CourseDetails = ({ courseData, returnToUrl }) => {
             ? reviewStats.breakdown
             : [5, 4, 3, 2, 1].map((stars) => ({ stars, count: 0, percent: 0 }));
 
-    useEffect(() => {
-        let cancelled = false;
-
-        const run = async () => {
-            // Free courses are always unlocked.
-            if (!isPaidCourse) {
-                setIsEnrolled(true);
-                return;
-            }
-
-            if (!courseId) {
-                setIsEnrolled(false);
-                return;
-            }
-
-            // Locked until a paid enrollment exists.
-            if (!isAuthenticated) {
-                setIsEnrolled(false);
-                return;
-            }
-
-            setEnrollmentLoading(true);
-            try {
-                const res = await checkEnrollment(courseId);
-                if (!cancelled) setIsEnrolled(!!res?.enrolled);
-            } catch {
-                if (!cancelled) setIsEnrolled(false);
-            } finally {
-                if (!cancelled) setEnrollmentLoading(false);
-            }
-        };
-
-        run();
-        return () => {
-            cancelled = true;
-        };
-    }, [courseId, isAuthenticated, isPaidCourse]);
-
-
     return (
         <div className="lg:col-span-8 space-y-10 font-satoshi">
 
             {/* Title Section */}
             <div className="space-y-6">
-                <div className="inline-flex items-center bg-gradient-brand text-white text-[11px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-brand-badge">
-                    Bestseller
-                </div>
                 <h1 className="font-satoshi font-bold text-[32px] leading-[1.1] tracking-[-0.02em] text-white">
                     {courseData.title}
                 </h1>
+                {courseData.subtitle && (
+                    <p className="max-w-3xl text-[16px] leading-relaxed text-white/70">
+                        {courseData.subtitle}
+                    </p>
+                )}
 
                 <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[14px]">
                     <div className="flex items-center gap-1.5">
@@ -137,31 +99,32 @@ const CourseDetails = ({ courseData, returnToUrl }) => {
                 </div>
             </div>
 
-            {/* What You'll Learn Box - Full width, better text layout */}
-            <div className="mt-10 relative group w-full">
-                <div className="absolute inset-x-0 -top-20 h-64 bg-brand-glow-soft blur-[100px] opacity-50 pointer-events-none -z-10" />
-                <div
-                    className="relative overflow-hidden border border-white/10 backdrop-blur-3xl p-8 lg:p-10 w-full min-h-[200px] rounded-2xl surface-glass-brand"
-                    style={{ borderWidth: '0.67px' }}
-                >
-                    <h2 className="text-[22px] lg:text-[24px] mb-6 text-white font-bold">What You'll Learn</h2>
+            {(courseData.whatYouWillLearn || []).length > 0 && (
+                <div className="mt-10 relative group w-full">
+                    <div className="absolute inset-x-0 -top-20 h-64 bg-brand-glow-soft blur-[100px] opacity-50 pointer-events-none -z-10" />
+                    <div
+                        className="relative overflow-hidden border border-white/10 backdrop-blur-3xl p-8 lg:p-10 w-full min-h-[200px] rounded-2xl surface-glass-brand"
+                        style={{ borderWidth: '0.67px' }}
+                    >
+                        <h2 className="text-[22px] lg:text-[24px] mb-6 text-white font-bold">What You'll Learn</h2>
 
-                    <div className="flex flex-col gap-4 w-full max-w-full">
-                        {courseData.whatYouWillLearn.map((item, idx) => (
-                            <div key={idx} className="flex items-start gap-4 group/item w-full">
-                                <div className="mt-0.5 shrink-0">
-                                    <div className="w-5 h-5 rounded-full border border-white/30 flex items-center justify-center group-hover/item:border-white/60 transition-colors bg-white/5">
-                                        <CheckCircle className="w-3 h-3 text-white" />
+                        <div className="flex flex-col gap-4 w-full max-w-full">
+                            {courseData.whatYouWillLearn.map((item, idx) => (
+                                <div key={idx} className="flex items-start gap-4 group/item w-full">
+                                    <div className="mt-0.5 shrink-0">
+                                        <div className="w-5 h-5 rounded-full border border-white/30 flex items-center justify-center group-hover/item:border-white/60 transition-colors bg-white/5">
+                                            <CheckCircle className="w-3 h-3 text-white" />
+                                        </div>
                                     </div>
+                                    <span className="font-satoshi text-[15px] leading-[1.6] text-white/95 font-light group-hover/item:text-white transition-colors flex-1 min-w-0">
+                                        {item}
+                                    </span>
                                 </div>
-                                <span className="text-[15px] leading-[1.6] text-white/95 font-light group-hover/item:text-white transition-colors flex-1 min-w-0">
-                                    {item}
-                                </span>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* Course Content - Exact Specification Match */}
             <div className="mt-12">
@@ -262,8 +225,8 @@ const CourseDetails = ({ courseData, returnToUrl }) => {
                                                     const baseWatch = courseId && chapterId ? `${ROUTES.VIEW_COURSE}/${courseId}/watch?chapter=${chapterId}` : null;
                                                     const watchUrl = baseWatch && returnToUrl ? `${baseWatch}&returnTo=${encodeURIComponent(returnToUrl)}` : baseWatch;
                                                     const hasLesson = Array.isArray(chapter.contents) && chapter.contents.length > 0;
-                                                    const canOpen = !!watchUrl && hasLesson && (!isPaidCourse || isEnrolled);
-                                                    const isLocked = isPaidCourse && !isEnrolled && hasLesson;
+                                                    const canOpen = !!watchUrl && hasLesson && isEnrolled;
+                                                    const isLocked = !isEnrolled && hasLesson;
                                                     const rowKey = chapterId || lIdx;
 
                                                     return (
@@ -310,21 +273,6 @@ const CourseDetails = ({ courseData, returnToUrl }) => {
                 </div>
             </div>
 
-            {/* Requirements */}
-            <div className="mt-12 group">
-                <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                    Requirements
-                </h2>
-                <div className="relative overflow-hidden rounded-2xl p-6 border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
-                    <ul className="list-disc pl-5 space-y-3 text-[#d4d4d8] text-[15px] font-light marker:text-[color:var(--color-gradient-start)]">
-                        <li>A computer (Windows, Mac, or Linux) with internet access</li>
-                        <li>No prior programming experience required - we'll start from the basics</li>
-                        <li>Willingness to learn and practice coding regularly</li>
-                        <li>Basic computer skills (file management, web browsing)</li>
-                    </ul>
-                </div>
-            </div>
-
             {/* Description */}
             <div className="mt-12 lg:max-w-[837px]">
                 <h2 className="text-2xl font-bold mb-6">Description</h2>
@@ -332,7 +280,7 @@ const CourseDetails = ({ courseData, returnToUrl }) => {
                     {hasCourseDescription ? (
                         descIsHtml ? (
                             <div
-                                className="[&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-2 [&_li]:marker:text-[color:var(--color-gradient-start)] [&_p]:mb-3 [&_p:last-child]:mb-0 [&_a]:text-[color:var(--color-gradient-start)] [&_a]:underline hover:[&_a]:text-[color:var(--color-gradient-end)]"
+                                className="font-satoshi [&_p]:font-satoshi [&_li]:font-satoshi [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-2 [&_li]:marker:text-[color:var(--color-gradient-start)] [&_p]:mb-3 [&_p:last-child]:mb-0 [&_a]:text-[color:var(--color-gradient-start)] [&_a]:underline hover:[&_a]:text-[color:var(--color-gradient-end)]"
                                 dangerouslySetInnerHTML={{ __html: descriptionHtml }}
                             />
                         ) : (
@@ -362,31 +310,6 @@ const CourseDetails = ({ courseData, returnToUrl }) => {
                     </button>
                 )}
             </div>
-
-            {/* Who This Course Is For */}
-            <div className="mt-12">
-                <h2 className="text-2xl font-bold mb-6">Who This Course Is For</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {[
-                        "Beginners who want to start a career in web development",
-                        "Self-taught developers looking to fill knowledge gaps",
-                        "Designers wanting to bring their designs to life",
-                        "Entrepreneurs building their own applications",
-                        "Learners seeking practical development skills",
-                        "Anyone interested in modern tech stacks"
-                    ].map((item, idx) => (
-                        <div key={idx} className="flex items-center gap-3 p-4 rounded-xl border border-white/5 bg-white/[0.02]">
-                            <div
-                                className="w-1.5 h-1.5 rounded-full shadow-[0_0_10px_rgba(255,140,66,0.45),0_0_14px_rgba(255,63,180,0.35)] bg-gradient-brand-diag"
-                                aria-hidden
-                            />
-                            <span className="text-[#d4d4d8] text-sm font-light">{item}</span>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-
 
             {/* Instructor Section - real data from course creator */}
             <div className="mt-12 pt-12 border-t border-white/10">

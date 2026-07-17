@@ -7,6 +7,7 @@ const authenticate = require('../../middleware/auth-middleware');
 const authorizeRoles = require('../../middleware/role-middleware');
 const { createContentBody, updateContent } = require('../../validations/content');
 const { requireContentChapterOwner, requireContentOwner } = require('../../middleware/courseOwnership');
+const { requireContentListAccess, requireContentReadAccess } = require('../../middleware/contentAccess');
 
 router.use(authenticate);
 
@@ -22,8 +23,8 @@ function validateVideoContentId(req, res, next) {
 // Video upload is done via direct TUS to Bunny: POST /api/videos/create → client uploads → POST /api/videos/save
 
 // Use numeric role IDs: 1=learner, 2=instructor, 3=admin
-router.get('/', authorizeRoles('learner', 'instructor', 'admin'), videoContentController.getAllVideoContents);
-router.get('/:id', validateVideoContentId, authorizeRoles('learner', 'instructor', 'admin'), videoContentController.getVideoContentById);
+router.get('/', authorizeRoles('learner', 'instructor', 'admin'), requireContentListAccess(), videoContentController.getAllVideoContents);
+router.get('/:id', validateVideoContentId, authorizeRoles('learner', 'instructor', 'admin'), requireContentReadAccess('id'), videoContentController.getVideoContentById);
 router.post('/', authorizeRoles('instructor', 'admin'), requireContentChapterOwner('chapter'), ...createContentBody, videoContentController.createVideoContent);
 router.put('/:id', validateVideoContentId, authorizeRoles('instructor', 'admin'), requireContentOwner('id'), ...updateContent, videoContentController.updateVideoContent);
 router.delete('/:id', validateVideoContentId, authorizeRoles('instructor', 'admin'), requireContentOwner('id'), videoContentController.deleteVideoContent);

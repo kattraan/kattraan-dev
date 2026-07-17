@@ -7,8 +7,51 @@ const User = require("../models/User");
 const Community = require("../models/Community");
 const CommunityMembership = require("../models/CommunityMembership");
 const CommunityMessage = require("../models/CommunityMessage");
+const { ALLOWED_MIME_TYPES } = require("../config/uploadSecurity");
 
 let io = null;
+
+/** Hostname of our CDN — attachments must live here, proving they came from our upload endpoint. */
+const ATTACHMENT_CDN_HOST = (process.env.BUNNY_CDN_HOSTNAME || "")
+  .trim()
+  .replace(/^https?:\/\//i, "")
+  .split("/")[0]
+  .toLowerCase();
+const MAX_ATTACHMENT_SIZE = 50 * 1024 * 1024;
+const MAX_ATTACHMENTS_PER_MESSAGE = 10;
+
+/**
+ * Rebuild each attachment from known fields only and verify its URL points at
+ * our CDN host with an allowed MIME type. Prevents clients from passing off
+ * arbitrary/phishing URLs as "official" community attachments.
+ * @returns {Array} sanitized attachments (invalid ones dropped)
+ */
+function sanitizeAttachments(attachments) {
+  if (!Array.isArray(attachments)) return [];
+  const clean = [];
+  for (const a of attachments.slice(0, MAX_ATTACHMENTS_PER_MESSAGE)) {
+    if (!a || typeof a !== "object") continue;
+    const { url, key, filename, mimeType, size } = a;
+    if (typeof url !== "string" || typeof key !== "string") continue;
+    if (typeof filename !== "string" || typeof mimeType !== "string") continue;
+    if (typeof size !== "number" || !Number.isFinite(size) || size <= 0 || size > MAX_ATTACHMENT_SIZE) continue;
+    if (!ALLOWED_MIME_TYPES.has(mimeType)) continue;
+
+    let host;
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol !== "https:") continue;
+      host = parsed.hostname.toLowerCase();
+    } catch {
+      continue;
+    }
+    // If a CDN host is configured, the attachment must be served from it.
+    if (ATTACHMENT_CDN_HOST && host !== ATTACHMENT_CDN_HOST) continue;
+
+    clean.push({ url, key, filename, mimeType, size });
+  }
+  return clean;
+}
 
 /** communityId -> Set<userId> currently joined to that room's socket(s). */
 const onlineByCommunity = new Map();
@@ -94,7 +137,7 @@ function initSocket(httpServer) {
 
   io = new Server(httpServer, {
     cors: {
-      origin: app.clientOrigin,
+      origin: app.clientOrigins && app.clientOrigins.length ? app.clientOrigins : app.clientOrigin,
       credentials: true,
       methods: ["GET", "POST"],
     },
@@ -152,7 +195,13 @@ function initSocket(httpServer) {
 
     socket.on("send-message", async ({ communityId, body, replyTo, attachments } = {}) => {
       const trimmed = typeof body === "string" ? body.trim() : "";
-      const hasAttachments = Array.isArray(attachments) && attachments.length > 0;
+      const safeAttachments = sanitizeAttachments(attachments);
+      const clientSentAttachments = Array.isArray(attachments) && attachments.length > 0;
+      // Reject messages whose attachments were all invalid (forged/off-CDN URLs).
+      if (clientSentAttachments && safeAttachments.length === 0) {
+        return socket.emit("error", { message: "Invalid attachment" });
+      }
+      const hasAttachments = safeAttachments.length > 0;
       if (!trimmed && !hasAttachments) return;
       const { ok, role } = await canAccessCommunity(socket, communityId);
       if (!ok) return socket.emit("error", { message: "Not a member of this community" });
@@ -183,7 +232,7 @@ function initSocket(httpServer) {
         sender: socket.user._id,
         body: trimmed,
         replyTo: replySnippet ? replySnippet._id : undefined,
-        attachments: hasAttachments ? attachments : [],
+        attachments: safeAttachments,
         mentions,
         mentionsEveryone,
       });

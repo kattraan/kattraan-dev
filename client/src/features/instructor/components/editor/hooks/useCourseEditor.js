@@ -34,6 +34,7 @@ const INITIAL_COURSE_DETAILS = {
   title: "",
   status: "draft",
   description: "",
+  whatYouWillLearn: "",
   subtitle: "",
   price: 0,
   discount: 0,
@@ -108,6 +109,20 @@ export function useCourseEditor() {
   const fileInputRef = useRef(null);
   const skipNextAutoSaveRef = useRef(true);
   const durationBackfillRunRef = useRef(false);
+  const courseDetailsRef = useRef(courseDetails);
+  const activeDripTypeRef = useRef(activeDripType);
+  const localEditVersionRef = useRef(0);
+  const lastSyncedEditVersionRef = useRef(0);
+  const saveInFlightRef = useRef(false);
+  const queuedAutosaveRef = useRef(false);
+
+  useEffect(() => {
+    courseDetailsRef.current = courseDetails;
+  }, [courseDetails]);
+
+  useEffect(() => {
+    activeDripTypeRef.current = activeDripType;
+  }, [activeDripType]);
 
   // Normalize backend status to lowercase enum (draft, pending_approval, published, rejected)
   const normalizeStatus = (s) => {
@@ -121,11 +136,28 @@ export function useCourseEditor() {
   // Sync RTK Query result into local state (backend may return { success, data } or raw course)
   useEffect(() => {
     if (!courseData) return;
+    // Never let a stale refetch overwrite newer local edits.
+    if (localEditVersionRef.current > lastSyncedEditVersionRef.current) return;
     const data = courseData?.data ?? courseData;
     if (!data || typeof data !== "object") return;
     setCourseDetails({
       ...data,
       status: normalizeStatus(data.status),
+      whatYouWillLearn:
+        typeof data.whatYouWillLearn === "string"
+          ? data.whatYouWillLearn
+          : Array.isArray(data.whatYouWillLearn)
+            ? data.whatYouWillLearn
+                .filter((s) => typeof s === "string" && s.trim())
+                .map(
+                  (s) =>
+                    `<p>${s
+                      .replace(/&/g, "&amp;")
+                      .replace(/</g, "&lt;")
+                      .replace(/>/g, "&gt;")}</p>`,
+                )
+                .join("")
+            : "",
       sections: (data.sections || []).map((sec) => ({
         ...sec,
         dripDays: sec.dripDays ?? sec.drip_days ?? 0,
@@ -134,6 +166,7 @@ export function useCourseEditor() {
     if (data.dripType) setActiveDripType(data.dripType);
     setIsLoadingData(false);
     skipNextAutoSaveRef.current = true; // Skip auto-save for this sync-from-API update
+    lastSyncedEditVersionRef.current = localEditVersionRef.current;
   }, [courseData]);
 
   useEffect(() => {
@@ -270,16 +303,23 @@ export function useCourseEditor() {
 
   const handleSave = useCallback(
     async (status = null, shouldLoad = true, showToast = true) => {
-      if (!courseDetails.title?.trim()) {
+      const latestDetails = courseDetailsRef.current;
+      if (!latestDetails.title?.trim()) {
         toast.error("Missing Information", "Course title is required!");
         return;
       }
 
+      const editVersionAtStart = localEditVersionRef.current;
       setIsSaving(true);
+      saveInFlightRef.current = true;
       try {
         const payload = {
-          ...courseDetails,
-          dripType: activeDripType,
+          ...latestDetails,
+          dripType: activeDripTypeRef.current,
+          whatYouWillLearn:
+            typeof latestDetails.whatYouWillLearn === "string"
+              ? latestDetails.whatYouWillLearn
+              : "",
         };
         delete payload.status;
         delete payload.submittedForReviewAt;
@@ -289,7 +329,15 @@ export function useCourseEditor() {
         delete payload.approvedBy;
         await dispatch(updateCourse({ id, courseData: payload })).unwrap();
         if (showToast) toast.success("Success", "Course information saved!");
-        if (shouldLoad) await loadCourse();
+
+        // Only mark synced/refetch when no newer local edits arrived mid-save.
+        if (localEditVersionRef.current === editVersionAtStart) {
+          lastSyncedEditVersionRef.current = editVersionAtStart;
+          if (shouldLoad) {
+            skipNextAutoSaveRef.current = true;
+            await loadCourse();
+          }
+        }
       } catch (error) {
         const { title, message } = error.apiMessageForToast || {
           title: "Save Failed",
@@ -298,9 +346,15 @@ export function useCourseEditor() {
         toast.error(title, message);
       } finally {
         setIsSaving(false);
+        saveInFlightRef.current = false;
+        if (queuedAutosaveRef.current) {
+          queuedAutosaveRef.current = false;
+          // Flush the latest local edits that arrived while a save was in flight.
+          handleSave(null, true, false);
+        }
       }
     },
-    [courseDetails, activeDripType, id, dispatch, loadCourse, toast],
+    [id, dispatch, loadCourse, toast],
   );
 
   // Auto-save as draft when courseDetails changes (debounced). Skip the update that came from API sync.
@@ -312,8 +366,13 @@ export function useCourseEditor() {
     }
     if (!courseDetails.title?.trim()) return;
 
+    localEditVersionRef.current += 1;
+
     const timer = setTimeout(() => {
-      skipNextAutoSaveRef.current = true; // Skip the courseDetails update that will come from refetch after save
+      if (saveInFlightRef.current) {
+        queuedAutosaveRef.current = true;
+        return;
+      }
       handleSave(null, true, false); // no status override, reload after save, no toast
     }, AUTO_SAVE_DEBOUNCE_MS);
 

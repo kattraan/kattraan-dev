@@ -1,6 +1,4 @@
 const express = require("express");
-const fs = require("fs");
-const multer = require("multer");
 const path = require("path");
 const router = express.Router();
 const { body, param } = require("express-validator");
@@ -9,6 +7,7 @@ const authenticate = require("../../middleware/auth-middleware");
 const authorizeRoles = require("../../middleware/role-middleware");
 const validateRequest = require("../../middleware/validateRequest");
 const { requireCommunityOwner, requireCommunityMember } = require("../../middleware/communityOwnership");
+const { createHardenedUpload, handleUploadErrors } = require("../../config/uploadSecurity");
 
 const {
   createCommunity,
@@ -31,13 +30,10 @@ const {
 router.use(authenticate);
 
 const UPLOADS_DIR = path.join(__dirname, "..", "..", "uploads");
-fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-const upload = multer({
-  storage: multer.diskStorage({
-    destination: UPLOADS_DIR,
-    filename: (req, file, cb) => cb(null, `${Date.now()}-${file.fieldname}${path.extname(file.originalname)}`),
-  }),
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+const upload = createHardenedUpload({
+  uploadsDir: UPLOADS_DIR,
+  maxFileSizeBytes: 10 * 1024 * 1024, // 10MB
+  maxFiles: 1,
 });
 
 const idCheck = param("id").isMongoId().withMessage("Invalid community ID");
@@ -121,5 +117,8 @@ router.post(
   upload.single("file"),
   uploadAttachment
 );
+
+// Convert multer/file-filter rejections into clean 400s.
+router.use(handleUploadErrors);
 
 module.exports = router;

@@ -1,3 +1,4 @@
+require("express-async-errors");
 const express = require("express");
 const path = require("path");
 const cors = require("cors");
@@ -25,34 +26,37 @@ const instructorLearnersRoutes = require("./routes/instructor-routes/learners.ro
 const instructorStatsRoutes = require("./routes/instructor-routes/stats.routes");
 const instructorChapterEngagementTemplateRoutes = require("./routes/instructor-routes/chapter-engagement-templates.routes");
 const exchangeRoutes = require("./routes/exchange-routes/exchange.routes");
-const razorpayRoutes = require("./routes/payment-routes/razorpay.routes");
 const cashfreeRoutes = require("./routes/payment-routes/cashfree.routes");
 const cartRoutes = require("./routes/cart-routes/cart.routes");
 const videoRoutes = require("./routes/video-routes/video.routes");
 const communityRoutes = require("./routes/community-routes");
 const webhooksRoutes = require("./routes/webhooks/bunnyStream.routes");
-const razorpayWebhookRoutes = require("./routes/webhooks/razorpay.routes");
 const cashfreeWebhookRoutes = require("./routes/webhooks/cashfree.routes");
 const csrfProtection = require("./middleware/csrf");
 
 const app = express();
 
-// Razorpay webhooks must use raw body for signature verification (before express.json)
-app.use(
-  "/api/webhooks/razorpay",
-  express.raw({ type: () => true, limit: "1mb" }),
-  razorpayWebhookRoutes,
-);
-// Backward-compatible alias to avoid losing events if dashboard uses older path.
-app.use(
-  "/api/payments/webhook",
-  express.raw({ type: () => true, limit: "1mb" }),
-  razorpayWebhookRoutes,
-);
 app.use(
   "/api/webhooks/cashfree",
-  express.json({ type: () => true }),
+  express.json({
+    type: () => true,
+    verify: (req, _res, buf) => {
+      req.rawBody = buf.toString("utf8");
+    },
+  }),
   cashfreeWebhookRoutes,
+);
+
+// Bunny Stream webhooks need the raw body for HMAC signature verification.
+app.use(
+  "/api/webhooks/bunny-stream",
+  express.json({
+    type: () => true,
+    verify: (req, _res, buf) => {
+      req.rawBody = buf.toString("utf8");
+    },
+  }),
+  webhooksRoutes,
 );
 
 app.use(express.json());
@@ -161,30 +165,59 @@ app.use(
 //   next();
 // });
 
-// CORS: require CLIENT_URL in production so we never fall back to localhost
+// CORS: require CLIENT_URL in production so we never fall back to localhost.
+// Supports a comma-separated list (www + apex, preview deploys) so it stays in
+// sync with the CSRF Origin allowlist (middleware/csrf.js).
 const isProduction = process.env.NODE_ENV === "production";
-const clientOrigin =
-  process.env.CLIENT_URL || (isProduction ? null : "http://localhost:5173");
+
+function normalizeOrigin(value) {
+  if (!value || typeof value !== "string") return null;
+  try {
+    return new URL(value.trim()).origin;
+  } catch {
+    return null;
+  }
+}
+
+const rawClientUrl =
+  process.env.CLIENT_URL || (isProduction ? "" : "http://localhost:5173");
+const clientOrigins = rawClientUrl
+  .split(",")
+  .map((s) => normalizeOrigin(s))
+  .filter(Boolean);
+
 if (
   isProduction &&
-  (!clientOrigin || clientOrigin === "http://localhost:5173")
+  (clientOrigins.length === 0 ||
+    clientOrigins.every((o) => o.includes("localhost")))
 ) {
   throw new Error(
     "CLIENT_URL must be set in production (e.g. https://your-app.com). Do not use localhost.",
   );
 }
-app.use(
-  cors({
-    origin: clientOrigin,
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-  }),
-);
-app.options("*", cors());
+
+const allowedOriginSet = new Set(clientOrigins);
+
+// Single origin function used for both normal requests and preflight, so the
+// preflight path can never be looser than the actual request path.
+const corsOptions = {
+  origin(origin, callback) {
+    // Non-browser clients (curl, server-to-server, same-origin) send no Origin.
+    if (!origin) return callback(null, true);
+    if (allowedOriginSet.has(origin)) return callback(null, true);
+    return callback(new Error("Not allowed by CORS"));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 
 // Exposed for the Socket.IO server (server/socket/index.js) so CORS config stays in sync.
-app.clientOrigin = clientOrigin;
+app.clientOrigin = clientOrigins[0] || null;
+app.clientOrigins = clientOrigins;
 
 // Routes
 app.use("/api/auth", authRoutes);
@@ -203,12 +236,10 @@ app.use(
   instructorChapterEngagementTemplateRoutes,
 );
 app.use("/api/exchange-rates", exchangeRoutes);
-app.use("/api/payment/razorpay", razorpayRoutes);
 app.use("/api/payment/cashfree", cashfreeRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/videos", videoRoutes);
 app.use("/api/community", communityRoutes);
-app.use("/api/webhooks", webhooksRoutes);
 
 // 404 Handler
 app.use((req, res) => {

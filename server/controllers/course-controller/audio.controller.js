@@ -54,11 +54,18 @@ exports.updateAudioContent = async (req, res) => {
     }
 };
 
-// Delete audio content AND remove from chapter
+// Delete audio content (soft-delete) AND remove from chapter
 exports.deleteAudioContent = async (req, res) => {
     try {
-        const item = await AudioContent.findByIdAndDelete(req.params.id);
-        if (!item) return res.status(404).json({ success: false, message: 'Not found' });
+        const item = await AudioContent.findById(req.params.id);
+        if (!item || item.isDeleted) {
+            return res.status(404).json({ success: false, message: 'Not found' });
+        }
+
+        item.isDeleted = true;
+        item.deletedAt = new Date();
+        if (req.user?._id) item.deletedBy = String(req.user._id);
+        await item.save();
 
         if (item.chapter) {
             await Chapter.findByIdAndUpdate(item.chapter, {

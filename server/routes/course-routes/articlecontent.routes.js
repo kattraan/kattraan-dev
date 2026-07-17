@@ -6,12 +6,13 @@ const authenticate = require('../../middleware/auth-middleware');
 const authorizeRoles = require('../../middleware/role-middleware');
 const { createContentBody, updateContent } = require('../../validations/content');
 const { requireContentChapterOwner, requireContentOwner } = require('../../middleware/courseOwnership');
+const { requireContentListAccess, requireContentReadAccess } = require('../../middleware/contentAccess');
 
 router.use(authenticate);
 
 // Use numeric role IDs: 1=learner, 2=instructor, 3=admin
-router.get('/', authorizeRoles('learner', 'instructor', 'admin'), articleContentController.getAllArticleContents);
-router.get('/:id', authorizeRoles('learner', 'instructor', 'admin'), articleContentController.getArticleContentById);
+router.get('/', authorizeRoles('learner', 'instructor', 'admin'), requireContentListAccess(), articleContentController.getAllArticleContents);
+router.get('/:id', authorizeRoles('learner', 'instructor', 'admin'), requireContentReadAccess('id'), articleContentController.getArticleContentById);
 router.post('/', authorizeRoles('instructor', 'admin'), requireContentChapterOwner('chapter'), ...createContentBody, articleContentController.createArticleContent);
 router.put('/:id', authorizeRoles('instructor', 'admin'), requireContentOwner('id'), ...updateContent, articleContentController.updateArticleContent);
 router.delete('/:id', authorizeRoles('instructor', 'admin'), requireContentOwner('id'), articleContentController.deleteArticleContent);

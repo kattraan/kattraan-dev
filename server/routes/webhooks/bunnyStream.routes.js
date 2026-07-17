@@ -4,10 +4,10 @@ const { handleBunnyStreamWebhook } = require('../../controllers/webhooks/bunnySt
 const router = express.Router();
 
 /**
- * Bunny Stream calls this URL when video encoding status changes.
- * No authentication: request is validated via VideoLibraryId match.
- * Configure this URL in Bunny dashboard: Stream → Library → Webhooks.
+ * Bunny Stream encoding webhook.
+ * Mounted at /api/webhooks/bunny-stream with raw-body capture in app.js.
+ * Auth: HMAC signature + library ID match.
  */
-router.post('/bunny-stream', handleBunnyStreamWebhook);
+router.post('/', handleBunnyStreamWebhook);
 
 module.exports = router;

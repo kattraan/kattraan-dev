@@ -9,7 +9,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import BrandLogo from '@/components/common/BrandLogo';
 import { Briefcase, ArrowRight, Lock, Check } from 'lucide-react';
-import heroBackground from "@/assets/hero-background.png";
+import heroBackground from "@/assets/hero-background.webp";
 import { validatePasswordStrength } from '@/utils/passwordValidation';
 import { ROUTES } from '@/config/routes';
 

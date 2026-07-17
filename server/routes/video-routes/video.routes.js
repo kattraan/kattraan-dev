@@ -4,6 +4,7 @@ const videoPlayController = require('../../controllers/video-controller/videoPla
 const videoUploadController = require('../../controllers/video-controller/videoUpload.controller');
 const authenticate = require('../../middleware/auth-middleware');
 const authorizeRoles = require('../../middleware/role-middleware');
+const { requireContentChapterOwner } = require('../../middleware/courseOwnership');
 
 router.use(authenticate);
 
@@ -12,8 +13,11 @@ router.get('/:videoId/play', authorizeRoles('learner', 'instructor', 'admin'), v
 
 // Direct upload flow: create (Bunny + TUS credentials) → client uploads to Bunny → save metadata
 router.post('/create', authorizeRoles('instructor', 'admin'), videoUploadController.createVideo);
-router.post('/save', authorizeRoles('instructor', 'admin'), videoUploadController.saveVideoMetadata);
-
-// Bunny encoding webhook: use POST /api/webhooks/bunny-stream (no auth). Configure that URL in Bunny dashboard.
+router.post(
+  '/save',
+  authorizeRoles('instructor', 'admin'),
+  requireContentChapterOwner('chapterId'),
+  videoUploadController.saveVideoMetadata,
+);
 
 module.exports = router;

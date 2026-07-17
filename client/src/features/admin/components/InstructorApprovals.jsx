@@ -57,12 +57,12 @@ const ApplicationCard = ({ user, onAction }) => {
 
           <div className="flex flex-wrap gap-4 pt-2">
             {enrollmentData?.linkedin && (
-              <a href={`https://${enrollmentData.linkedin}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-bold hover:bg-blue-500/20 transition-all">
+              <a href={`https://${enrollmentData.linkedin}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-bold hover:bg-blue-500/20 transition-all">
                 <Linkedin size={14} /> LinkedIn
               </a>
             )}
             {enrollmentData?.website && (
-              <a href={`https://${enrollmentData.website}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary-pink/10 text-primary-pink text-xs font-bold hover:bg-primary-pink/20 transition-all">
+              <a href={`https://${enrollmentData.website}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary-pink/10 text-primary-pink text-xs font-bold hover:bg-primary-pink/20 transition-all">
                 <Globe size={14} /> Portfolio
               </a>
             )}

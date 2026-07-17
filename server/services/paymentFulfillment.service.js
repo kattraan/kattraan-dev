@@ -5,24 +5,20 @@ const Chapter = require('../models/Chapter');
 const User = require('../models/User');
 
 /**
- * Enroll user and persist Order for a successful Razorpay payment.
- * Idempotent on paymentId (same Razorpay payment never creates two orders or double-enrolls).
+ * Enroll user and persist Order for a successful Cashfree payment.
+ * Idempotent on paymentId (same payment never creates two orders or double-enrolls).
  *
- * @param {object} params
- * @param {string} params.userId
- * @param {string} params.courseId
- * @param {string} params.paymentId - Razorpay payment id (pay_...)
- * @param {string} params.razorpayOrderId - Razorpay order id (order_...)
- * @param {string} [params.displayCurrency]
- * @param {number} [params.displayAmount]
- * @returns {Promise<{ idempotent: boolean, order: object }>}
+ * Concurrency strategy (works on standalone Mongo and replica sets):
+ * 1. Create the Order first using unique paymentId as the lock.
+ * 2. Only the creator continues to enroll.
+ * 3. Enrollment uses an atomic $ne/$push so learners is incremented at most once.
  */
 async function fulfillCoursePurchase(params) {
   const {
     userId,
     courseId,
     paymentId,
-    razorpayOrderId,
+    providerOrderId,
     displayCurrency,
     displayAmount,
   } = params;
@@ -51,46 +47,34 @@ async function fulfillCoursePurchase(params) {
   const userName = user?.userName || '';
   const userEmail = user?.userEmail || '';
 
-  let learnerDoc = await LearnerCourses.findOne({ userId });
-  if (!learnerDoc) {
-    learnerDoc = new LearnerCourses({ userId, courses: [] });
-  }
-  const alreadyEnrolled = learnerDoc.courses.some(
-    (c) => c.courseId && c.courseId.toString() === courseId.toString(),
-  );
+  const sectionIds = (course.sections || []).map((s) => s && s.toString()).filter(Boolean);
+  const totalLessons = sectionIds.length
+    ? await Chapter.countDocuments({ section: { $in: sectionIds }, isDeleted: { $ne: true } })
+    : 0;
 
-  if (!alreadyEnrolled) {
-    const sectionIds = (course.sections || []).map((s) => s && s.toString()).filter(Boolean);
-    const totalLessons = sectionIds.length
-      ? await Chapter.countDocuments({ section: { $in: sectionIds }, isDeleted: { $ne: true } })
-      : 0;
-
-    const instructorName = course.createdBy?.userName || 'Instructor';
-    learnerDoc.courses.push({
-      courseId: course._id.toString(),
-      title: course.title || 'Untitled Course',
-      instructorId: course.createdBy?._id?.toString() || '',
-      instructorName,
-      dateOfPurchase: new Date(),
-      courseImage: course.thumbnail || '',
-      totalLessons,
-    });
-    await learnerDoc.save();
-    await Course.findByIdAndUpdate(courseId, { $inc: { learners: 1 } });
-  }
+  const instructorName = course.createdBy?.userName || 'Instructor';
+  const enrollment = {
+    courseId: course._id.toString(),
+    title: course.title || 'Untitled Course',
+    instructorId: course.createdBy?._id?.toString() || '',
+    instructorName,
+    dateOfPurchase: new Date(),
+    courseImage: course.thumbnail || '',
+    totalLessons,
+  };
 
   const orderPayload = {
     userId,
     userName,
     userEmail,
     orderStatus: 'confirmed',
-    paymentMethod: 'razorpay',
+    paymentMethod: 'cashfree',
     paymentStatus: 'paid',
     orderDate: new Date(),
     paymentId,
-    payerId: razorpayOrderId,
+    payerId: providerOrderId || paymentId,
     instructorId: course.createdBy?._id?.toString() || '',
-    instructorName: course.createdBy?.userName || 'Instructor',
+    instructorName,
     courseImage: course.thumbnail || '',
     courseTitle: course.title || '',
     courseId: course._id.toString(),
@@ -103,9 +87,10 @@ async function fulfillCoursePurchase(params) {
     displayCurrency: displayCurrency || 'INR',
   };
 
+  let order;
   try {
-    const order = await Order.create(orderPayload);
-    return { idempotent: false, order: order.toObject() };
+    // Unique paymentId is the concurrency lock: only one request wins.
+    order = await Order.create(orderPayload);
   } catch (err) {
     if (err.code === 11000) {
       const dup = await Order.findOne({ paymentId }).lean();
@@ -113,6 +98,24 @@ async function fulfillCoursePurchase(params) {
     }
     throw err;
   }
+
+  // Ensure one LearnerCourses doc per user, then append this course only if absent.
+  await LearnerCourses.updateOne(
+    { userId },
+    { $setOnInsert: { userId, courses: [] } },
+    { upsert: true },
+  );
+
+  const enrollmentResult = await LearnerCourses.updateOne(
+    { userId, 'courses.courseId': { $ne: course._id.toString() } },
+    { $push: { courses: enrollment } },
+  );
+
+  if (enrollmentResult.modifiedCount === 1) {
+    await Course.updateOne({ _id: course._id }, { $inc: { learners: 1 } });
+  }
+
+  return { idempotent: false, order: order.toObject() };
 }
 
 module.exports = { fulfillCoursePurchase };

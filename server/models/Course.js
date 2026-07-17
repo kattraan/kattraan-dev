@@ -6,6 +6,8 @@ const CourseSchema = new mongoose.Schema({
   title: { type: String, required: true, trim: true },
   subtitle: { type: String },
   description: { type: String },
+  /** Rich HTML for the "What You'll Learn" section (separate from description). */
+  whatYouWillLearn: { type: String, default: "" },
   thumbnail: { type: String }, // course cover image
   level: { type: String, enum: ["beginner", "intermediate", "advanced"], default: "beginner" },
   category: { type: String, trim: true, default: "" },

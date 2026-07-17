@@ -2,6 +2,8 @@ node_modules/
 
 # Environment and secrets (never commit real values)
 
+# Client production build (regenerate with: cd client && npm run build)
+client/dist/
 
 # Uploaded media (keep local only; do not commit to Git)
 server/uploads/

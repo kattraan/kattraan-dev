@@ -5,7 +5,7 @@ import authService from '@/features/auth/services/authService';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import BrandLogo from '@/components/common/BrandLogo';
-import heroBackground from "@/assets/hero-background.png";
+import heroBackground from "@/assets/hero-background.webp";
 import logo from '@/assets/logo.png';
 import { ROUTES } from '@/config/routes';
 

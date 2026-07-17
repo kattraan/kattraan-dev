@@ -24,10 +24,14 @@ exports.getUsers = async (req, res) => {
   }
 };
 
-// GET /api/users/:id
+// GET /api/users/:id — self or admin only (prevents IDOR scraping of other profiles)
 exports.getUserById = async (req, res) => {
   try {
     const { id } = req.params;
+    const isAdmin = req.user?.roleNames?.map((r) => String(r).toLowerCase()).includes('admin');
+    if (String(req.user._id) !== String(id) && !isAdmin) {
+      return res.status(403).json({ success: false, message: 'You can only view your own profile' });
+    }
     const user = await User
       .findById(id)
       .select('-password -refreshToken -resetPasswordToken -resetPasswordExpires');
@@ -41,6 +45,11 @@ exports.getUserById = async (req, res) => {
   }
 };
 
+// Fields a user may change on their own profile.
+const SELF_UPDATABLE_FIELDS = ['userName', 'userEmail', 'password', 'phoneNumber', 'enrollmentData'];
+// Privileged fields only an admin may set (role/approval/verification state).
+const ADMIN_ONLY_FIELDS = ['status', 'roles', 'isVerified'];
+
 // PUT /api/users/:id
 exports.updateUser = async (req, res) => {
   try {
@@ -49,7 +58,18 @@ exports.updateUser = async (req, res) => {
     if (String(req.user._id) !== String(id) && !isAdmin) {
       return res.status(403).json({ success: false, message: 'You can only update your own profile' });
     }
-    const update = { ...req.body };
+
+    // Allowlist fields so callers can never mass-assign privileged fields
+    // (e.g. roles, isVerified, status) via extra JSON keys → privilege escalation.
+    const allowedFields = isAdmin
+      ? [...SELF_UPDATABLE_FIELDS, ...ADMIN_ONLY_FIELDS]
+      : SELF_UPDATABLE_FIELDS;
+    const update = {};
+    for (const field of allowedFields) {
+      if (Object.prototype.hasOwnProperty.call(req.body, field)) {
+        update[field] = req.body[field];
+      }
+    }
 
     // If password is being updated, hash it
     if (update.password) {

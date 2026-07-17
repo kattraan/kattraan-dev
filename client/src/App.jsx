@@ -102,6 +102,7 @@ function App() {
             <Route path={ROUTES.SHIPPING_DELIVERY} element={<MainLayout><ShippingPage /></MainLayout>} />
             <Route path={`${ROUTES.BLOG_ARTICLE}/:id`} element={<MainLayout><BlogArticlePage /></MainLayout>} />
             <Route path={ROUTES.CATEGORIES} element={<MainLayout><CategoriesPage /></MainLayout>} />
+            <Route path={ROUTES.COURSES} element={<MainLayout><CourseList /></MainLayout>} />
             <Route path={`${ROUTES.COURSE_DETAILS}/:courseId`} element={<MainLayout><CourseDetailsPage /></MainLayout>} />
             
             {/* Auth Routes */}
@@ -135,7 +136,6 @@ function App() {
                 <Route path={`${ROUTES.COMMUNITY}/:id`} element={<CommunityRoomPage />} />
               </Route>
               <Route path={ROUTES.LEARNER_DASHBOARD} element={<Navigate to={ROUTES.DASHBOARD} replace />} />
-              <Route path={ROUTES.COURSES} element={<MainLayout><CourseList /></MainLayout>} />
               <Route path={ROUTES.CART} element={<MainLayout><CartPage /></MainLayout>} />
             </Route>
 

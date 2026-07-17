@@ -20,7 +20,7 @@ import CourseViewPreviewSidebar from "@/features/instructor/components/course-ed
 import { ROUTES } from "@/config/routes";
 import { useVideoProgress } from "@/hooks/useVideoProgress";
 import { getCourseProgress } from "@/features/learner/services/courseProgressService";
-import { getAssignmentRowByContentId } from "@/features/learner/services/learnerAssignmentsService";
+import { getAssignmentSummariesByContentIds } from "@/features/learner/services/learnerAssignmentsService";
 import { submitChapterEngagementFeedback } from "@/features/learner/services/chapterEngagementService";
 
 const SIDEBAR_BREAKPOINT = 768;
@@ -250,7 +250,7 @@ export default function CourseWatchPage() {
     let cancelled = false;
     setQuizChapterSummaries({});
 
-    const tasks = [];
+    const quizTargets = [];
     for (const sec of courseData.sections || []) {
       for (const ch of sec.chapters || []) {
         const quizContent = ch.contents?.find((c) => c.type === "quiz");
@@ -261,43 +261,50 @@ export default function CourseWatchPage() {
         const chKey = String(ch._id || ch.id);
         const qid = quizContent._id || quizContent.id;
         if (!qid) continue;
-        tasks.push(
-          getAssignmentRowByContentId(qid).then((row) => {
-            if (cancelled) return null;
-            const sub = row?.submission;
-            const attempted = !!(
-              sub?.latestEvaluation ||
-              (sub?.attemptCount != null && sub.attemptCount > 0)
-            );
-            if (!attempted) return null;
-            const fromGrade =
-              sub?.grade != null && Number.isFinite(Number(sub.grade))
-                ? Math.round(Number(sub.grade))
-                : null;
-            const fromEval =
-              sub?.latestEvaluation?.percentage != null &&
-              Number.isFinite(Number(sub.latestEvaluation.percentage))
-                ? Math.round(Number(sub.latestEvaluation.percentage))
-                : null;
-            return {
-              chKey,
-              scorePercent: fromGrade ?? fromEval,
-              passed: !!(sub?.passed || sub?.latestEvaluation?.passed),
-              attempted: true,
-            };
-          }),
-        );
+        quizTargets.push({ chKey, qid: String(qid) });
       }
     }
 
-    Promise.all(tasks).then((results) => {
-      if (cancelled) return;
-      const next = {};
-      results.forEach((r) => {
-        if (r) next[r.chKey] = r;
+    if (!quizTargets.length) return undefined;
+
+    getAssignmentSummariesByContentIds(
+      courseId,
+      quizTargets.map((t) => t.qid),
+    )
+      .then((rows) => {
+        if (cancelled) return;
+        const byContentId = new Map(
+          (rows || []).map((row) => [String(row.contentId), row]),
+        );
+        const next = {};
+        for (const target of quizTargets) {
+          const row = byContentId.get(target.qid);
+          const sub = row?.submission;
+          const attempted = !!(
+            sub?.latestEvaluation ||
+            (sub?.attemptCount != null && sub.attemptCount > 0)
+          );
+          if (!attempted) continue;
+          const fromGrade =
+            sub?.grade != null && Number.isFinite(Number(sub.grade))
+              ? Math.round(Number(sub.grade))
+              : null;
+          const fromEval =
+            sub?.latestEvaluation?.percentage != null &&
+            Number.isFinite(Number(sub.latestEvaluation.percentage))
+              ? Math.round(Number(sub.latestEvaluation.percentage))
+              : null;
+          next[target.chKey] = {
+            scorePercent: fromGrade ?? fromEval,
+            passed: !!(sub?.passed || sub?.latestEvaluation?.passed),
+            attempted: true,
+          };
+        }
+        setQuizChapterSummaries(next);
+      })
+      .catch(() => {
+        if (!cancelled) setQuizChapterSummaries({});
       });
-      setQuizChapterSummaries(next);
-    });
 
     return () => {
       cancelled = true;

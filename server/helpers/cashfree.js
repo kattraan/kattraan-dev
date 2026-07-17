@@ -13,12 +13,16 @@ function getClient() {
 async function createOrder(params) {
   const { orderId, amount, currency = 'INR', customerDetails, notes, returnUrl, notifyUrl } = params;
 
+  const orderNoteParts = [notes?.orderNote || 'Kattraan course purchase'];
+  if (notes?.courseId) orderNoteParts.push(`courseId:${notes.courseId}`);
+  if (notes?.userId) orderNoteParts.push(`userId:${notes.userId}`);
+
   const payload = {
     order_id: orderId,
     order_amount: Number(amount),
     order_currency: currency,
     customer_details: customerDetails,
-    order_note: notes?.orderNote || 'Kattraan course purchase',
+    order_note: orderNoteParts.join(' | '),
     order_meta: {
       return_url: returnUrl,
       notify_url: notifyUrl,

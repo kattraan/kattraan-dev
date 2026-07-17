@@ -12,6 +12,27 @@ const PREVIEW_GRADIENT_TEXT =
 const TITLE_MAX_LENGTH = 150;
 const ALLOWED = { TAGS: ['p', 'br', 'strong', 'em', 'u', 'a', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'blockquote', 'span', 'div'], ATTR: ['href', 'target', 'rel'] };
 
+function sanitizePreviewHtml(html) {
+  const cleaned = DOMPurify.sanitize(html || '', {
+    ALLOWED_TAGS: ALLOWED.TAGS,
+    ALLOWED_ATTR: ALLOWED.ATTR,
+  });
+  if (typeof DOMParser === 'undefined') return cleaned;
+  const doc = new DOMParser().parseFromString(cleaned, 'text/html');
+  doc.querySelectorAll('a[target="_blank"]').forEach((anchor) => {
+    const tokens = new Set(
+      String(anchor.getAttribute('rel') || '')
+        .toLowerCase()
+        .split(/\s+/)
+        .filter(Boolean),
+    );
+    tokens.add('noopener');
+    tokens.add('noreferrer');
+    anchor.setAttribute('rel', [...tokens].join(' '));
+  });
+  return doc.body.innerHTML;
+}
+
 const TIPS = [
   'Check grammar and spelling',
   'Be detailed; provide screenshots, error messages, code, or other clues whenever possible',
@@ -503,7 +524,7 @@ export default function CourseViewPreviewContentTabs({ activeChapter, activeTab,
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
           {activeTab === 'Description' && (
             <div className="space-y-4">
-              <div className="text-gray-600 dark:text-white/60 leading-relaxed" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(activeContent?.description || activeChapter?.description || 'No description available.', { ALLOWED_TAGS: ALLOWED.TAGS, ALLOWED_ATTR: ALLOWED.ATTR }) }} />
+              <div className="text-gray-600 dark:text-white/60 leading-relaxed" dangerouslySetInnerHTML={{ __html: sanitizePreviewHtml(activeContent?.description || activeChapter?.description || 'No description available.') }} />
               {!isQuizOnlyLesson && (
               <div className="grid grid-cols-2 gap-4 mt-8">
                 <div className="p-6 rounded-2xl bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/5">
@@ -573,7 +594,7 @@ export default function CourseViewPreviewContentTabs({ activeChapter, activeTab,
                             <p className="text-[11px] text-gray-500 dark:text-white/30 uppercase tracking-wider">{res.type} • {res.metadata?.fileSize ? (res.metadata.fileSize / 1024 / 1024).toFixed(2) + ' MB' : 'Download File'}</p>
                           </div>
                         </div>
-                        <a href={res.fileUrl} target="_blank" rel="noreferrer" className="p-2 rounded-lg bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-white/40 hover:text-gray-900 dark:hover:text-white transition-all" aria-label={`Download ${res.metadata?.fileName || res.title || 'resource'}`}>
+                        <a href={res.fileUrl} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-white/40 hover:text-gray-900 dark:hover:text-white transition-all" aria-label={`Download ${res.metadata?.fileName || res.title || 'resource'}`}>
                           <Download size={18} />
                         </a>
                       </div>

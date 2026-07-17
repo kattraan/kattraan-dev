@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import BrandLogo from '@/components/common/BrandLogo';
-import heroBackground from '@/assets/hero-background.png';
+import heroBackground from '@/assets/hero-background.webp';
 import { ROUTES } from '@/config/routes';
 
 export default function LoginPageLayout({ children }) {

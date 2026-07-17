@@ -32,12 +32,16 @@ async function getMyCourses(req, res) {
     const doc = await LearnerCourses.findOne({ userId }).lean();
     const courseList = doc?.courses || [];
 
-    const result = await Promise.all(
-      courseList.map(async (entry) => {
-        const progress = await CourseProgress.findOne({
-          userId,
-          courseId: entry.courseId,
-        }).lean();
+    const courseIds = [...new Set(courseList.map((entry) => String(entry.courseId)).filter(Boolean))];
+    const progressRows = courseIds.length
+      ? await CourseProgress.find({ userId, courseId: { $in: courseIds } }).lean()
+      : [];
+    const progressByCourseId = new Map(
+      progressRows.map((progress) => [String(progress.courseId), progress]),
+    );
+
+    const result = courseList.map((entry) => {
+        const progress = progressByCourseId.get(String(entry.courseId));
         const chapterProgress = progress?.chapterProgress || [];
         const completedCount = chapterProgress.filter((c) => c.completed).length;
         const totalLessons = entry.totalLessons ?? 0;
@@ -56,8 +60,7 @@ async function getMyCourses(req, res) {
           image: entry.courseImage || null,
           dateOfPurchase: entry.dateOfPurchase,
         };
-      })
-    );
+      });
 
     res.json({ success: true, data: result });
   } catch (err) {
@@ -110,16 +113,12 @@ async function enrollCourse(req, res) {
       return res.status(400).json({ success: false, message: 'Course is not available for enrollment' });
     }
 
-    let doc = await LearnerCourses.findOne({ userId });
-    if (!doc) {
-      doc = new LearnerCourses({ userId, courses: [] });
-    }
-
-    const alreadyEnrolled = doc.courses.some(
-      (c) => (c.courseId && c.courseId.toString()) === courseId.toString()
-    );
-    if (alreadyEnrolled) {
-      return res.json({ success: true, message: 'Already enrolled', data: doc });
+    const price = Number(course.price) || 0;
+    if (price > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'This is a paid course. Complete checkout to enroll.',
+      });
     }
 
     const sectionIds = (course.sections || []).map((s) => s && s.toString()).filter(Boolean);
@@ -129,18 +128,37 @@ async function enrollCourse(req, res) {
 
     const instructorName =
       course.createdBy?.userName || course.instructor?.name || 'Instructor';
-    doc.courses.push({
-      courseId: course._id.toString(),
+    const courseIdStr = course._id.toString();
+    const enrollment = {
+      courseId: courseIdStr,
       title: course.title || 'Untitled Course',
       instructorId: course.createdBy?._id?.toString() || '',
       instructorName,
       dateOfPurchase: new Date(),
       courseImage: course.thumbnail || course.image || course.thumbnailUrl || '',
       totalLessons,
-    });
-    await doc.save();
+    };
 
-    await Course.findByIdAndUpdate(courseId, { $inc: { learners: 1 } });
+    // Atomic upsert + conditional push (same locking pattern as paid fulfillment).
+    // Concurrent free-enroll requests cannot duplicate the course or inflate learners.
+    await LearnerCourses.updateOne(
+      { userId },
+      { $setOnInsert: { userId, courses: [] } },
+      { upsert: true },
+    );
+
+    const enrollmentResult = await LearnerCourses.updateOne(
+      { userId, 'courses.courseId': { $ne: courseIdStr } },
+      { $push: { courses: enrollment } },
+    );
+
+    const doc = await LearnerCourses.findOne({ userId }).lean();
+
+    if (enrollmentResult.modifiedCount !== 1) {
+      return res.json({ success: true, message: 'Already enrolled', data: doc });
+    }
+
+    await Course.updateOne({ _id: courseId }, { $inc: { learners: 1 } });
 
     res.status(201).json({ success: true, message: 'Enrolled successfully', data: doc });
   } catch (err) {

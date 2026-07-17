@@ -73,9 +73,7 @@ const BlogArticlePage = () => {
               }
               return null;
             })
-          ) : (
-            <p className="text-white/50 italic mt-8">Content is coming soon...</p>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -7,10 +7,8 @@ import {
   Share2,
   CreditCard,
   Key,
-  LogOut,
   Trash2,
   ChevronRight,
-  Camera,
 } from 'lucide-react';
 import { ROUTES } from '@/config/routes';
 import { hasRole } from '@/features/auth/utils/roleUtils';
@@ -59,7 +57,6 @@ export default function MyAccountPage() {
   const user = useSelector((state) => state.auth?.user);
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const fileInputRef = useRef(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const displayName =
@@ -79,24 +76,11 @@ export default function MyAccountPage() {
   const handleCardClick = (card) => {
     const path = getCardPath(card);
     if (path) navigate(path);
-    // Social accounts, Payment details, Update number/email - placeholder for now
   };
 
   const handleLogout = () => {
     dispatch(logout());
     navigate(ROUTES.LOGIN);
-  };
-
-  const handleProfilePhotoClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // TODO: upload profile photo via API
-    }
-    e.target.value = '';
   };
 
   return (
@@ -106,11 +90,9 @@ export default function MyAccountPage() {
         <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
           Hello, {displayName?.toUpperCase?.() || displayName}
         </h1>
-        <button
-          type="button"
-          onClick={handleProfilePhotoClick}
-          className="relative shrink-0 w-20 h-20 rounded-full bg-gray-100 dark:bg-white/5 border-2 border-gray-200 dark:border-white/10 flex items-center justify-center overflow-hidden group cursor-pointer hover:border-primary-pink/40 transition-all"
-          aria-label="Change profile photo"
+        <div
+          className="relative shrink-0 w-20 h-20 rounded-full bg-gray-100 dark:bg-white/5 border-2 border-gray-200 dark:border-white/10 flex items-center justify-center overflow-hidden"
+          aria-hidden="true"
         >
           {user?.profilePicture || user?.profileImage ? (
             <img
@@ -122,17 +104,7 @@ export default function MyAccountPage() {
           ) : (
             <span className="text-2xl font-black text-gray-400 dark:text-white/40">{initial}</span>
           )}
-          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-            <Camera size={24} className="text-white" />
-          </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleFileChange}
-          />
-        </button>
+        </div>
       </div>
 
       {/* 2x3 grid of cards */}

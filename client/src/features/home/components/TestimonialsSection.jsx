@@ -1,7 +1,50 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Star, ChevronLeft, ChevronRight, Quote } from 'lucide-react';
-import blogBg from '@/assets/blog.png';
-import blogBg2 from '@/assets/blog 1.png';
+import { Star, ChevronLeft, ChevronRight } from 'lucide-react';
+import blogBg from '@/assets/blog.webp';
+import blogBg2 from '@/assets/blog-1.webp';
+
+const TESTIMONIALS = [
+  {
+    id: 1,
+    category: 'Career Switcher',
+    text: 'At 32, I thought it was too late. Kattraan proved me wrong. Built a job portal from scratch. Now earning double as a developer.',
+    author: 'Rajesh Kumar',
+    journey: 'Civil Engineer → Full Stack Developer',
+    date: 'Jan 18, 2025',
+  },
+  {
+    id: 2,
+    category: 'Struggling Fresh Grad',
+    text: "12 rejections broke me. Kattraan's real projects gave me confidence. Cracked interviews at product companies and a startup.",
+    author: 'Aditya Verma, B.Tech',
+    journey: 'Rejections → selection',
+    date: 'Feb 25, 2025',
+  },
+  {
+    id: 3,
+    category: 'Working Professional',
+    text: 'Same job, same salary for 4 years. I felt invisible. Learned automation at Kattraan. Got promoted in 2 months. Finally noticed.',
+    author: 'Priya Menon',
+    journey: 'Manual Tester → Automation Lead',
+    date: 'Dec 12, 2024',
+  },
+  {
+    id: 4,
+    category: 'Career Changer',
+    text: "Switched from teaching to tech at 35. Kattraan's supportive community and structured learning path made the impossible possible.",
+    author: 'Sneha Patel',
+    journey: 'Teacher → Software Engineer',
+    date: 'Apr 05, 2025',
+  },
+  {
+    id: 5,
+    category: 'Freelancer to Corporate',
+    text: 'From freelancing struggles to a stable role. Kattraan taught me not just coding but professional development practices. Landed my target job in 6 months.',
+    author: 'Vikram Singh',
+    journey: 'Freelancer → Product Developer',
+    date: 'May 12, 2025',
+  },
+];
 
 const TestimonialCard = ({ testimonial, position, isCenter, carouselRadius = 460 }) => {
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
@@ -162,78 +205,31 @@ const TestimonialsSection = () => {
     return () => window.removeEventListener('resize', updateRadius);
   }, []);
 
-  const testimonials = [
-    {
-      id: 1,
-      category: "Career Switcher",
-      text: "At 32, I thought it was too late. Kattran proved me wrong. Built a job portal from scratch. Now earning double as a developer.",
-      author: "Rajesh Kumar",
-      journey: "Civil Engineer → Full Stack Developer",
-      date: "Jan 18, 2027"
-    },
-    {
-      id: 2,
-      category: "Struggling Fresh Grad",
-      text: "12 rejections broke me. Kattran's real projects gave me confidence. Cracked TCS, Infosys & a startup!",
-      author: "Aditya Verma, B.Tech",
-      journey: "Rejections → selection",
-      date: "Feb 25, 2027"
-    },
-    {
-      id: 3,
-      category: "Working Professional",
-      text: "Same job, same salary for 4 years. I felt invisible. Learned automation at Kattran. Got promoted in 2 months. Finally noticed.",
-      author: "Priya Menon",
-      journey: "Manual Tester → Automation Lead",
-      date: "Dec 12, 2026"
-    },
-    {
-      id: 4,
-      category: "Career Changer",
-      text: "Switched from teaching to tech at 35. Kattran's supportive community and structured learning path made the impossible possible. Now working at a top MNC.",
-      author: "Sneha Patel",
-      journey: "Teacher → Software Engineer",
-      date: "Apr 05, 2027"
-    },
-    {
-      id: 5,
-      category: "Freelancer to Corporate",
-      text: "From freelancing struggles to stable career. Kattran taught me not just coding but professional development practices. Landed my dream job in 6 months.",
-      author: "Vikram Singh",
-      journey: "Freelancer → Product Developer",
-      date: "May 12, 2027"
-    }
-  ];
+  const testimonials = TESTIMONIALS;
 
-  // Auto-play effect
   useEffect(() => {
-    if (!isAutoPlaying) return;
-    
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (mq.matches) setIsAutoPlaying(false);
+    const onChange = () => {
+      if (mq.matches) setIsAutoPlaying(false);
+    };
+    mq.addEventListener?.('change', onChange);
+    return () => mq.removeEventListener?.('change', onChange);
+  }, []);
+
+  useEffect(() => {
+    if (!isAutoPlaying) return undefined;
+
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % testimonials.length);
-    }, 5000); // Change every 5 seconds
+      setCurrentIndex((prev) => (prev + 1) % TESTIMONIALS.length);
+    }, 5000);
 
     return () => clearInterval(interval);
-  }, [isAutoPlaying, testimonials.length]);
-
-  const handlePrev = () => {
-    setIsAutoPlaying(false);
-    setCurrentIndex((prev) => (prev - 1 + testimonials.length) % testimonials.length);
-  };
-
-  const handleNext = () => {
-    setIsAutoPlaying(false);
-    setCurrentIndex((prev) => (prev + 1) % testimonials.length);
-  };
+  }, [isAutoPlaying]);
 
   const handleManualChange = (newIndex) => {
     setIsAutoPlaying(false);
     setCurrentIndex(newIndex);
-  };
-
-  const handleDotClick = (index) => { // Added back incase needed, though manual change covers it
-      setIsAutoPlaying(false);
-      setCurrentIndex(index);
   };
 
   return (
@@ -334,32 +330,40 @@ const TestimonialsSection = () => {
             <div className="absolute bottom-6 left-0 right-0 flex flex-col items-center gap-6 z-50">
             {/* Navigation Dots */}
             <div className="flex items-center justify-center gap-3">
-              <button 
+              <button
+                type="button"
+                aria-label="Previous testimonial"
                 onClick={() => handleManualChange((currentIndex - 1 + testimonials.length) % testimonials.length)}
                 className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 hover:scale-110 transition-all text-white/70"
               >
-                <ChevronLeft size={18} />
+                <ChevronLeft size={18} aria-hidden />
               </button>
 
-              <div className="flex gap-2">
+              <div className="flex gap-2" role="tablist" aria-label="Testimonials">
                 {testimonials.map((_, index) => (
                   <button
                     key={index}
+                    type="button"
+                    role="tab"
+                    aria-selected={currentIndex === index}
+                    aria-label={`Show testimonial ${index + 1}`}
                     onClick={() => handleManualChange(index)}
                     className={`h-2 rounded-full transition-all duration-500 ${
-                      currentIndex === index 
-                        ? 'w-8 bg-white' 
+                      currentIndex === index
+                        ? 'w-8 bg-white'
                         : 'w-2 bg-white/20 hover:bg-white/40'
                     }`}
                   />
                 ))}
               </div>
 
-              <button 
+              <button
+                type="button"
+                aria-label="Next testimonial"
                 onClick={() => handleManualChange((currentIndex + 1) % testimonials.length)}
                 className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 hover:scale-110 transition-all text-white/70"
               >
-                <ChevronRight size={18} />
+                <ChevronRight size={18} aria-hidden />
               </button>
             </div>
             </div>

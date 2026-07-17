@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { logout } from '@/features/auth/store/authSlice';
 import BrandLogo from '@/components/common/BrandLogo';
-import heroBackground from "@/assets/hero-background.png";
+import heroBackground from "@/assets/hero-background.webp";
 import { ROUTES } from '@/config/routes';
 
 /**

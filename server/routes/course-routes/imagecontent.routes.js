@@ -6,11 +6,12 @@ const authenticate = require('../../middleware/auth-middleware');
 const authorizeRoles = require('../../middleware/role-middleware');
 const { createContentBody, updateContent } = require('../../validations/content');
 const { requireContentChapterOwner, requireContentOwner } = require('../../middleware/courseOwnership');
+const { requireContentListAccess, requireContentReadAccess } = require('../../middleware/contentAccess');
 
 router.use(authenticate);
 
-router.get('/', authorizeRoles('learner', 'instructor', 'admin'), imageContentController.getAllImageContents);
-router.get('/:id', authorizeRoles('learner', 'instructor', 'admin'), imageContentController.getImageContentById);
+router.get('/', authorizeRoles('learner', 'instructor', 'admin'), requireContentListAccess(), imageContentController.getAllImageContents);
+router.get('/:id', authorizeRoles('learner', 'instructor', 'admin'), requireContentReadAccess('id'), imageContentController.getImageContentById);
 router.post('/', authorizeRoles('instructor', 'admin'), requireContentChapterOwner('chapter'), ...createContentBody, imageContentController.createImageContent);
 router.put('/:id', authorizeRoles('instructor', 'admin'), requireContentOwner('id'), ...updateContent, imageContentController.updateImageContent);
 router.delete('/:id', authorizeRoles('instructor', 'admin'), requireContentOwner('id'), imageContentController.deleteImageContent);

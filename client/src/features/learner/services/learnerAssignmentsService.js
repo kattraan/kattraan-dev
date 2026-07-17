@@ -36,3 +36,27 @@ export async function getAssignmentRowByContentId(contentId) {
     throw e;
   }
 }
+
+/**
+ * Batch quiz/assignment summaries for the watch page sidebar.
+ * @param {string} courseId
+ * @param {string[]} contentIds
+ */
+export async function getAssignmentSummariesByContentIds(courseId, contentIds = []) {
+  const ids = [...new Set((contentIds || []).map((id) => String(id)).filter(Boolean))];
+  if (!courseId || !ids.length) return [];
+  try {
+    const res = await apiClient.get('/learner/assignments/summaries', {
+      params: {
+        courseId,
+        contentIds: ids.join(','),
+      },
+    });
+    const data = res?.data?.data ?? res?.data;
+    return Array.isArray(data) ? data : [];
+  } catch (e) {
+    const status = e?.response?.status;
+    if (status === 403 || status === 404) return [];
+    throw e;
+  }
+}

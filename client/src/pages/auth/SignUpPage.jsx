@@ -7,7 +7,7 @@ import EmailVerificationStep from '@/components/auth/EmailVerificationStep';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import BrandLogo from '@/components/common/BrandLogo';
-import heroBackground from "@/assets/hero-background.png";
+import heroBackground from "@/assets/hero-background.webp";
 import useGoogleOneTap from '@/hooks/useGoogleOneTap';
 import { validatePasswordStrength } from '@/utils/passwordValidation';
 import { hasRole } from '@/features/auth/utils/roleUtils';

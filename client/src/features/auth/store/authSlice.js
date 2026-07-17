@@ -18,7 +18,8 @@ export const login = createAsyncThunk('auth/login', async ({ email, password }, 
 export const register = createAsyncThunk('auth/register', async (userData, thunkAPI) => {
     try {
         const response = await authService.register(userData);
-        return { ...response, email: userData.email, password: userData.password };
+        // Keep password out of Redux action history / DevTools.
+        return { ...response, email: userData.email };
     } catch (error) {
         const message = error.response?.data?.message || error.message;
         return thunkAPI.rejectWithValue(message);

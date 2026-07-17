@@ -12,13 +12,32 @@ jest.mock('../models/User', () => ({
   findById: jest.fn(),
 }));
 
-jest.mock('../services/razorpayFulfillment.service', () => ({
+jest.mock('../models/PendingPayment', () => ({
+  findOneAndUpdate: jest.fn().mockResolvedValue({}),
+}));
+
+jest.mock('../services/paymentFulfillment.service', () => ({
   fulfillCoursePurchase: jest.fn(),
 }));
 
 const cashfreeHelper = require('../helpers/cashfree');
 const Course = require('../models/Course');
 const User = require('../models/User');
+const PendingPayment = require('../models/PendingPayment');
+
+function mockPublishedCourse(overrides = {}) {
+  Course.findById.mockReturnValue({
+    lean: jest.fn().mockResolvedValue({
+      _id: 'course-1',
+      title: 'React Basics',
+      price: 499,
+      status: 'published',
+      thumbnail: '',
+      isDeleted: false,
+      ...overrides,
+    }),
+  });
+}
 
 describe('Cashfree create-order controller', () => {
   beforeEach(() => {
@@ -32,18 +51,13 @@ describe('Cashfree create-order controller', () => {
     });
   });
 
-  it('returns a Cashfree payment session when the course is valid', async () => {
-    Course.findById.mockResolvedValue({
-      _id: 'course-1',
-      title: 'React Basics',
-      price: 499,
-      status: 'published',
-      thumbnail: '',
-      isDeleted: false,
-    });
+  it('returns a Cashfree payment session and persists pending payment metadata', async () => {
+    const originalNow = Date.now;
+    Date.now = jest.fn(() => 111);
+    mockPublishedCourse();
 
     cashfreeHelper.createOrder.mockResolvedValue({
-      order_id: 'cf-order-1',
+      order_id: 'kattraan-course-1-user-1-111',
       payment_session_id: 'session-123',
       payment_link: 'https://pay.cashfree.com/checkout/session-123',
       order_status: 'PENDING',
@@ -53,7 +67,12 @@ describe('Cashfree create-order controller', () => {
     });
 
     const req = {
-      user: { _id: { toString: () => 'user-1' } },
+      user: {
+        _id: { toString: () => 'user-1' },
+        phoneNumber: '9876543210',
+        userEmail: 'test@example.com',
+        userName: 'Test User',
+      },
       body: { courseId: 'course-1' },
     };
     const res = {
@@ -61,27 +80,38 @@ describe('Cashfree create-order controller', () => {
       json: jest.fn(),
     };
 
-    await createOrder(req, res);
+    try {
+      await createOrder(req, res);
+    } finally {
+      Date.now = originalNow;
+    }
 
+    const generatedOrderId = PendingPayment.findOneAndUpdate.mock.calls[0][0].orderId;
+    expect(generatedOrderId).toMatch(/^kattraan-[a-z0-9]+-[a-f0-9]{16}$/);
+    expect(generatedOrderId.length).toBeLessThanOrEqual(45);
+    expect(PendingPayment.findOneAndUpdate).toHaveBeenCalledWith(
+      { orderId: generatedOrderId },
+      expect.objectContaining({
+        userId: 'user-1',
+        courseId: 'course-1',
+        amountINR: 499,
+        status: 'pending',
+      }),
+      expect.any(Object),
+    );
     expect(cashfreeHelper.createOrder).toHaveBeenCalled();
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
         success: true,
-        orderId: 'cf-order-1',
+        orderId: generatedOrderId,
         paymentSessionId: 'session-123',
+        cfOrderId: 'cf-order-1',
       }),
     );
   });
 
   it('uses the user phone number when creating the Cashfree order', async () => {
-    Course.findById.mockResolvedValue({
-      _id: 'course-1',
-      title: 'React Basics',
-      price: 499,
-      status: 'published',
-      thumbnail: '',
-      isDeleted: false,
-    });
+    mockPublishedCourse();
 
     cashfreeHelper.createOrder.mockResolvedValue({
       order_id: 'cf-order-2',
@@ -111,19 +141,16 @@ describe('Cashfree create-order controller', () => {
         customerDetails: expect.objectContaining({
           customer_phone: '+919876543210',
         }),
+        notes: expect.objectContaining({
+          courseId: 'course-1',
+          userId: 'user-2',
+        }),
       }),
     );
   });
 
   it('loads the phone number from the user profile when the auth payload does not include it', async () => {
-    Course.findById.mockResolvedValue({
-      _id: 'course-1',
-      title: 'React Basics',
-      price: 499,
-      status: 'published',
-      thumbnail: '',
-      isDeleted: false,
-    });
+    mockPublishedCourse();
     User.findById.mockReturnValue({
       select: jest.fn().mockReturnThis(),
       lean: jest.fn().mockResolvedValue({
@@ -162,15 +189,8 @@ describe('Cashfree create-order controller', () => {
     );
   });
 
-  it('uses a fallback phone number when the user profile has no phone', async () => {
-    Course.findById.mockResolvedValue({
-      _id: 'course-1',
-      title: 'React Basics',
-      price: 499,
-      status: 'published',
-      thumbnail: '',
-      isDeleted: false,
-    });
+  it('rejects checkout when the user profile has no valid phone', async () => {
+    mockPublishedCourse();
     User.findById.mockReturnValue({
       select: jest.fn().mockReturnThis(),
       lean: jest.fn().mockResolvedValue({
@@ -199,13 +219,15 @@ describe('Cashfree create-order controller', () => {
 
     await createOrder(req, res);
 
-    expect(cashfreeHelper.createOrder).toHaveBeenCalledWith(
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
-        customerDetails: expect.objectContaining({
-          customer_phone: '+919999999999',
-        }),
+        success: false,
+        message: expect.stringMatching(/valid Indian phone number/i),
       }),
     );
+    expect(PendingPayment.findOneAndUpdate).not.toHaveBeenCalled();
+    expect(cashfreeHelper.createOrder).not.toHaveBeenCalled();
   });
 
   it('reports production mode when CASHFREE_ENV is set to PRODUCTION', () => {
@@ -226,16 +248,9 @@ describe('Cashfree create-order controller', () => {
     const originalNow = Date.now;
     Date.now = jest.fn(() => 1234567890);
     process.env.CLIENT_URL = 'http://localhost:5173';
-    Course.findById.mockResolvedValue({
-      _id: 'course-1',
-      title: 'React Basics',
-      price: 499,
-      status: 'published',
-      thumbnail: '',
-      isDeleted: false,
-    });
+    mockPublishedCourse();
     cashfreeHelper.createOrder.mockResolvedValue({
-      order_id: 'cf-order-5',
+      order_id: 'kattraan-course-1-user-5-1234567890',
       payment_session_id: 'session-111',
       payment_link: 'https://pay.cashfree.com/checkout/session-111',
       cf_order_id: 'cf-order-5',
@@ -244,6 +259,9 @@ describe('Cashfree create-order controller', () => {
     const req = {
       user: {
         _id: { toString: () => 'user-5' },
+        phoneNumber: '9876543210',
+        userEmail: 'test@example.com',
+        userName: 'Test User',
       },
       body: { courseId: 'course-1' },
     };
@@ -258,9 +276,10 @@ describe('Cashfree create-order controller', () => {
       Date.now = originalNow;
     }
 
+    const generatedOrderId = PendingPayment.findOneAndUpdate.mock.calls[0][0].orderId;
     expect(cashfreeHelper.createOrder).toHaveBeenCalledWith(
       expect.objectContaining({
-        returnUrl: 'http://localhost:5173/checkout/course-1?payment=success&orderId=kattraan-course-1-user-5-1234567890',
+        returnUrl: `http://localhost:5173/checkout/course-1?payment=success&orderId=${generatedOrderId}`,
       }),
     );
   });

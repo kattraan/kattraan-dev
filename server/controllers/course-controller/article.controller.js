@@ -54,11 +54,18 @@ exports.updateArticleContent = async (req, res) => {
     }
 };
 
-// Delete article content AND remove from chapter
+// Delete article content (soft-delete) AND remove from chapter
 exports.deleteArticleContent = async (req, res) => {
     try {
-        const item = await ArticleContent.findByIdAndDelete(req.params.id);
-        if (!item) return res.status(404).json({ success: false, message: 'Not found' });
+        const item = await ArticleContent.findById(req.params.id);
+        if (!item || item.isDeleted) {
+            return res.status(404).json({ success: false, message: 'Not found' });
+        }
+
+        item.isDeleted = true;
+        item.deletedAt = new Date();
+        if (req.user?._id) item.deletedBy = String(req.user._id);
+        await item.save();
 
         if (item.chapter) {
             await Chapter.findByIdAndUpdate(item.chapter, {

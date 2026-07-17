@@ -1,25 +1,38 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import {
   Play,
   FileText,
-  Infinity,
-  Smartphone,
-  Award,
-  CheckCircle,
   CheckCircle2,
   XCircle,
   ShoppingCart,
+  Clock,
+  Globe2,
+  BarChart3,
 } from "lucide-react";
 import { ROUTES } from "@/config/routes";
 import {
   enrollInCourse,
-  checkEnrollment,
 } from "@/features/learner/services/learnerCoursesService";
 import { useToast } from "@/components/ui/Toast";
 import { useCurrency } from "@/context/CurrencyContext";
 import { useCart } from "@/context/CartContext";
+
+function formatDuration(minutes) {
+  const total = Number(minutes) || 0;
+  if (total <= 0) return '';
+  const hours = Math.floor(total / 60);
+  const mins = total % 60;
+  if (!hours) return `${mins} min`;
+  if (!mins) return `${hours} hr${hours === 1 ? '' : 's'}`;
+  return `${hours} hr${hours === 1 ? '' : 's'} ${mins} min`;
+}
+
+function formatLevel(level) {
+  if (!level || typeof level !== 'string') return '';
+  return `${level.charAt(0).toUpperCase()}${level.slice(1)}`;
+}
 
 const CourseSidebar = ({
   courseData,
@@ -29,6 +42,9 @@ const CourseSidebar = ({
   onRejectOpen,
   approving = false,
   rejecting = false,
+  isEnrolled = false,
+  enrollmentCheckLoading = false,
+  onEnrollmentChange,
 }) => {
   const navigate = useNavigate();
   const toast = useToast();
@@ -40,31 +56,17 @@ const CourseSidebar = ({
   const [addingToCart, setAddingToCart] = useState(false);
   const isInCart = courseId && cartItems.some((i) => i.courseId === courseId);
   const [enrolling, setEnrolling] = useState(false);
-  const [isEnrolled, setIsEnrolled] = useState(false);
-  const [enrollmentCheckLoading, setEnrollmentCheckLoading] = useState(false);
   const isFree = !courseData?.price || Number(courseData.price) === 0;
-
-  useEffect(() => {
-    if (!isAdminReview && isAuthenticated && courseId) {
-      let cancelled = false;
-      setEnrollmentCheckLoading(true);
-      checkEnrollment(courseId)
-        .then(({ enrolled }) => {
-          if (!cancelled) setIsEnrolled(enrolled);
-        })
-        .catch(() => {
-          if (!cancelled) setIsEnrolled(false);
-        })
-        .finally(() => {
-          if (!cancelled) setEnrollmentCheckLoading(false);
-        });
-      return () => {
-        cancelled = true;
-      };
-    } else if (!isAuthenticated) {
-      setIsEnrolled(false);
-    }
-  }, [isAdminReview, isAuthenticated, courseId]);
+  const durationLabel = formatDuration(courseData?.durationMinutes);
+  const levelLabel = formatLevel(courseData?.level);
+  const courseIncludes = [
+    courseData?.totalLessons > 0
+      ? { icon: FileText, text: `${courseData.totalLessons} lesson${courseData.totalLessons === 1 ? '' : 's'}` }
+      : null,
+    durationLabel ? { icon: Clock, text: `${durationLabel} total length` } : null,
+    courseData?.language ? { icon: Globe2, text: `Language: ${courseData.language}` } : null,
+    levelLabel ? { icon: BarChart3, text: `Level: ${levelLabel}` } : null,
+  ].filter(Boolean);
 
   const handleStartFreeCourse = async () => {
     if (!courseId) return;
@@ -72,7 +74,7 @@ const CourseSidebar = ({
     try {
       await enrollInCourse(courseId);
       // Keep user in the same screen; update CTA so it doesn't show an "Enrolled" swap.
-      setIsEnrolled(true);
+      onEnrollmentChange?.(true);
       setEnrollModalOpen(false);
       toast.success("Enrolled", "You can find this course in My Courses.");
     } catch (err) {
@@ -84,7 +86,7 @@ const CourseSidebar = ({
       } else if (
         err.response?.data?.message?.toLowerCase().includes("already enrolled")
       ) {
-        setIsEnrolled(true);
+        onEnrollmentChange?.(true);
         setEnrollModalOpen(false);
       } else {
         toast.error("Enrollment failed", msg);
@@ -143,13 +145,6 @@ const CourseSidebar = ({
                   {/* Bottom vignette for the text */}
                   <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black/90 to-transparent" />
 
-                  {/* "2025" Big Text Overlay */}
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
-                    <span className="text-[120px] font-black text-white/5 tracking-tighter leading-none select-none mix-blend-overlay scale-125 transition-transform duration-[2s]">
-                      2025
-                    </span>
-                  </div>
-
                   {/* Play Button */}
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 transition-all duration-300 shadow-2xl">
@@ -157,11 +152,9 @@ const CourseSidebar = ({
                     </div>
                   </div>
 
-                  {/* "WATCH BEFORE CODING IN" text */}
                   <div className="absolute bottom-4 left-0 right-0 text-center z-10">
                     <h3 className="text-white font-[900] text-[12px] uppercase tracking-[0.2em] drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]">
-                      Watch Before{" "}
-                      <span className="text-[#d8ea38]">Coding In</span>
+                      Course preview
                     </h3>
                   </div>
                 </div>
@@ -224,11 +217,11 @@ const CourseSidebar = ({
                       )}
                     </div>
 
-                    {/* Discount Pill */}
-                    <div className="inline-flex items-center gap-2 border border-white/20 bg-white/[0.06] backdrop-blur-md text-[11px] font-bold px-4 py-1.5 rounded-full mb-8 shadow-inner shadow-white/10">
-                      <span className="text-gradient-brand">61% OFF</span>
-                      <span className="text-white/80">• Limited Time</span>
-                    </div>
+                    {Number(courseData.discount) > 0 && (
+                      <div className="inline-flex items-center gap-2 border border-white/20 bg-white/[0.06] backdrop-blur-md text-[11px] font-bold px-4 py-1.5 rounded-full mb-8 shadow-inner shadow-white/10">
+                        <span className="text-gradient-brand">{Number(courseData.discount)}% OFF</span>
+                      </div>
+                    )}
 
                     {/* Action Buttons */}
                     <div className="space-y-4 mb-8">
@@ -329,35 +322,26 @@ const CourseSidebar = ({
                   </>
                 )}
 
-                {/* Course Includes List */}
-                <div className="space-y-4 px-1">
-                  <h4 className="font-bold text-white text-[15px] mb-4">
-                    This course includes:
-                  </h4>
-                  <ul className="space-y-3 text-[14px] text-[#d4d4d8] font-light">
-                    {[
-                      { icon: Play, text: "15.5 hours on-demand video" },
-                      { icon: FileText, text: "42 downloadable resources" },
-                      { icon: Infinity, text: "Full lifetime access" },
-                      {
-                        icon: Smartphone,
-                        text: "Access on mobile and desktop",
-                      },
-                      { icon: Award, text: "Certificate of completion" },
-                      { icon: CheckCircle, text: "Self-paced learning" },
-                    ].map((item, idx) => (
-                      <li
-                        key={idx}
-                        className="flex items-center gap-3"
-                      >
-                        <item.icon className="w-4 h-4 text-white/80 transition-colors stroke-[1.5]" />
-                        <span className="tracking-wide text-white/90 transition-colors">
-                          {item.text}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                {courseIncludes.length > 0 && (
+                  <div className="space-y-4 px-1">
+                    <h4 className="font-bold text-white text-[15px] mb-4">
+                      This course includes:
+                    </h4>
+                    <ul className="space-y-3 text-[14px] text-[#d4d4d8] font-light">
+                      {courseIncludes.map((item, idx) => (
+                        <li
+                          key={idx}
+                          className="flex items-center gap-3"
+                        >
+                          <item.icon className="w-4 h-4 text-white/80 transition-colors stroke-[1.5]" />
+                          <span className="tracking-wide text-white/90 transition-colors">
+                            {item.text}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             </div>
           </div>

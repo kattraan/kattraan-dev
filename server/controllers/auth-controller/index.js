@@ -103,7 +103,9 @@ const setEmailVerificationOtp = async (user) => {
   user.emailVerificationOtpExpires = new Date(Date.now() + OTP_EXPIRY_MS);
   await user.save();
   await sendVerificationOtpEmail(user, otp);
-  console.log(`[auth] generated verification otp for ${user.userEmail}: ${otp}`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`[auth] verification OTP sent to ${user.userEmail}`);
+  }
   return otp;
 };
 
@@ -380,7 +382,7 @@ const refreshAccessToken = async (req, res) => {
       return res.status(401).json({ success: false, message: "No refresh token" });
     }
 
-    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET, { algorithms: ["HS256"] });
     const user = await User.findById(decoded._id || decoded.user_id);
 
     if (!user) return res.status(403).json({ success: false, message: "User not found" });
@@ -543,7 +545,7 @@ const logoutUser = async (req, res) => {
 
     if (refreshToken) {
       try {
-        const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+        const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET, { algorithms: ["HS256"] });
         const user = await User.findById(decoded._id || decoded.user_id);
 
         if (user) {

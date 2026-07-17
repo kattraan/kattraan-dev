@@ -1,4 +1,5 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { clearSessionAndRedirectToLogin } from '@/utils/authHelpers';
 
 /**
  * RTK Query API for courses. Use for reads (getCourseById, getInstructorCourses);
@@ -11,10 +12,19 @@ function normalizeApiBaseUrl(raw) {
   return `${trimmed}/api`;
 }
 
-const baseQuery = fetchBaseQuery({
-  baseUrl: import.meta.env.VITE_API_URL
-    ? normalizeApiBaseUrl(import.meta.env.VITE_API_URL)
-    : 'http://localhost:5000/api',
+const rawBaseQuery = fetchBaseQuery({
+  baseUrl: (() => {
+    const isProduction = import.meta.env.MODE === 'production';
+    const apiUrl = import.meta.env.VITE_API_URL;
+    if (isProduction && (apiUrl === undefined || apiUrl === '')) {
+      throw new Error(
+        'VITE_API_URL is required in production. Set it in your environment or .env file.',
+      );
+    }
+    return apiUrl
+      ? normalizeApiBaseUrl(apiUrl)
+      : 'http://localhost:5000/api';
+  })(),
   credentials: 'include',
   prepareHeaders: (headers) => {
     headers.set('Content-Type', 'application/json');
@@ -22,9 +32,49 @@ const baseQuery = fetchBaseQuery({
   },
 });
 
+let refreshPromise = null;
+
+async function refreshAccessToken(api, extraOptions) {
+  if (!refreshPromise) {
+    refreshPromise = rawBaseQuery(
+      { url: '/auth/refresh', method: 'POST' },
+      api,
+      extraOptions,
+    ).finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
+}
+
+const baseQueryWithReauth = async (args, api, extraOptions) => {
+  let result = await rawBaseQuery(args, api, extraOptions);
+
+  if (result.error && result.error.status === 401) {
+    const url = typeof args === 'string' ? args : args?.url;
+    if (
+      typeof url === 'string' &&
+      (url.includes('/auth/login') ||
+        url.includes('/auth/refresh') ||
+        url.includes('/auth/check-auth'))
+    ) {
+      return result;
+    }
+
+    const refreshResult = await refreshAccessToken(api, extraOptions);
+    if (refreshResult.data) {
+      result = await rawBaseQuery(args, api, extraOptions);
+    } else {
+      clearSessionAndRedirectToLogin();
+    }
+  }
+
+  return result;
+};
+
 export const coursesApi = createApi({
   reducerPath: 'coursesApi',
-  baseQuery,
+  baseQuery: baseQueryWithReauth,
   tagTypes: ['Course', 'CourseList', 'PublicCourses'],
   endpoints: (builder) => ({
     getCourseById: builder.query({
@@ -38,8 +88,13 @@ export const coursesApi = createApi({
       providesTags: ['CourseList'],
     }),
     getPublicCourses: builder.query({
-      query: () => '/courses/public',
-      transformResponse: (response) => response?.data?.data ?? response?.data ?? [],
+      query: (params = {}) => {
+        const page = params?.page || 1;
+        const limit = params?.limit || 24;
+        const lite = params?.lite ? '&lite=1' : '';
+        return `/courses/public?page=${page}&limit=${limit}${lite}`;
+      },
+      transformResponse: (response) => response?.data ?? [],
       providesTags: ['PublicCourses'],
     }),
   }),

@@ -2,7 +2,10 @@ import React from 'react';
 import { Upload, Globe, Lock, Save } from 'lucide-react';
 import { Card, ContentCard } from '@/components/ui';
 import CourseDescriptionRichEditor from '../components/CourseDescriptionRichEditor';
-import { courseDescriptionPlainLength } from '@/utils/courseDescriptionHtml';
+import {
+  courseDescriptionPlainLength,
+  courseDescriptionToEditorHtml,
+} from '@/utils/courseDescriptionHtml';
 
 /**
  * Information tab for course metadata and settings
@@ -42,7 +45,7 @@ const InformationTab = ({
                     <label className="text-sm font-bold text-gray-600 dark:text-white/60 transition-colors duration-300">Course Title <span className="text-red-500">*</span></label>
                     <input 
                         className="w-full bg-gray-50 dark:bg-[#3A3A3A] border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/20 outline-none focus:border-primary-pink transition-all duration-300" 
-                        placeholder="Sample course titled text will be placed here or there"
+                        placeholder="Enter course title"
                         value={courseDetails.title}
                         onChange={(e) => setCourseDetails({ ...courseDetails, title: e.target.value })}
                     />
@@ -92,6 +95,27 @@ const InformationTab = ({
                     <p className="text-xs text-gray-400 dark:text-white/30 transition-colors duration-300">Short intro video to showcase your course. Use a clear, engaging clip for best results.</p>
                 </div>
 
+                {/* What You'll Learn — above description, same rich editor */}
+                <div className="space-y-2">
+                    <label className="text-sm font-bold text-gray-600 dark:text-white/60 transition-colors duration-300">
+                        What You&apos;ll Learn
+                    </label>
+                    <CourseDescriptionRichEditor
+                        value={
+                          typeof courseDetails.whatYouWillLearn === 'string'
+                            ? courseDetails.whatYouWillLearn
+                            : courseDescriptionToEditorHtml(courseDetails.whatYouWillLearn || '')
+                        }
+                        onChange={(html) =>
+                            setCourseDetails({ ...courseDetails, whatYouWillLearn: html })
+                        }
+                        placeholder="List what learners will gain. Use the bullet or numbered list buttons for each point."
+                    />
+                    <p className="text-xs text-gray-400 dark:text-white/30 transition-colors duration-300">
+                        Shown as checkmarked bullets on the public course page. Prefer a bullet list.
+                    </p>
+                </div>
+
                 {/* Course Description */}
                 <div className="space-y-2">
                     <label className="text-sm font-bold text-gray-600 dark:text-white/60 transition-colors duration-300">Course Description <span className="text-red-500">*</span></label>
@@ -100,7 +124,7 @@ const InformationTab = ({
                         onChange={(html) =>
                             setCourseDetails({ ...courseDetails, description: html })
                         }
-                        placeholder="Describe what learners will learn in this course. Use the list buttons for bullet or numbered points."
+                        placeholder="Write the full course overview for learners. Use formatting for paragraphs, bold, or lists if needed."
                     />
                     <p className="text-xs text-gray-400 dark:text-white/30 transition-colors duration-300">
                         {courseDescriptionPlainLength(courseDetails.description)} characters (plain text) · at least 200 to proceed

@@ -1,6 +1,6 @@
 import React from 'react';
 import EnrollmentForm from '@/features/instructor/components/enrollment/EnrollmentForm';
-import heroBackground from "@/assets/hero-background.png";
+import heroBackground from "@/assets/hero-background.webp";
 
 import BrandLogo from '@/components/common/BrandLogo';
 import { Link } from 'react-router-dom';

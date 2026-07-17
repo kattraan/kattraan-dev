@@ -8,7 +8,7 @@ import DashboardSidebar from "@/layouts/components/DashboardSidebar";
 import InstructorHeader from "@/features/instructor/components/InstructorHeader";
 import LearnerHeader from "@/features/learner/components/LearnerHeader";
 import AdminHeader from "@/features/admin/components/AdminHeader";
-import heroBackground from "@/assets/hero-background.png";
+import heroBackground from "@/assets/hero-background.webp";
 
 /**
  * Single reusable dashboard layout for all roles.

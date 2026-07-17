@@ -190,6 +190,58 @@ async function getAssignmentSubmissionForContent(req, res) {
 }
 
 /**
+ * GET /api/learner/assignments/summaries?courseId=&contentIds=a,b,c
+ * Batch quiz/assignment submission summaries for the watch sidebar.
+ */
+async function getAssignmentSummariesByContentIds(req, res) {
+  const userId = req.user._id;
+  const courseId = String(req.query.courseId || "").trim();
+  const contentIds = String(req.query.contentIds || "")
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean)
+    .slice(0, 200);
+
+  if (!courseId) {
+    return res.status(400).json({ success: false, message: "courseId is required" });
+  }
+  if (!contentIds.length) {
+    return res.json({ success: true, data: [] });
+  }
+
+  const learnerDoc = await LearnerCourses.findOne({ userId: userId.toString() }).lean();
+  const enrolled = learnerDoc?.courses?.some(
+    (c) => c.courseId && c.courseId.toString() === courseId.toString(),
+  );
+  if (!enrolled) {
+    return res.status(403).json({ success: false, message: "You are not enrolled in this course" });
+  }
+
+  const submissions = await AssignmentSubmission.find({
+    user: userId,
+    course: courseId,
+    content: { $in: contentIds },
+  }).lean();
+
+  const data = submissions.map((sub) => ({
+    contentId: String(sub.content),
+    chapterId: sub.chapter ? String(sub.chapter) : null,
+    submission: {
+      _id: sub._id,
+      status: sub.status,
+      submittedAt: sub.submittedAt,
+      attemptCount: sub.attemptCount || 0,
+      latestEvaluation: sub.latestEvaluation || null,
+      passed: !!sub.passed,
+      grade: sub.grade,
+      instructorFeedback: sub.instructorFeedback,
+    },
+  }));
+
+  return res.json({ success: true, data });
+}
+
+/**
  * GET /api/learner/assignments
  * Graded assignments only (metadata.assessmentMode === 'assignment'). Lesson quizzes are not listed here.
  */
@@ -435,4 +487,5 @@ module.exports = {
   getMyAssignments,
   submitAssignment,
   getAssignmentSubmissionForContent,
+  getAssignmentSummariesByContentIds,
 };

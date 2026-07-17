@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Search, ChevronRight, Palette, ArrowRight, Home, Layers, Film } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import heroBackground from "@/assets/hero-background.png";
+import heroBackground from "@/assets/hero-background.webp";
 import { ROUTES } from '@/config/routes';
 
 /**

@@ -6,7 +6,7 @@ const TopRatedCourses = () => {
   const { topRated, isLoading } = useLandingPublicCourses();
   return (
     <CourseSection
-      title="Top Rated"
+      title="Popular"
       highlightWord="Courses"
       courses={topRated}
       isLoading={isLoading}

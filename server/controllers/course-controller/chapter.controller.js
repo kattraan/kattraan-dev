@@ -7,7 +7,7 @@ const Section = require('../../models/Section');
 // Get all chapters (optionally by section)
 exports.getAllChapters = async (req, res) => {
 	try {
-		const filter = {};
+		const filter = { isDeleted: { $ne: true } };
 		if (req.query.section) filter.section = req.query.section;
 		const chapters = await Chapter.find(filter);
 		res.json({ success: true, data: chapters });
@@ -19,7 +19,10 @@ exports.getAllChapters = async (req, res) => {
 // Get chapter by ID
 exports.getChapterById = async (req, res) => {
 	try {
-		const chapter = await Chapter.findById(req.params.id);
+		const chapter = await Chapter.findOne({
+			_id: req.params.id,
+			isDeleted: { $ne: true },
+		});
 		if (!chapter) return res.status(404).json({ success: false, message: 'Not found' });
 		res.json({ success: true, data: chapter });
 	} catch (err) {
@@ -55,16 +58,30 @@ exports.updateChapter = async (req, res) => {
 	}
 };
 
-// Delete chapter and remove from parent section
+// Delete chapter (soft-delete) and remove from parent section
 exports.deleteChapter = async (req, res) => {
 	try {
-		const chapter = await Chapter.findByIdAndDelete(req.params.id);
-		if (!chapter) return res.status(404).json({ success: false, message: 'Not found' });
-		// Remove chapter from parent section
-		await Section.findByIdAndUpdate(
-			chapter.section,
-			{ $pull: { chapters: chapter._id } }
+		const chapter = await Chapter.findById(req.params.id);
+		if (!chapter || chapter.isDeleted) {
+			return res.status(404).json({ success: false, message: 'Not found' });
+		}
+
+		const deletedAt = new Date();
+		const deletedBy = req.user?._id ? String(req.user._id) : undefined;
+		chapter.isDeleted = true;
+		chapter.deletedAt = deletedAt;
+		if (deletedBy) chapter.deletedBy = deletedBy;
+		await chapter.save();
+
+		const Content = require('../../models/Content');
+		await Content.updateMany(
+			{ chapter: chapter._id, isDeleted: { $ne: true } },
+			{ $set: { isDeleted: true, deletedAt, ...(deletedBy ? { deletedBy } : {}) } },
 		);
+
+		await Section.findByIdAndUpdate(chapter.section, {
+			$pull: { chapters: chapter._id },
+		});
 		res.json({ success: true, message: 'Deleted' });
 	} catch (err) {
 		res.status(500).json({ success: false, message: err.message });

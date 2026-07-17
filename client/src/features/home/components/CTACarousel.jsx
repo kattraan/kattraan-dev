@@ -41,7 +41,7 @@ const CTACarousel = () => {
       id: 3,
       tag: "New at Kattraan",
       title: "The future is automated testing. Start building today.",
-      description: "Manual testing is dead. Learn Selenium, Cypress, and CI/CD automation to stay relevant in 2025 and beyond",
+      description: "Manual testing roles are shifting. Learn Selenium, Cypress, and CI/CD automation to stay relevant.",
       buttonText: "Start QA Track",
       ctaTo: ROUTES.CATEGORIES,
       icon: icon1
@@ -76,6 +76,9 @@ const CTACarousel = () => {
   ];
 
   useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (mq.matches) return undefined;
+
     const interval = setInterval(() => {
       if (scrollRef.current) {
         const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
@@ -85,7 +88,7 @@ const CTACarousel = () => {
           scrollRef.current.scrollBy({ left: clientWidth, behavior: 'smooth' });
         }
       }
-    }, 5000); // Auto-scroll every 5 seconds
+    }, 5000);
 
     return () => clearInterval(interval);
   }, []);
@@ -135,17 +138,21 @@ const CTACarousel = () => {
       <div className="relative z-10 w-full max-w-[950px] overflow-hidden">
         {/* Navigation Arrows */}
         <button
+          type="button"
+          aria-label="Previous slide"
           onClick={scrollPrev}
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-30 w-12 h-12 rounded-full bg-white/5 backdrop-blur-md border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all group lg:flex hidden"
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-30 w-12 h-12 rounded-full bg-white/5 backdrop-blur-md border border-white/10 hidden lg:flex items-center justify-center hover:bg-white/10 transition-all group"
         >
-          <ChevronLeft className="w-6 h-6 text-white/70 group-hover:text-white transition-colors" />
+          <ChevronLeft className="w-6 h-6 text-white/70 group-hover:text-white transition-colors" aria-hidden />
         </button>
 
         <button
+          type="button"
+          aria-label="Next slide"
           onClick={scrollNext}
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-30 w-12 h-12 rounded-full bg-white/5 backdrop-blur-md border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all group lg:flex hidden"
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-30 w-12 h-12 rounded-full bg-white/5 backdrop-blur-md border border-white/10 hidden lg:flex items-center justify-center hover:bg-white/10 transition-all group"
         >
-          <ChevronRight className="w-6 h-6 text-white/70 group-hover:text-white transition-colors" />
+          <ChevronRight className="w-6 h-6 text-white/70 group-hover:text-white transition-colors" aria-hidden />
         </button>
 
         {/* Gray Background Container */}
@@ -191,7 +198,8 @@ const CTACarousel = () => {
                         <div className="relative w-[180px] h-[180px] flex-shrink-0 ml-10 hidden md:flex items-center justify-center">
                           <img
                             src={slide.icon}
-                            alt="Icon"
+                            alt=""
+                            role="presentation"
                             className="w-full h-full object-contain drop-shadow-2xl"
                             loading="lazy"
                           />
@@ -204,12 +212,16 @@ const CTACarousel = () => {
           </div>
 
           {/* Decorative Dots */}
-          <div className="flex justify-center gap-2 mt-4">
+          <div className="flex justify-center gap-2 mt-4" role="tablist" aria-label="CTA slides">
             {slides.map((_, i) => (
-              <button 
-                key={i} 
+              <button
+                key={i}
+                type="button"
+                role="tab"
+                aria-selected={activeSlide === i}
+                aria-label={`Go to slide ${i + 1}`}
                 onClick={() => goToSlide(i)}
-                className={`h-1.5 rounded-full transition-all duration-300 ${activeSlide === i ? 'w-8 bg-white' : 'w-2 bg-white/20'}`} 
+                className={`h-1.5 rounded-full transition-all duration-300 ${activeSlide === i ? 'w-8 bg-white' : 'w-2 bg-white/20'}`}
               />
             ))}
           </div>

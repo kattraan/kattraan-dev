@@ -21,9 +21,12 @@ const CourseListPage = () => {
     isLoading,
     isError,
     error,
-  } = useGetPublicCoursesQuery(undefined, {
-    skip: false,
-  });
+  } = useGetPublicCoursesQuery(
+    { page: 1, limit: 48 },
+    {
+      skip: false,
+    },
+  );
 
   const filteredCourses =
     categoryParam && categoryParam !== "All"

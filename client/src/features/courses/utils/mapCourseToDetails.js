@@ -1,3 +1,5 @@
+import { normalizeWhatYouWillLearn } from '@/utils/courseDescriptionHtml';
+
 /**
  * Maps API course shape to the courseData shape expected by CourseDetails and CourseSidebar.
  * Used by CourseDetailsPage and admin CourseReviewDetail.
@@ -5,10 +7,6 @@
 export function mapCourseToDetails(course) {
   if (!course) return null;
   const descriptionText = typeof course.description === 'string' ? course.description : '';
-  const descriptionPoints = descriptionText
-    .split(/\r?\n+/)
-    .map((line) => line.trim())
-    .filter(Boolean);
   const sections = course.sections || [];
   const content = sections.map((section) => {
     const chapters = section.chapters || [];
@@ -23,8 +21,12 @@ export function mapCourseToDetails(course) {
       })),
     };
   });
-  const price = Number(course.price) ?? 0;
-  const originalPrice = course.originalPrice != null ? Number(course.originalPrice) : (price > 0 ? Math.round(price * 1.5) : 0);
+  const totalLessons = content.reduce((sum, section) => sum + (section.chapters?.length || 0), 0);
+  const price = Number(course.price) || 0;
+  const originalPrice =
+    course.originalPrice != null && !Number.isNaN(Number(course.originalPrice))
+      ? Number(course.originalPrice)
+      : 0;
   const createdBy = course.createdBy;
   const instructorName = course.instructor?.name ?? course.instructor?.firstName ?? createdBy?.userName ?? 'Instructor';
   // Subtitle under instructor name: only use explicit profile fields on `course.instructor`.
@@ -34,9 +36,7 @@ export function mapCourseToDetails(course) {
     .find(Boolean) || '';
   const instructorBio = createdBy?.enrollmentData?.bio ?? course.instructor?.bio ?? '';
   let instructorImage = course.instructor?.image ?? course.instructor?.avatar ?? createdBy?.avatar ?? createdBy?.profileImage ?? null;
-  const whatYouWillLearn = course.whatYouWillLearn && Array.isArray(course.whatYouWillLearn)
-    ? course.whatYouWillLearn
-    : descriptionPoints;
+  const whatYouWillLearn = normalizeWhatYouWillLearn(course.whatYouWillLearn);
   let videoPreview = course.thumbnail || course.image || course.thumbnailUrl || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80';
   if (typeof videoPreview === 'string') {
     videoPreview = videoPreview.replace('vz-81730109-16e.b-cdn.net', 'kattraan.b-cdn.net').replace('kattraan-storage.b-cdn.net', 'kattraan.b-cdn.net');
@@ -48,8 +48,9 @@ export function mapCourseToDetails(course) {
   return {
     _id: course._id,
     title: course.title || 'Untitled Course',
+    subtitle: typeof course.subtitle === 'string' ? course.subtitle.trim() : '',
     description: descriptionText,
-    rating: course.rating ?? 4.5,
+    rating: course.rating != null ? Number(course.rating) || 0 : 0,
     ratingCount: course.ratingCount ?? '0',
     learners: course.learners ?? course.enrolledCount ?? '0',
     instructor: instructorName,
@@ -58,11 +59,14 @@ export function mapCourseToDetails(course) {
     instructorImage,
     lastUpdated: course.updatedAt ? new Date(course.updatedAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '—',
     language: course.language || 'English',
+    level: course.level || '',
+    durationMinutes: Number(course.duration) || 0,
+    totalLessons,
     price,
     originalPrice,
-    discountTime: 'Limited Time',
+    discount: Number(course.discount) || 0,
     videoPreview,
-    whatYouWillLearn: whatYouWillLearn.length ? whatYouWillLearn : ['Key concepts and skills covered in this course.'],
+    whatYouWillLearn,
     content,
   };
 }

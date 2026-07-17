@@ -26,19 +26,17 @@ async function getCourseIdFromChapter(chapterId) {
 }
 
 /**
- * Check whether a user is enrolled in a course or has an elevated role
- * that grants implicit access (instructor / admin).
- * @param {string} userId
- * @param {string} courseId
- * @param {string} [userRole]
- * @returns {Promise<boolean>}
+ * Check whether a user may access course media.
+ * Allowed: course owner, admin, or enrolled learner.
+ * Instructors who do not own the course must be enrolled (no global instructor bypass).
  */
 async function isEnrolledOrElevated(userId, courseId, userRole) {
-  // Creator can always preview their own course, regardless of role token shape.
   const course = await Course.findById(courseId).select('createdBy').lean();
   if (course?.createdBy && String(course.createdBy) === String(userId)) return true;
 
-  if (userRole === 'instructor' || userRole === 'admin') return true;
+  const role = String(userRole || '').toLowerCase();
+  if (role === 'admin') return true;
+
   const doc = await LearnerCourses.findOne({
     userId: userId.toString(),
     'courses.courseId': courseId.toString(),
@@ -134,17 +132,18 @@ async function getVideoPlayUrlByVideoId(videoId, userId, userRole) {
   const content = await Content.findById(videoId).lean();
   if (!content || content.type !== 'video') return null;
 
-  const playbackUrl = await getSignedPlaybackUrlFromContent(content);
-  if (!playbackUrl) return null;
-
   const chapterId = content.chapter?.toString?.() || content.chapter;
   if (!chapterId) return null;
 
   const courseId = await getCourseIdFromChapter(chapterId);
   if (!courseId) return null;
 
+  // Authorize before Bunny API / signing work.
   const authorized = await isEnrolledOrElevated(userId, courseId, userRole);
   if (!authorized) return null;
+
+  const playbackUrl = await getSignedPlaybackUrlFromContent(content);
+  if (!playbackUrl) return null;
 
   return { playbackUrl };
 }
