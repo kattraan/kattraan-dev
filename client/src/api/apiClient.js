@@ -48,6 +48,77 @@ apiClient.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
+/** One shared refresh so remounts in the same tab don't rotate twice. */
+let refreshPromise = null;
+
+const AUTH_REFRESH_LOCK = 'kattraan-auth-refresh';
+
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * After a refresh failure, another tab may already have new cookies.
+ * Re-check before forcing login.
+ */
+export async function recheckAuthAfterRefreshFailure() {
+    try {
+        const res = await apiClient.get('/auth/check-auth');
+        const data = res?.data;
+        if (data?.isAuthenticated) {
+            return data.data?.user ?? null;
+        }
+    } catch {
+        /* still unauthenticated */
+    }
+    return null;
+}
+
+/**
+ * Rotate access cookie. Cross-tab safe via Web Locks:
+ * only one tab hits /auth/refresh; others wait, then re-check cookies.
+ */
+async function performAuthRefresh() {
+    // Another tab may have finished refreshing while we waited for the lock.
+    const already = await recheckAuthAfterRefreshFailure();
+    if (already) return { data: { success: true, isAuthenticated: true } };
+
+    try {
+        return await apiClient.post('/auth/refresh');
+    } catch (err) {
+        // Cookie jar / multi-tab races: brief wait, re-check, one retry.
+        await sleep(300);
+        const recovered = await recheckAuthAfterRefreshFailure();
+        if (recovered) return { data: { success: true, isAuthenticated: true } };
+        await sleep(200);
+        try {
+            return await apiClient.post('/auth/refresh');
+        } catch (retryErr) {
+            const recoveredAfterRetry = await recheckAuthAfterRefreshFailure();
+            if (recoveredAfterRetry) {
+                return { data: { success: true, isAuthenticated: true } };
+            }
+            throw retryErr;
+        }
+    }
+}
+
+async function runRefreshWithCrossTabLock() {
+    if (typeof navigator !== 'undefined' && navigator.locks?.request) {
+        return navigator.locks.request(AUTH_REFRESH_LOCK, performAuthRefresh);
+    }
+    return performAuthRefresh();
+}
+
+export function refreshAuthSession() {
+    if (!refreshPromise) {
+        refreshPromise = runRefreshWithCrossTabLock().finally(() => {
+            refreshPromise = null;
+        });
+    }
+    return refreshPromise;
+}
+
 // Interceptor to handle global errors and Token Refresh
 let isRefreshing = false;
 let failedQueue = [];
@@ -94,16 +165,21 @@ apiClient.interceptors.response.use(
             isRefreshing = true;
 
             try {
-                // Call refresh endpoint to get new cookies
-                await apiClient.post('/auth/refresh');
+                await refreshAuthSession();
 
-                // If successful, retry the queued requests
                 processQueue(null);
                 isRefreshing = false;
 
-                // Retry the original request
                 return apiClient(originalRequest);
             } catch (err) {
+                // Another tab may have already rotated refresh tokens successfully.
+                const user = await recheckAuthAfterRefreshFailure();
+                if (user) {
+                    processQueue(null);
+                    isRefreshing = false;
+                    return apiClient(originalRequest);
+                }
+
                 processQueue(err, null);
                 isRefreshing = false;
                 attachApiMessage(err);

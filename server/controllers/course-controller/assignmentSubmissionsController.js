@@ -158,6 +158,32 @@ async function gradeSubmission(req, res) {
       .populate("user", "userName userEmail")
       .populate("content", "title type");
 
+    try {
+      const notificationService = require('../../services/notification.service');
+      const assignmentTitle = populated?.content?.title || 'your assignment';
+      const gradeLabel =
+        submission.grade != null && Number.isFinite(Number(submission.grade))
+          ? ` Grade: ${submission.grade}.`
+          : '';
+      const feedbackHint = submission.instructorFeedback
+        ? ' Your instructor left feedback.'
+        : '';
+      await notificationService.createNotification({
+        userId: submission.user,
+        type: 'assignment_graded',
+        title: 'Assignment graded',
+        body: `${assignmentTitle} has been graded.${gradeLabel}${feedbackHint}`.trim(),
+        link: '/dashboard/assignments',
+        meta: {
+          courseId: String(courseId),
+          submissionId: String(submission._id),
+          contentId: submission.content ? String(submission.content) : null,
+        },
+      });
+    } catch (e) {
+      console.error('[gradeSubmission] notification', e.message || e);
+    }
+
     res.json({ success: true, data: populated });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

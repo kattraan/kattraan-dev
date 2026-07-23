@@ -115,6 +115,29 @@ async function getEnrolledLearners(courseId, excludeUserId) {
   return users.filter((u) => u && u.userEmail);
 }
 
+/** All enrolled learner user ids (email optional — for in-app notifications). */
+async function getEnrolledLearnerIds(courseId, excludeUserId) {
+  const cid = String(courseId).trim();
+  const courseIdVariants = [cid];
+  if (mongoose.Types.ObjectId.isValid(cid)) {
+    courseIdVariants.push(new mongoose.Types.ObjectId(cid));
+  }
+  const docs = await LearnerCourses.find({
+    courses: { $elemMatch: { courseId: { $in: courseIdVariants } } },
+  })
+    .select('userId')
+    .lean();
+  const ex = excludeUserId ? String(excludeUserId) : null;
+  return [
+    ...new Set(
+      docs
+        .map((d) => d.userId)
+        .filter((id) => id && (!ex || String(id) !== ex))
+        .map((id) => String(id)),
+    ),
+  ];
+}
+
 async function sendMailSafe(to, subject, innerHtml) {
   await sendEmail({
     to,
@@ -139,15 +162,10 @@ async function notifyLiveSessionsChanged({
     return;
   }
 
-  if (!isEmailConfigured()) {
-    console.warn(
-      "[liveSessionNotifications] SMTP_USER/SMTP_PASS not set — live session emails skipped (add/update/delete notifications not sent).",
-    );
-    return;
-  }
-
   const base = (process.env.CLIENT_URL || "http://localhost:5173").replace(/\/$/, "");
-  const watchUrl = `${base}/view-course/${courseId}/watch`;
+  const watchPath = `/view-course/${courseId}/watch`;
+  const watchUrl = `${base}${watchPath}`;
+  const classesPath = '/dashboard/classes';
   const titleSafe = courseTitle || "Your course";
 
   const addedPlain = added.map(toPlainSession);
@@ -156,6 +174,61 @@ async function notifyLiveSessionsChanged({
     before: toPlainSession(before),
     after: toPlainSession(after),
   }));
+
+  // In-app notifications (always — independent of SMTP)
+  try {
+    const notificationService = require('./notification.service');
+    const learnerIds = await getEnrolledLearnerIds(courseId, instructorUserId);
+    const recipientIds = [...learnerIds];
+    if (instructorUserId) recipientIds.push(String(instructorUserId));
+
+    if (added.length > 0 && recipientIds.length > 0) {
+      const first = addedPlain[0];
+      await notificationService.createNotificationsForUsers(recipientIds, {
+        type: 'live_session_added',
+        title: `New live session — ${titleSafe}`,
+        body:
+          addedPlain.length === 1
+            ? `${first?.title || 'Live class'} was scheduled.`
+            : `${addedPlain.length} live sessions were scheduled.`,
+        link: classesPath,
+        meta: { courseId: String(courseId), kind: 'added', count: addedPlain.length },
+      });
+    }
+    if (removed.length > 0 && recipientIds.length > 0) {
+      await notificationService.createNotificationsForUsers(recipientIds, {
+        type: 'live_session_cancelled',
+        title: `Live session cancelled — ${titleSafe}`,
+        body:
+          removedPlain.length === 1
+            ? `${removedPlain[0]?.title || 'A live class'} was cancelled.`
+            : `${removedPlain.length} live sessions were cancelled.`,
+        link: classesPath,
+        meta: { courseId: String(courseId), kind: 'cancelled', count: removedPlain.length },
+      });
+    }
+    if (modified.length > 0 && recipientIds.length > 0) {
+      await notificationService.createNotificationsForUsers(recipientIds, {
+        type: 'live_session_updated',
+        title: `Live schedule updated — ${titleSafe}`,
+        body:
+          modifiedPlain.length === 1
+            ? `${modifiedPlain[0]?.after?.title || 'A live class'} was rescheduled.`
+            : `${modifiedPlain.length} live sessions were updated.`,
+        link: classesPath,
+        meta: { courseId: String(courseId), kind: 'updated', count: modifiedPlain.length },
+      });
+    }
+  } catch (e) {
+    console.error('[liveSessionNotifications] in-app notify', e.message || e);
+  }
+
+  if (!isEmailConfigured()) {
+    console.warn(
+      "[liveSessionNotifications] SMTP_USER/SMTP_PASS not set — live session emails skipped (in-app notifications still sent).",
+    );
+    return;
+  }
 
   try {
     const instId =

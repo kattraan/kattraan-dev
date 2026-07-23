@@ -70,6 +70,8 @@ export default function LMSVideoPlayer({
   posterUrl,
   autoPlay = false,
   initialTime = 0,
+  maxSeekTime = null,
+  restrictSeeking = false,
   isCompleted = false,
   onPlaybackStateChange,
   onEnded,
@@ -78,6 +80,11 @@ export default function LMSVideoPlayer({
   className = '',
 }) {
   const videoRef = useRef(null);
+  const previewVideoRef = useRef(null);
+  const previewHlsRef = useRef(null);
+  const progressBarRef = useRef(null);
+  const hoverSeekRafRef = useRef(0);
+  const lastPreviewSeekRef = useRef(-1);
   const containerRef = useRef(null);
   const qualityAnchorRef = useRef(null);
   const qualityMenuRef = useRef(null);
@@ -107,6 +114,8 @@ export default function LMSVideoPlayer({
   const [error, setError] = useState(null);
   const [bufferedEnd, setBufferedEnd] = useState(0);
   const [playbackUrl, setPlaybackUrl] = useState(null);
+  /** Progress-bar hover: mini preview + exact time under cursor */
+  const [seekHover, setSeekHover] = useState(null);
   const hasResumedRef = useRef(false);
   /** User intent: false after explicit pause; true after explicit play. Prevents canplay/buffer from auto-resuming. */
   const userWantsPlaybackRef = useRef(autoPlay);
@@ -128,6 +137,30 @@ export default function LMSVideoPlayer({
   const hlsRef = useRef(null);
   const hlsManifestRetryRef = useRef(0);
   const lastPlaybackUrlRef = useRef(null);
+  const lastAllowedTimeRef = useRef(0);
+
+  const getSeekCeiling = useCallback(() => {
+    if (!restrictSeeking || isCompleted) return Infinity;
+    const serverCeiling = Number(maxSeekTime);
+    const serverMax = Number.isFinite(serverCeiling) && serverCeiling >= 0 ? serverCeiling : 0;
+    if (isPlaying) {
+      return Math.max(serverMax, currentTime);
+    }
+    return serverMax;
+  }, [restrictSeeking, isCompleted, maxSeekTime, isPlaying, currentTime]);
+
+  const clampSeekTime = useCallback(
+    (time) => {
+      const video = videoRef.current;
+      const safeTime = Math.max(0, Number(time) || 0);
+      const ceiling = getSeekCeiling();
+      const maxTime = video && Number.isFinite(video.duration) && video.duration > 0
+        ? Math.min(video.duration, ceiling)
+        : ceiling;
+      return Math.min(safeTime, maxTime);
+    },
+    [getSeekCeiling],
+  );
 
   const togglePlay = useCallback(() => {
     const video = videoRef.current;
@@ -144,7 +177,18 @@ export default function LMSVideoPlayer({
   const handleTimeUpdate = useCallback(() => {
     const video = videoRef.current;
     if (video) {
-      setCurrentTime(video.currentTime);
+      const ceiling = getSeekCeiling();
+      if (
+        restrictSeeking &&
+        !isCompleted &&
+        Number.isFinite(ceiling) &&
+        video.currentTime > ceiling + 0.5
+      ) {
+        video.currentTime = ceiling;
+        setCurrentTime(ceiling);
+      } else {
+        setCurrentTime(video.currentTime);
+      }
       setIsPlaying(!video.paused);
       if (Number.isFinite(video.duration) && video.duration > 0) setDuration(video.duration);
       if (video.buffered?.length) {
@@ -156,7 +200,7 @@ export default function LMSVideoPlayer({
         isPlaying: !video.paused,
       });
     }
-  }, [onPlaybackStateChange]);
+  }, [onPlaybackStateChange, restrictSeeking, isCompleted, getSeekCeiling]);
 
   const handleLoadedMetadata = useCallback(() => {
     const video = videoRef.current;
@@ -225,9 +269,57 @@ export default function LMSVideoPlayer({
     const video = videoRef.current;
     const value = parseFloat(e.target.value, 10);
     if (video && Number.isFinite(value)) {
-      video.currentTime = value;
-      setCurrentTime(value);
+      const clamped = clampSeekTime(value);
+      video.currentTime = clamped;
+      setCurrentTime(clamped);
     }
+  }, [clampSeekTime]);
+
+  const updateSeekHover = useCallback(
+    (clientX) => {
+      const bar = progressBarRef.current;
+      if (!bar || !(duration > 0)) {
+        setSeekHover(null);
+        return;
+      }
+      const rect = bar.getBoundingClientRect();
+      if (rect.width <= 0) return;
+      const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+      let time = ratio * duration;
+      if (restrictSeeking && !isCompleted) {
+        time = Math.min(time, getSeekCeiling());
+      }
+      const percent = duration > 0 ? (time / duration) * 100 : 0;
+      // Keep preview card on-screen
+      const edgePad = 11; // ~ half of preview width as %
+      const leftPercent = Math.min(100 - edgePad, Math.max(edgePad, percent));
+      setSeekHover({ time, percent, leftPercent });
+
+      const preview = previewVideoRef.current;
+      if (preview && Number.isFinite(time) && Math.abs(time - lastPreviewSeekRef.current) >= 0.35) {
+        lastPreviewSeekRef.current = time;
+        try {
+          preview.currentTime = time;
+        } catch (_) {}
+      }
+    },
+    [duration, restrictSeeking, isCompleted, getSeekCeiling],
+  );
+
+  const handleProgressMouseMove = useCallback(
+    (e) => {
+      if (hoverSeekRafRef.current) cancelAnimationFrame(hoverSeekRafRef.current);
+      const x = e.clientX;
+      hoverSeekRafRef.current = requestAnimationFrame(() => updateSeekHover(x));
+    },
+    [updateSeekHover],
+  );
+
+  const handleProgressMouseLeave = useCallback(() => {
+    if (hoverSeekRafRef.current) cancelAnimationFrame(hoverSeekRafRef.current);
+    hoverSeekRafRef.current = 0;
+    lastPreviewSeekRef.current = -1;
+    setSeekHover(null);
   }, []);
 
   const handleVolumeChange = useCallback((e) => {
@@ -298,8 +390,10 @@ export default function LMSVideoPlayer({
 
   const seekForward = useCallback(() => {
     const video = videoRef.current;
-    if (video) video.currentTime = Math.min(video.duration, video.currentTime + 10);
-  }, []);
+    if (video) {
+      video.currentTime = clampSeekTime(Math.min(video.duration, video.currentTime + 10));
+    }
+  }, [clampSeekTime]);
   const seekBackward = useCallback(() => {
     const video = videoRef.current;
     if (video) video.currentTime = Math.max(0, video.currentTime - 10);
@@ -310,10 +404,11 @@ export default function LMSVideoPlayer({
     const video = videoRef.current;
     if (video && initialTime > 0 && !hasResumedRef.current) {
       hasResumedRef.current = true;
-      video.currentTime = initialTime;
-      setCurrentTime(initialTime);
+      const resumeTime = clampSeekTime(initialTime);
+      video.currentTime = resumeTime;
+      setCurrentTime(resumeTime);
     }
-  }, [initialTime, handleCanPlay]);
+  }, [initialTime, handleCanPlay, clampSeekTime]);
 
   useKeyboardShortcuts(containerRef, {
     onPlayPause: togglePlay,
@@ -611,6 +706,43 @@ export default function LMSVideoPlayer({
     };
   }, [videoUrl, contentDuration, videoContentId]);
 
+  // Lightweight second stream for progress-bar hover preview (YouTube-style mini screen)
+  useEffect(() => {
+    const preview = previewVideoRef.current;
+    if (!preview || !videoUrl) return undefined;
+
+    if (previewHlsRef.current) {
+      previewHlsRef.current.destroy();
+      previewHlsRef.current = null;
+    }
+    lastPreviewSeekRef.current = -1;
+    setSeekHover(null);
+
+    if (isHlsUrl(videoUrl) && Hls.isSupported()) {
+      const hls = new Hls({
+        ...createHlsConfigForBunnySignedUrl(videoUrl),
+        maxBufferLength: 8,
+        maxMaxBufferLength: 12,
+        autoStartLoad: true,
+      });
+      previewHlsRef.current = hls;
+      hls.loadSource(videoUrl);
+      hls.attachMedia(preview);
+    } else {
+      preview.src = videoUrl;
+      preview.load();
+    }
+
+    return () => {
+      if (previewHlsRef.current) {
+        previewHlsRef.current.destroy();
+        previewHlsRef.current = null;
+      }
+      preview.removeAttribute('src');
+      preview.load();
+    };
+  }, [videoUrl]);
+
   // After metadata load, seek to initialTime (resume) and apply playback rate
   useEffect(() => {
     const video = videoRef.current;
@@ -628,6 +760,11 @@ export default function LMSVideoPlayer({
     video.addEventListener('leavepictureinpicture', onLeavePiP);
     return () => video.removeEventListener('leavepictureinpicture', onLeavePiP);
   }, [videoUrl]);
+
+  // Keep local seek ceiling in sync with server-authoritative max watched time.
+  useEffect(() => {
+    lastAllowedTimeRef.current = getSeekCeiling();
+  }, [getSeekCeiling, videoContentId]);
 
   if (!videoContentId && !legacyVideoUrl) {
     return (
@@ -652,6 +789,10 @@ export default function LMSVideoPlayer({
 
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
   const bufferedPercent = duration > 0 ? (bufferedEnd / duration) * 100 : 0;
+  const seekCeiling = getSeekCeiling();
+  const watchedPercent = duration > 0 && Number.isFinite(seekCeiling) && seekCeiling < Infinity
+    ? (seekCeiling / duration) * 100
+    : 100;
 
   return (
     <div
@@ -744,33 +885,77 @@ export default function LMSVideoPlayer({
             showQualityMenu || showSpeedMenu ? 'z-[50]' : 'z-10'
           }`}
         >
-          {/* Progress bar area - keep rounded clip for bar only */}
-          <div className="group/progress relative h-2 bg-white/10 cursor-pointer rounded-b-xl overflow-hidden">
-            {/* Buffered */}
+          {/* Progress bar area + YouTube-style hover preview */}
+          <div
+            ref={progressBarRef}
+            className="relative py-2 -my-2"
+            onMouseMove={handleProgressMouseMove}
+            onMouseLeave={handleProgressMouseLeave}
+          >
             <div
-              className="absolute inset-y-0 left-0 bg-white/20 transition-all duration-150"
-              style={{ width: `${bufferedPercent}%` }}
-            />
-            {/* Progress */}
-            <div
-              className="absolute inset-y-0 left-0 bg-primary-pink transition-all duration-150 rounded-r-full"
-              style={{ width: `${progressPercent}%` }}
-            />
-            {/* Scrubber thumb */}
-            <div
-              className="absolute top-1/2 w-3.5 h-3.5 rounded-full bg-white shadow-md opacity-0 group-hover/progress:opacity-100 transition-opacity border-2 border-primary-pink -translate-y-1/2 -translate-x-1/2"
-              style={{ left: `${progressPercent}%` }}
-            />
-            <input
-              type="range"
-              min={0}
-              max={duration || 100}
-              step={0.1}
-              value={currentTime}
-              onChange={handleSeek}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-moz-range-thumb]:appearance-none"
-              aria-label="Seek"
-            />
+              className={`absolute bottom-3 z-20 pointer-events-none flex flex-col items-center transition-opacity ${
+                seekHover ? 'opacity-100' : 'opacity-0'
+              }`}
+              style={{
+                left: `${seekHover?.leftPercent ?? 50}%`,
+                transform: 'translateX(-50%)',
+              }}
+              aria-hidden={!seekHover}
+            >
+              <div className="w-36 sm:w-44 aspect-video rounded-md overflow-hidden bg-black border border-white/25 shadow-xl">
+                <video
+                  ref={previewVideoRef}
+                  className="w-full h-full object-contain bg-black"
+                  muted
+                  playsInline
+                  preload="metadata"
+                />
+              </div>
+              <div className="mt-1.5 px-2 py-0.5 rounded bg-black/90 text-white text-xs font-medium tabular-nums shadow">
+                {formatTime(seekHover?.time ?? 0)}
+              </div>
+            </div>
+            <div className="group/progress relative h-2 bg-white/10 cursor-pointer rounded-b-xl overflow-hidden">
+              {/* Buffered */}
+              <div
+                className="absolute inset-y-0 left-0 bg-white/20 transition-all duration-150"
+                style={{ width: `${bufferedPercent}%` }}
+              />
+              {/* Watched (seekable) region indicator */}
+              {restrictSeeking && !isCompleted && watchedPercent < 100 && (
+                <div
+                  className="absolute inset-y-0 left-0 bg-white/10 transition-all duration-150"
+                  style={{ width: `${watchedPercent}%` }}
+                />
+              )}
+              {/* Progress */}
+              <div
+                className="absolute inset-y-0 left-0 bg-primary-pink transition-all duration-150 rounded-r-full"
+                style={{ width: `${progressPercent}%` }}
+              />
+              {/* Scrubber thumb */}
+              <div
+                className="absolute top-1/2 w-3.5 h-3.5 rounded-full bg-white shadow-md opacity-0 group-hover/progress:opacity-100 transition-opacity border-2 border-primary-pink -translate-y-1/2 -translate-x-1/2"
+                style={{ left: `${progressPercent}%` }}
+              />
+              {/* Hover position marker */}
+              {seekHover && (
+                <div
+                  className="absolute top-0 bottom-0 w-0.5 bg-white/70 pointer-events-none"
+                  style={{ left: `${seekHover.percent}%` }}
+                />
+              )}
+              <input
+                type="range"
+                min={0}
+                max={duration || 100}
+                step={0.1}
+                value={currentTime}
+                onChange={handleSeek}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-moz-range-thumb]:appearance-none"
+                aria-label="Seek"
+              />
+            </div>
           </div>
 
           {/* Control bar */}

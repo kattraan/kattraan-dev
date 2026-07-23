@@ -15,6 +15,7 @@ import apiClient from '@/api/apiClient';
 import { useCurrency } from '@/context/CurrencyContext';
 import { ROUTES } from '@/config/routes';
 import { useToast } from '@/components/ui/Toast';
+import { courseDescriptionPreviewText } from '@/utils/courseDescriptionHtml';
 
 /**
  * CheckoutPage — handles Cashfree payment for a paid course.
@@ -218,7 +219,9 @@ export default function CheckoutPage() {
           )}
           <div className="flex-1 min-w-0">
             <h2 className="font-bold text-white text-base leading-snug truncate">{course?.title}</h2>
-            <p className="text-white/50 text-xs mt-1 line-clamp-2">{course?.description}</p>
+            <p className="text-white/50 text-xs mt-1 line-clamp-2">
+              {courseDescriptionPreviewText(course?.description) || 'No description.'}
+            </p>
           </div>
         </div>
 

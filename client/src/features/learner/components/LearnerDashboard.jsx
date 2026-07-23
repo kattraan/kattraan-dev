@@ -1,19 +1,29 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useSelector } from 'react-redux';
-import { BookOpen, Clock, Trophy, Wallet, PlayCircle, Star, Flame, Bell, CheckCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { BookOpen, Clock, Trophy, TrendingUp, PlayCircle, Flame, Bell } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import CurrentCourseTable from './CurrentCourseTable';
+import RecentActivityFeed from './RecentActivityFeed';
+import RecommendedCoursesSidebar from './RecommendedCoursesSidebar';
+import UpcomingForYou from './UpcomingForYou';
 import JoinAsLearnerView from './JoinAsLearnerView';
 import { hasRole } from '@/features/auth/utils/roleUtils';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { getMyEnrolledCourses } from '@/features/learner/services/learnerCoursesService';
+import { getMyEnrolledCourses, getMyLiveSessions } from '@/features/learner/services/learnerCoursesService';
 import { getMyAssignments } from '@/features/learner/services/learnerAssignmentsService';
+import { getLearningStreak } from '@/features/learner/services/streakService';
+import { getMyCertificates } from '@/features/learner/services/certificateService';
+import { buildDashboardActivity } from '@/features/learner/utils/buildDashboardActivity';
+import { buildUpcomingItems } from '@/features/learner/utils/buildUpcomingItems';
+import { ROUTES } from '@/config/routes';
 
 /**
  * Learner dashboard content. Handles role check, data, and layout.
  * Used by LearnerDashboardPage (thin wrapper).
  */
 const LearnerDashboard = () => {
+  const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
   const isLearner = hasRole(user, 'learner');
 
@@ -23,6 +33,9 @@ const LearnerDashboard = () => {
 
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [assignments, setAssignments] = useState([]);
+  const [certificates, setCertificates] = useState([]);
+  const [liveSessions, setLiveSessions] = useState([]);
+  const [streak, setStreak] = useState({ currentStreak: 0, longestStreak: 0, activeToday: false });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,19 +44,27 @@ const LearnerDashboard = () => {
     async function load() {
       setLoading(true);
       try {
-        const [coursesRes, assignmentsRes] = await Promise.all([
+        const [coursesRes, assignmentsRes, streakRes, certificatesRes, liveSessionsRes] = await Promise.all([
           getMyEnrolledCourses(),
           getMyAssignments(),
+          getLearningStreak().catch(() => ({ currentStreak: 0, longestStreak: 0, activeToday: false })),
+          getMyCertificates().catch(() => []),
+          getMyLiveSessions().catch(() => []),
         ]);
 
         if (cancelled) return;
 
         setEnrolledCourses(Array.isArray(coursesRes) ? coursesRes : []);
         setAssignments(Array.isArray(assignmentsRes) ? assignmentsRes : []);
+        setStreak(streakRes);
+        setCertificates(Array.isArray(certificatesRes) ? certificatesRes : []);
+        setLiveSessions(Array.isArray(liveSessionsRes) ? liveSessionsRes : []);
       } catch {
         if (cancelled) return;
         setEnrolledCourses([]);
         setAssignments([]);
+        setCertificates([]);
+        setLiveSessions([]);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -58,19 +79,52 @@ const LearnerDashboard = () => {
   const completedCourses = useMemo(
     () =>
       (enrolledCourses || []).filter(
-        (c) => c.progress === 100 || (c.status || '').toLowerCase() === 'completed',
+        (c) => c.completed === true || (c.progress === 100 && (c.status || '').toLowerCase() === 'completed'),
       ),
     [enrolledCourses],
   );
 
+  const goToCourse = useCallback((course) => {
+    const courseId = course?.courseId || course?.id;
+    if (!courseId) return;
+
+    const watchUrl = `${ROUTES.VIEW_COURSE}/${courseId}/watch`;
+    const returnTo = encodeURIComponent(ROUTES.DASHBOARD);
+    const chapterId = course?.lastWatchedChapterId;
+    const chapterParam = chapterId ? `&chapter=${encodeURIComponent(chapterId)}` : '';
+    navigate(`${watchUrl}?returnTo=${returnTo}${chapterParam}`);
+  }, [navigate]);
+
+  const sortByRecentActivity = useCallback((courses) => {
+    return [...courses].sort((a, b) => {
+      const aTime = a.lastWatchedAt ? new Date(a.lastWatchedAt).getTime() : 0;
+      const bTime = b.lastWatchedAt ? new Date(b.lastWatchedAt).getTime() : 0;
+      if (bTime !== aTime) return bTime - aTime;
+      const aPurchase = a.dateOfPurchase ? new Date(a.dateOfPurchase).getTime() : 0;
+      const bPurchase = b.dateOfPurchase ? new Date(b.dateOfPurchase).getTime() : 0;
+      if (bPurchase !== aPurchase) return bPurchase - aPurchase;
+      return (Number(b.progress) || 0) - (Number(a.progress) || 0);
+    });
+  }, []);
+
+  const resumeCourse = useMemo(() => {
+    if (!enrolledCourses?.length) return null;
+    return sortByRecentActivity(enrolledCourses)[0];
+  }, [enrolledCourses, sortByRecentActivity]);
+
   const currentCourses = useMemo(() => {
-    return (enrolledCourses || []).slice(0, 3).map((c) => ({
-      title: c.title,
-      progress: c.progress ?? 0,
-      instructor: c.instructor || 'Instructor',
-      thumbnail: c.thumbnail || c.image || null,
-    }));
-  }, [enrolledCourses]);
+    return sortByRecentActivity(enrolledCourses || [])
+      .slice(0, 3)
+      .map((c) => ({
+        courseId: c.courseId || c.id,
+        title: c.title,
+        progress: c.progress ?? 0,
+        instructor: c.instructor || 'Instructor',
+        thumbnail: c.thumbnail || c.image || null,
+        lastWatchedChapterId: c.lastWatchedChapterId || null,
+        completed: !!c.completed || c.progress === 100,
+      }));
+  }, [enrolledCourses, sortByRecentActivity]);
 
   const pendingAssignments = useMemo(() => {
     return (assignments || []).filter(
@@ -111,35 +165,42 @@ const LearnerDashboard = () => {
     ];
   }, [pendingAssignments]);
 
-  const recentActivity = useMemo(() => {
-    const activities = [];
+  const recentActivity = useMemo(
+    () => buildDashboardActivity({
+      enrolledCourses,
+      assignments,
+      certificates,
+      streak,
+    }),
+    [assignments, certificates, enrolledCourses, streak],
+  );
 
-    const completed = completedCourses.slice(0, 1)[0];
-    if (completed) {
-      activities.push({
-        id: `completed-${completed.courseId || completed.id || completed.title}`,
-        text: `Completed: ${completed.title}`,
-        time: 'Recently',
-        icon: Trophy,
-        color: 'text-amber-400',
-      });
+  const upcomingItems = useMemo(
+    () => buildUpcomingItems({
+      assignments: pendingAssignments,
+      liveSessions,
+    }),
+    [liveSessions, pendingAssignments],
+  );
+
+  const enrolledCourseIds = useMemo(
+    () => (enrolledCourses || []).map((c) => c.courseId || c.id).filter(Boolean),
+    [enrolledCourses],
+  );
+
+  const handleActivityClick = useCallback((activity) => {
+    if (activity.course) {
+      goToCourse(activity.course);
+      return;
     }
-
-    const submitted = (assignments || [])
-      .filter((a) => a.status === 'Submitted' || a.status === 'Graded')
-      .slice(0, 1)[0];
-    if (submitted) {
-      activities.push({
-        id: `assignment-${submitted.contentId || submitted._id || submitted.title}`,
-        text: `Assignment ${submitted.title || 'submitted'} updated`,
-        time: 'Recently',
-        icon: CheckCircle,
-        color: 'text-green-400',
-      });
+    if (activity.kind === 'certificate') {
+      navigate(ROUTES.DASHBOARD_CERTIFICATES);
+      return;
     }
-
-    return activities;
-  }, [assignments, completedCourses]);
+    if (activity.assignment) {
+      navigate(ROUTES.DASHBOARD_ASSIGNMENTS);
+    }
+  }, [goToCourse, navigate]);
 
   const announcements = useMemo(() => {
     const feedbackAssignment = (assignments || []).find(
@@ -165,11 +226,23 @@ const LearnerDashboard = () => {
         return sum + v;
       }, 0) || 0;
 
+    const averageProgress = enrolledCourses.length
+      ? Math.round(
+          enrolledCourses.reduce((sum, c) => sum + (Number(c.progress) || 0), 0) /
+            enrolledCourses.length,
+        )
+      : null;
+
     return [
       { label: 'Courses Enrolled', value: String(enrolledCourses.length), icon: BookOpen, color: 'text-primary-pink' },
       { label: 'Hours Learned', value: String(hoursLearned), icon: Clock, color: 'text-primary-purple' },
       { label: 'Certificates', value: String(completedCourses.length), icon: Trophy, color: 'text-amber-400' },
-      { label: 'Wallet Balance', value: '₹450', icon: Wallet, color: 'text-green-400' },
+      {
+        label: 'Overall Progress',
+        value: averageProgress != null ? `${averageProgress}%` : '—',
+        icon: TrendingUp,
+        color: 'text-green-400',
+      },
     ];
   }, [completedCourses.length, enrolledCourses]);
 
@@ -179,13 +252,21 @@ const LearnerDashboard = () => {
       subtitle="Pick up right where you left off and keep building your future."
       headerRight={
         <>
-          <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 transition-colors duration-300">
-            <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500" />
-            <span className="text-orange-500 dark:text-orange-400 text-xs font-bold uppercase tracking-wider transition-colors duration-300">5 Day Streak</span>
-          </div>
-          <Button className="flex items-center gap-2">
+          {streak.currentStreak > 0 && (
+            <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 transition-colors duration-300">
+              <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500" />
+              <span className="text-orange-500 dark:text-orange-400 text-xs font-bold uppercase tracking-wider transition-colors duration-300">
+                {streak.currentStreak} Day Streak
+              </span>
+            </div>
+          )}
+          <Button
+            className="flex items-center gap-2"
+            disabled={!resumeCourse}
+            onClick={() => resumeCourse && goToCourse(resumeCourse)}
+          >
             <PlayCircle className="w-5 h-5" />
-            Resume Learning
+            {resumeCourse?.completed || resumeCourse?.progress === 100 ? 'View Course' : 'Resume Learning'}
           </Button>
         </>
       }
@@ -243,45 +324,30 @@ const LearnerDashboard = () => {
             </div>
           )}
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white transition-colors duration-300">In Progress</h2>
-          <CurrentCourseTable courses={currentCourses} />
+          <CurrentCourseTable courses={currentCourses} onResume={goToCourse} />
         </div>
 
         <div className="space-y-8">
           <div className="space-y-4">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Recent Activity</h2>
-            <div className="space-y-6 rounded-[32px] border border-gray-200 bg-white/95 p-6 shadow-sm backdrop-blur-sm transition-colors duration-300 dark:border-white/[0.12] dark:bg-white/[0.06] dark:shadow-[0_8px_32px_rgba(0,0,0,0.45)] dark:backdrop-blur-xl">
-              {recentActivity.map((activity) => (
-                <div key={activity.id} className="flex gap-4 items-start relative">
-                  <div className="absolute top-8 left-[11px] bottom-[-24px] w-px bg-gray-200 last:hidden dark:bg-white/15" />
-                  <div
-                    className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-50 dark:bg-white/[0.1] ${activity.color} ring-1 ring-gray-100 dark:ring-white/[0.08]`}
-                  >
-                    <activity.icon className="w-3.5 h-3.5" />
-                  </div>
-                  <div>
-                    <p className="text-gray-900 dark:text-white/80 text-xs font-medium leading-relaxed transition-colors duration-300">{activity.text}</p>
-                    <p className="text-gray-400 dark:text-white/30 text-[10px] mt-1 transition-colors duration-300">{activity.time}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Upcoming</h2>
+            <UpcomingForYou items={upcomingItems} loading={loading} />
           </div>
 
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Recommended</h2>
-            <div className="space-y-6 rounded-[32px] border border-gray-200 bg-white/95 p-6 shadow-sm backdrop-blur-sm transition-colors duration-300 dark:border-white/[0.12] dark:bg-white/[0.06] dark:shadow-[0_8px_32px_rgba(0,0,0,0.45)] dark:backdrop-blur-xl">
-              {[1, 2].map((i) => (
-                <div key={i} className="flex gap-4 group cursor-pointer items-center">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gray-50 ring-1 ring-gray-100 transition-transform group-hover:scale-105 dark:bg-white/[0.1] dark:ring-white/[0.08]">
-                    <Star className="w-5 h-5 text-gray-300 dark:text-white/20 group-hover:text-primary-pink transition-colors duration-300" />
-                  </div>
-                  <div>
-                    <p className="text-gray-900 dark:text-white text-sm font-bold group-hover:text-primary-pink dark:group-hover:text-primary-pink transition-colors duration-300">Microservices Architecture</p>
-                    <p className="text-gray-400 dark:text-white/40 text-[11px] mt-1 transition-colors duration-300">4.9 ⭐⭐⭐⭐⭐</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+          <div className="space-y-4">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Recent Activity</h2>
+            <RecentActivityFeed
+              activities={recentActivity}
+              loading={loading}
+              onActivityClick={handleActivityClick}
+            />
+          </div>
+
+          <div className="space-y-4">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Recommended for You</h2>
+            <RecommendedCoursesSidebar
+              enrolledCourseIds={enrolledCourseIds}
+              loading={loading}
+            />
           </div>
         </div>
       </div>

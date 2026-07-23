@@ -8,13 +8,16 @@ import { PUBLIC_PATHS } from '@/config/authConfig';
 /**
  * Clears client-side auth state (e.g. localStorage) and redirects to login when not on a public path.
  * Call this when refresh token fails or session is invalid.
+ * Preserves the current path so LoginPage can send the user back after sign-in.
  */
 export function clearSessionAndRedirectToLogin() {
   localStorage.removeItem('user');
   const pathname = window.location.pathname;
+  const search = window.location.search || '';
   const isHome = pathname === '/';
   const isPublic = isHome || PUBLIC_PATHS.some(path => pathname === path || pathname.startsWith(path + '/'));
   if (!isPublic) {
-    window.location.href = LOGIN_PATH;
+    const returnTo = encodeURIComponent(`${pathname}${search}`);
+    window.location.href = `${LOGIN_PATH}?returnTo=${returnTo}`;
   }
 }

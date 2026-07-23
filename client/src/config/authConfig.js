@@ -11,6 +11,10 @@ export const PUBLIC_PATHS = [
   ROUTES.RESET_PASSWORD,
   ROUTES.CATEGORIES,
   ROUTES.COURSE_DETAILS,
+  ROUTES.CERTIFICATE_VERIFY,
+  // Certificate viewer opens in its own tab; don't hard-redirect on a transient 401
+  // while refresh is still racing with another tab.
+  ROUTES.CERTIFICATE_VIEW,
 ];
 
 export const LOGIN_PATH = ROUTES.LOGIN;

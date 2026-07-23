@@ -18,7 +18,7 @@ import {
     userTyping,
     clearTyping,
 } from '@/features/community/store/communitySlice';
-import { connectSocket, disconnectSocket, getSocket } from '@/lib/socket';
+import { connectSocket, getSocket } from '@/lib/socket';
 import MessageBubble from '@/components/community/MessageBubble';
 import MessageComposer from '@/components/community/MessageComposer';
 import PinnedMessagesPanel from '@/components/community/PinnedMessagesPanel';
@@ -103,7 +103,7 @@ const CommunityRoomPage = () => {
             socket.off('message-unpinned', onMessageUnpinned);
             socket.off('presence-update', onPresenceUpdate);
             socket.off('user-typing', onUserTyping);
-            disconnectSocket();
+            // Keep the shared socket alive for header notifications.
         };
     }, [canChat, id, dispatch]);
 

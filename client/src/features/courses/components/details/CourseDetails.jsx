@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Star, CheckCircle, PlayCircle, Plus, Minus, ChevronDown, MessageSquare, Users, Eye, Lock } from 'lucide-react'
+import { Star, CheckCircle, PlayCircle, Plus, Minus, ChevronDown, MessageSquare, Users, Eye, Lock, Globe } from 'lucide-react'
+import { getLanguageLabel } from '@/data/languages'
 import heroBackground from '@/assets/hero-background.webp'
 import { ROUTES } from '@/config/routes'
 import {
@@ -52,6 +53,7 @@ const CourseDetails = ({
         reviewStats?.breakdown?.length
             ? reviewStats.breakdown
             : [5, 4, 3, 2, 1].map((stars) => ({ stars, count: 0, percent: 0 }));
+    const languageLabel = getLanguageLabel(courseData.language);
 
     return (
         <div className="lg:col-span-8 space-y-10 font-satoshi">
@@ -84,6 +86,12 @@ const CourseDetails = ({
                         <Users className="w-4 h-4 text-white/40" />
                         <span>{courseData.learners} learners enrolled</span>
                     </div>
+                    {languageLabel && (
+                        <div className="flex items-center gap-2 text-white/80">
+                            <Globe className="w-4 h-4 text-white/50" strokeWidth={1.75} aria-hidden />
+                            <span>{languageLabel}</span>
+                        </div>
+                    )}
                 </div>
 
                 <div className="pt-4">

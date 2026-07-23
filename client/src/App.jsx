@@ -16,6 +16,7 @@ import { CartProvider } from '@/context/CartContext';
 import InstructorRoutes from '@/routes/InstructorRoutes';
 import { LOADING } from '@/utils/constants';
 import { ROUTES } from '@/config/routes';
+import { refreshAuthSession } from '@/api/apiClient';
 
 // Lazy loading pages for better performance (Code Splitting)
 const LandingPage = lazy(() => import('@/pages/LandingPage'));
@@ -63,6 +64,8 @@ const SocialAccountsPage = lazy(() => import('@/pages/dashboard/account/SocialAc
 const PaymentDetailsPage = lazy(() => import('@/pages/dashboard/account/PaymentDetailsPage'));
 const UpdateContactPage = lazy(() => import('@/pages/dashboard/account/UpdateContactPage'));
 const SettingsPage = lazy(() => import('@/pages/instructor/SettingsPage')); // Reuse Instructor settings for UI consistency
+const CertificateVerifyPage = lazy(() => import('@/pages/CertificateVerifyPage'));
+const CertificateViewPage = lazy(() => import('@/pages/CertificateViewPage'));
 
 
 /**
@@ -71,11 +74,26 @@ const SettingsPage = lazy(() => import('@/pages/instructor/SettingsPage')); // R
  */
 function App() {
   const dispatch = useDispatch();
-  const { loading } = useSelector(state => state.auth);
+  const { isAuthenticated } = useSelector(state => state.auth);
 
   useEffect(() => {
     dispatch(checkAuth());
   }, [dispatch]);
+
+  // Keep the session warm when returning to a background/discarded tab so the
+  // certificate viewer (and other protected pages) don't bounce to login.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      const hasCachedUser = !!localStorage.getItem('user');
+      if (!isAuthenticated && !hasCachedUser) return;
+      refreshAuthSession().catch(() => {
+        /* next checkAuth / API call decides logout */
+      });
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [isAuthenticated]);
 
   // Show the full app immediately (optimistic render).
   // ProtectedRoute handles auth-guarded redirects; the skeleton below covers
@@ -104,6 +122,7 @@ function App() {
             <Route path={ROUTES.CATEGORIES} element={<MainLayout><CategoriesPage /></MainLayout>} />
             <Route path={ROUTES.COURSES} element={<MainLayout><CourseList /></MainLayout>} />
             <Route path={`${ROUTES.COURSE_DETAILS}/:courseId`} element={<MainLayout><CourseDetailsPage /></MainLayout>} />
+            <Route path={`${ROUTES.CERTIFICATE_VERIFY}/:certificateId`} element={<MainLayout><CertificateVerifyPage /></MainLayout>} />
             
             {/* Auth Routes */}
             <Route path={ROUTES.LOGIN} element={<LoginPage />} />
@@ -146,6 +165,8 @@ function App() {
 
             {/* Course view & watch: learners (enrolled), instructors, and admins */}
             <Route element={<ProtectedRoute allowedRoles={['learner', 'instructor', 'admin']} />}>
+              <Route path={`${ROUTES.CERTIFICATE_VIEW}/course/:courseId`} element={<CertificateViewPage />} />
+              <Route path={`${ROUTES.CERTIFICATE_VIEW}/:certificateId`} element={<CertificateViewPage />} />
               <Route path={`${ROUTES.VIEW_COURSE}/:courseId/watch`} element={<CourseWatchPage />} />
               <Route path={`${ROUTES.VIEW_COURSE}/:courseId`} element={<ViewCoursePage />} />
               <Route path={`${ROUTES.CHECKOUT}/:courseId`} element={<CheckoutPage />} />

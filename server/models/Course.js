@@ -11,7 +11,8 @@ const CourseSchema = new mongoose.Schema({
   thumbnail: { type: String }, // course cover image
   level: { type: String, enum: ["beginner", "intermediate", "advanced"], default: "beginner" },
   category: { type: String, trim: true, default: "" },
-  language: { type: String, default: "en" },
+  /** Instruction language (ISO 639-1). Stored as courseLanguage to avoid MongoDB text-index `language` field conflict. */
+  courseLanguage: { type: String, default: "en" },
   price: { type: Number, default: 0 },         // Always stored in INR
   currency: { type: String, default: 'INR' },  // Base currency (always INR)
   discount: { type: Number, default: 0, min: 0, max: 100 }, // optional discount percentage

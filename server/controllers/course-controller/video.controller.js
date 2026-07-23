@@ -46,6 +46,18 @@ exports.createVideoContent = async (req, res) => {
       });
     }
 
+    // Notify enrolled learners (fire-and-forget)
+    const notificationService = require('../../services/notification.service');
+    notificationService
+      .notifyCourseVideoAdded({
+        courseId: req.body.courseId || req.body.course || undefined,
+        chapterId: req.body.chapter,
+        videoTitle: video.title,
+        videoId: video._id,
+        excludeUserId: req.user?._id,
+      })
+      .catch((e) => console.error('[createVideoContent] notification', e.message || e));
+
     res
       .status(201)
       .json({ success: true, data: sanitizeVideoForClient(video) });

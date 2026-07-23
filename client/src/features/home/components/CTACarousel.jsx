@@ -135,28 +135,19 @@ const CTACarousel = () => {
 
   return (
     <section className="relative w-full pt-10 pb-20 px-4 flex flex-col items-center overflow-hidden">
-      <div className="relative z-10 w-full max-w-[950px] overflow-hidden">
-        {/* Navigation Arrows */}
+      <div className="relative z-10 w-full max-w-[1100px] flex items-center gap-3 lg:gap-5">
+        {/* Navigation Arrows — outside the carousel box */}
         <button
           type="button"
           aria-label="Previous slide"
           onClick={scrollPrev}
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-30 w-12 h-12 rounded-full bg-white/5 backdrop-blur-md border border-white/10 hidden lg:flex items-center justify-center hover:bg-white/10 transition-all group"
+          className="flex-shrink-0 w-12 h-12 rounded-full bg-white/5 backdrop-blur-md border border-white/10 hidden lg:flex items-center justify-center hover:bg-white/10 transition-all group"
         >
           <ChevronLeft className="w-6 h-6 text-white/70 group-hover:text-white transition-colors" aria-hidden />
         </button>
 
-        <button
-          type="button"
-          aria-label="Next slide"
-          onClick={scrollNext}
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-30 w-12 h-12 rounded-full bg-white/5 backdrop-blur-md border border-white/10 hidden lg:flex items-center justify-center hover:bg-white/10 transition-all group"
-        >
-          <ChevronRight className="w-6 h-6 text-white/70 group-hover:text-white transition-colors" aria-hidden />
-        </button>
-
         {/* Gray Background Container */}
-        <div className="backdrop-blur-xl bg-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.1)] rounded-3xl sm:rounded-[45px] p-3 sm:p-4 md:p-6 border border-white/20 relative overflow-hidden group/main">
+        <div className="flex-1 min-w-0 backdrop-blur-xl bg-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.1)] rounded-3xl sm:rounded-[45px] p-3 sm:p-4 md:p-6 border border-white/20 relative overflow-hidden group/main">
           
           {/* Wrapper */}
           <div className="relative w-full overflow-hidden">
@@ -226,6 +217,15 @@ const CTACarousel = () => {
             ))}
           </div>
         </div>
+
+        <button
+          type="button"
+          aria-label="Next slide"
+          onClick={scrollNext}
+          className="flex-shrink-0 w-12 h-12 rounded-full bg-white/5 backdrop-blur-md border border-white/10 hidden lg:flex items-center justify-center hover:bg-white/10 transition-all group"
+        >
+          <ChevronRight className="w-6 h-6 text-white/70 group-hover:text-white transition-colors" aria-hidden />
+        </button>
       </div>
     </section>
   );

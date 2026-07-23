@@ -6,7 +6,7 @@ import { ROUTES } from '@/config/routes';
 import { useCurrency } from '@/context/CurrencyContext';
 import { useCart } from '@/context/CartContext';
 import { useToast } from '@/components/ui/Toast';
-import { courseDescriptionPlainText } from '@/utils/courseDescriptionHtml';
+import { courseDescriptionPreviewText } from '@/utils/courseDescriptionHtml';
 
 /**
  * Course card for public course listing (Navbar Courses page).
@@ -110,7 +110,7 @@ const CourseCard = ({ course }) => {
           {title}
         </h3>
         <p className="text-gray-600/80 dark:text-white/50 text-[11px] leading-relaxed line-clamp-2 mb-4">
-          {courseDescriptionPlainText(description) || 'No description.'}
+          {courseDescriptionPreviewText(description) || 'No description.'}
         </p>
       </div>
 

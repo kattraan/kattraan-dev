@@ -1,4 +1,5 @@
 import { normalizeWhatYouWillLearn } from '@/utils/courseDescriptionHtml';
+import { getLanguageLabel } from '@/data/languages';
 
 /**
  * Maps API course shape to the courseData shape expected by CourseDetails and CourseSidebar.
@@ -58,7 +59,7 @@ export function mapCourseToDetails(course) {
     instructorBio,
     instructorImage,
     lastUpdated: course.updatedAt ? new Date(course.updatedAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '—',
-    language: course.language || 'English',
+    language: getLanguageLabel(course.courseLanguage || course.language) || 'English',
     level: course.level || '',
     durationMinutes: Number(course.duration) || 0,
     totalLessons,

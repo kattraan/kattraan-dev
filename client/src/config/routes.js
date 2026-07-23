@@ -67,6 +67,12 @@ export const ROUTES = {
   VIEW_COURSE: "/view-course", // /view-course/:courseId
   VIEW_COURSE_WATCH: "/view-course", // /view-course/:courseId/watch
   ADMIN_SETTINGS: "/admin-dashboard/settings",
+
+  /** Public certificate verification (Udemy-style) */
+  CERTIFICATE_VERIFY: "/certificate/verify",
+
+  /** Full-screen certificate viewer (opens in new tab) */
+  CERTIFICATE_VIEW: "/certificate/view",
 };
 
 export default ROUTES;

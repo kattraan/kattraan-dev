@@ -361,7 +361,7 @@ const CourseViewPreviewSidebar = forwardRef(function CourseViewPreviewSidebar(
                 className="w-full flex items-center justify-center gap-2 rounded-xl py-3 px-4 text-xs font-black uppercase tracking-wider bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] text-white hover:opacity-95 transition-opacity shadow-md shadow-[#FF3FB4]/20"
               >
                 <Download size={16} aria-hidden />
-                Download certificate
+                View certificate
               </button>
             </div>
           ) : (

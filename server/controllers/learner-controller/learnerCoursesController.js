@@ -36,6 +36,12 @@ async function getMyCourses(req, res) {
     const progressRows = courseIds.length
       ? await CourseProgress.find({ userId, courseId: { $in: courseIds } }).lean()
       : [];
+    const courseDocs = courseIds.length
+      ? await Course.find({ _id: { $in: courseIds } }).select('duration').lean()
+      : [];
+    const durationByCourseId = new Map(
+      courseDocs.map((c) => [String(c._id), c.duration]),
+    );
     const progressByCourseId = new Map(
       progressRows.map((progress) => [String(progress.courseId), progress]),
     );
@@ -45,8 +51,24 @@ async function getMyCourses(req, res) {
         const chapterProgress = progress?.chapterProgress || [];
         const completedCount = chapterProgress.filter((c) => c.completed).length;
         const totalLessons = entry.totalLessons ?? 0;
-        const progressPercent =
-          totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
+        const isCompleted = !!(progress && progress.completed);
+        const progressPercent = isCompleted
+          ? 100
+          : totalLessons > 0
+            ? Math.round((completedCount / totalLessons) * 100)
+            : 0;
+
+        let lastWatchedAt = null;
+        let lastWatchedChapterId = null;
+        for (const ch of chapterProgress) {
+          if (!ch.lastWatchedAt) continue;
+          const watchedAt = new Date(ch.lastWatchedAt);
+          if (Number.isNaN(watchedAt.getTime())) continue;
+          if (!lastWatchedAt || watchedAt > lastWatchedAt) {
+            lastWatchedAt = watchedAt;
+            lastWatchedChapterId = ch.chapterId || null;
+          }
+        }
 
         return {
           id: entry.courseId,
@@ -56,9 +78,14 @@ async function getMyCourses(req, res) {
           progress: progressPercent,
           totalLessons,
           completedLessons: completedCount,
-          status: progressPercent === 100 && totalLessons > 0 ? 'Completed' : 'In Progress',
+          status: isCompleted ? 'Completed' : 'In Progress',
+          completed: isCompleted,
+          completionDate: progress?.completionDate || null,
+          durationMinutes: durationByCourseId.get(String(entry.courseId)) ?? null,
           image: entry.courseImage || null,
           dateOfPurchase: entry.dateOfPurchase,
+          lastWatchedAt: lastWatchedAt ? lastWatchedAt.toISOString() : null,
+          lastWatchedChapterId,
         };
       });
 

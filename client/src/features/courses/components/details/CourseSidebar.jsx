@@ -8,9 +8,10 @@ import {
   XCircle,
   ShoppingCart,
   Clock,
-  Globe2,
+  Globe,
   BarChart3,
 } from "lucide-react";
+import { getLanguageLabel } from "@/data/languages";
 import { ROUTES } from "@/config/routes";
 import {
   enrollInCourse,
@@ -59,12 +60,13 @@ const CourseSidebar = ({
   const isFree = !courseData?.price || Number(courseData.price) === 0;
   const durationLabel = formatDuration(courseData?.durationMinutes);
   const levelLabel = formatLevel(courseData?.level);
+  const languageLabel = getLanguageLabel(courseData?.language);
   const courseIncludes = [
     courseData?.totalLessons > 0
       ? { icon: FileText, text: `${courseData.totalLessons} lesson${courseData.totalLessons === 1 ? '' : 's'}` }
       : null,
     durationLabel ? { icon: Clock, text: `${durationLabel} total length` } : null,
-    courseData?.language ? { icon: Globe2, text: `Language: ${courseData.language}` } : null,
+    languageLabel ? { icon: Globe, text: `Language: ${languageLabel}` } : null,
     levelLabel ? { icon: BarChart3, text: `Level: ${levelLabel}` } : null,
   ].filter(Boolean);
 

@@ -10,6 +10,8 @@ const LectureProgressSchema = new mongoose.Schema({
 const ChapterProgressSchema = new mongoose.Schema({
   chapterId: { type: String, required: true },
   currentTime: { type: Number, default: 0 },
+  /** Furthest point reached through legitimate playback (not scrubbing). */
+  maxWatchedTime: { type: Number, default: 0 },
   duration: { type: Number, default: 0 },
   watchedPercentage: { type: Number, default: 0 },
   completed: { type: Boolean, default: false },

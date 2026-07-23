@@ -11,7 +11,7 @@ import { ChevronLeft, ChevronRight, Maximize2, Minimize2 } from "lucide-react";
 import courseService from "@/features/courses/services/courseService";
 import { useToast } from "@/components/ui/Toast";
 import { countCourseChapterCompletion } from "@/features/courses/utils/courseChapterCompletion";
-import { openCourseCertificatePrint } from "@/features/courses/utils/openCourseCertificatePrint";
+import { openCertificateView, getCertificateForCourse } from "@/features/learner/services/certificateService";
 import CourseViewPreviewHeader from "@/features/instructor/components/course-editor/components/CourseViewPreviewHeader";
 import LMSVideoPlayer from "@/components/video/LMSVideoPlayer";
 import CourseWatchQuizPanel from "@/features/courses/components/watch/CourseWatchQuizPanel";
@@ -169,7 +169,7 @@ export default function CourseWatchPage() {
   );
 
   const chapterId = activeChapter?._id || activeChapter?.id;
-  const { initialTime, isCompleted, progressByChapter, saveProgress } =
+  const { initialTime, maxWatchedTime, isCompleted, progressByChapter, saveProgress } =
     useVideoProgress(courseId, chapterId, playback, playback.isPlaying, {
       courseProgressSnapshot: progressSnapshot,
       waitForSnapshot: true,
@@ -187,6 +187,22 @@ export default function CourseWatchPage() {
   const totalChapters = chapterCompletion.total;
   const overallPercentage = chapterCompletion.percentage;
   const isCourseComplete = chapterCompletion.isComplete;
+
+  const courseDurationMinutes = useMemo(() => {
+    const stored = Number(courseData?.duration);
+    if (Number.isFinite(stored) && stored > 0) return stored;
+    let totalSeconds = 0;
+    for (const sec of courseData?.sections || []) {
+      for (const ch of sec.chapters || []) {
+        for (const c of ch.contents || []) {
+          if (c.type === 'video' && Number(c.duration) > 0) {
+            totalSeconds += Number(c.duration);
+          }
+        }
+      }
+    }
+    return totalSeconds > 0 ? Math.round(totalSeconds / 60) : null;
+  }, [courseData]);
 
   const learnerDisplayName = useMemo(() => {
     if (!authUser) return "Learner";
@@ -215,20 +231,27 @@ export default function CourseWatchPage() {
   // learner-only endpoints (/learner/course-progress, learner assignment row) should not run in instructor/admin preview.
   const shouldUseLearnerProgressApis = authRoleName === "learner";
 
-  const handleCertificateDownload = useCallback(() => {
+  const handleCertificateDownload = useCallback(async () => {
     if (!isCourseComplete) return;
-    const ok = openCourseCertificatePrint({
-      courseTitle: courseData?.title || "Course",
-      learnerName: learnerDisplayName,
-      issuedDate: new Date(),
-    });
-    if (!ok) {
-      toast.error(
-        "Popup blocked",
-        "Allow pop-ups for this site to open your certificate, then try again.",
-      );
+
+    let cert = null;
+    if (shouldUseLearnerProgressApis && courseId) {
+      try {
+        cert = await getCertificateForCourse(courseId);
+      } catch {
+        toast.error(
+          "Certificate unavailable",
+          "Could not load your certificate. Please try again.",
+        );
+        return;
+      }
     }
-  }, [isCourseComplete, courseData?.title, learnerDisplayName, toast]);
+
+    openCertificateView({
+      certificateId: cert?.certificateId,
+      courseId: cert?.certificateId ? undefined : courseId,
+    });
+  }, [isCourseComplete, courseId, shouldUseLearnerProgressApis, toast]);
 
   useEffect(() => {
     if (!isTheaterMode) setIsSidebarCollapsed(defaultCollapsed);
@@ -499,6 +522,7 @@ export default function CourseWatchPage() {
         currentTime: playback.duration,
         duration: playback.duration,
         watchedPercentage: 100,
+        force: true,
       });
     }
 
@@ -761,12 +785,14 @@ export default function CourseWatchPage() {
                   posterUrl={courseData.image || courseData.thumbnail}
                   autoPlay={false}
                   initialTime={initialTime}
+                  maxSeekTime={maxWatchedTime}
+                  restrictSeeking={shouldUseLearnerProgressApis && !isCompleted}
                   isCompleted={isCompleted}
                   onPlaybackStateChange={setPlayback}
                   onEnded={handleVideoEnded}
                   onTheaterModeToggle={handleTheaterModeToggle}
                   isTheaterMode={isTheaterMode}
-                  className={playerSize === "extended" ? "" : "max-h-[72vh]"}
+                  className="max-h-[72vh]"
                 />
               )}
               {nextOverlay?.nextChapter && (
@@ -931,7 +957,7 @@ export default function CourseWatchPage() {
                       <button
                         type="button"
                         onClick={handleCertificateDownload}
-                        className="px-6 py-2.5 rounded-xl bg-white/10 border border-white/25 text-white font-bold text-sm hover:bg-white/15 transition-all"
+                        className="px-6 py-2.5 rounded-xl bg-white/10 text-white font-bold text-sm hover:bg-white/15 transition-all"
                       >
                         Download certificate
                       </button>

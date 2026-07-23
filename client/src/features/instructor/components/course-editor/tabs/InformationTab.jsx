@@ -6,6 +6,7 @@ import {
   courseDescriptionPlainLength,
   courseDescriptionToEditorHtml,
 } from '@/utils/courseDescriptionHtml';
+import { COURSE_LANGUAGES } from '@/data/languages';
 
 /**
  * Information tab for course metadata and settings
@@ -164,11 +165,15 @@ const InformationTab = ({
                 {/* Language */}
                 <div className="space-y-2">
                     <label className="text-sm font-bold text-gray-600 dark:text-white/60 transition-colors duration-300">Language <span className="text-red-500">*</span></label>
-                    <select className="w-full bg-gray-50 dark:bg-[#3A3A3A] border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white outline-none focus:border-primary-pink transition-all duration-300">
-                        <option>English</option>
-                        <option>Spanish</option>
-                        <option>French</option>
-                        <option>German</option>
+                    <select
+                        className="w-full bg-gray-50 dark:bg-[#3A3A3A] border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white outline-none focus:border-primary-pink transition-all duration-300"
+                        value={courseDetails.language ?? 'en'}
+                        onChange={(e) => handleUpdateDetails && handleUpdateDetails({ language: e.target.value })}
+                    >
+                        <option value="">Select Language</option>
+                        {COURSE_LANGUAGES.map(({ code, label }) => (
+                            <option key={code} value={code}>{label}</option>
+                        ))}
                     </select>
                 </div>
                 </div>

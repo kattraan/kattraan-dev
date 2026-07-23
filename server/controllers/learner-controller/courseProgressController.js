@@ -56,6 +56,7 @@ async function updateProgress(req, res) {
         courseId,
         chapterId,
         currentTime: entry.currentTime,
+        maxWatchedTime: entry.maxWatchedTime,
         duration: entry.duration,
         watchedPercentage: entry.watchedPercentage,
         completed: entry.completed,

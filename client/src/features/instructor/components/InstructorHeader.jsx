@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import {
-  Bell,
   Search,
   User,
   Settings,
@@ -14,6 +13,7 @@ import { hasRole } from "@/features/auth/utils/roleUtils";
 import { ROUTES } from "@/config/routes";
 import { logout } from "@/features/auth/store/authSlice";
 import DashboardMenuButton from "@/components/common/DashboardMenuButton";
+import NotificationBell from "@/features/notifications/components/NotificationBell";
 
 const InstructorHeader = () => {
   const { user } = useSelector((state) => state.auth);
@@ -99,13 +99,7 @@ const InstructorHeader = () => {
           </div>
         )}
 
-        <button className="relative w-10 h-10 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500 hover:text-gray-800 dark:text-white/40 dark:hover:text-white transition-all group">
-          <Bell
-            size={20}
-            className="group-hover:text-primary-pink transition-colors"
-          />
-          <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-primary-pink rounded-full border-2 border-white dark:border-[#0c091a]" />
-        </button>
+        <NotificationBell />
 
         <div
           className="relative flex items-center gap-2 sm:gap-4 pl-3 sm:pl-6 border-l border-gray-200 dark:border-white/10"

@@ -1,5 +1,6 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { clearSessionAndRedirectToLogin } from '@/utils/authHelpers';
+import { refreshAuthSession, recheckAuthAfterRefreshFailure } from '@/api/apiClient';
 
 /**
  * RTK Query API for courses. Use for reads (getCourseById, getInstructorCourses);
@@ -32,21 +33,6 @@ const rawBaseQuery = fetchBaseQuery({
   },
 });
 
-let refreshPromise = null;
-
-async function refreshAccessToken(api, extraOptions) {
-  if (!refreshPromise) {
-    refreshPromise = rawBaseQuery(
-      { url: '/auth/refresh', method: 'POST' },
-      api,
-      extraOptions,
-    ).finally(() => {
-      refreshPromise = null;
-    });
-  }
-  return refreshPromise;
-}
-
 const baseQueryWithReauth = async (args, api, extraOptions) => {
   let result = await rawBaseQuery(args, api, extraOptions);
 
@@ -61,11 +47,17 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
       return result;
     }
 
-    const refreshResult = await refreshAccessToken(api, extraOptions);
-    if (refreshResult.data) {
+    // Share the same cross-tab lock as axios (avoids dual refresh races).
+    try {
+      await refreshAuthSession();
       result = await rawBaseQuery(args, api, extraOptions);
-    } else {
-      clearSessionAndRedirectToLogin();
+    } catch {
+      const user = await recheckAuthAfterRefreshFailure();
+      if (user) {
+        result = await rawBaseQuery(args, api, extraOptions);
+      } else {
+        clearSessionAndRedirectToLogin();
+      }
     }
   }
 

@@ -15,12 +15,9 @@ const { signStorageCdnUrl } = require('../../helpers/bunnyToken');
 
 const STORAGE_THUMB_TTL_SEC = 60 * 60 * 24 * 7;
 
-/** Sign course.cover CDN URL when BUNNY_STORAGE_PULL_ZONE_TOKEN_KEY is set (Bunny token auth on pull zone). */
+/** @deprecated Use formatCourseForApi */
 function signCourseThumbnailOnSend(courseLike) {
-    if (!courseLike) return courseLike;
-    const o = typeof courseLike.toObject === 'function' ? courseLike.toObject() : { ...courseLike };
-    if (o.thumbnail) o.thumbnail = signStorageCdnUrl(o.thumbnail, STORAGE_THUMB_TTL_SEC);
-    return o;
+    return formatCourseForApi(courseLike);
 }
 
 const CRUD_PROTECTED_FIELDS = [
@@ -33,6 +30,35 @@ function stripProtectedFields(body) {
     const b = { ...body };
     CRUD_PROTECTED_FIELDS.forEach((key) => delete b[key]);
     return b;
+}
+
+/** Map API `language` to DB `courseLanguage` (MongoDB text indexes reserve `language`). */
+function mapLanguageForStorage(body) {
+    const b = { ...body };
+    if (Object.prototype.hasOwnProperty.call(b, 'language')) {
+        b.courseLanguage = b.language;
+        delete b.language;
+    }
+    return b;
+}
+
+/** Normalize legacy documents that still have a top-level `language` field. */
+function normalizeStoredCourseFields(courseObj) {
+    const o = { ...courseObj };
+    if (o.language != null && o.courseLanguage == null) {
+        o.courseLanguage = o.language;
+    }
+    delete o.language;
+    return o;
+}
+
+/** Sign course.cover CDN URL when BUNNY_STORAGE_PULL_ZONE_TOKEN_KEY is set (Bunny token auth on pull zone). */
+function formatCourseForApi(courseLike) {
+    if (!courseLike) return courseLike;
+    const o = typeof courseLike.toObject === 'function' ? courseLike.toObject() : { ...courseLike };
+    if (o.thumbnail) o.thumbnail = signStorageCdnUrl(o.thumbnail, STORAGE_THUMB_TTL_SEC);
+    o.language = o.courseLanguage || o.language || 'en';
+    return o;
 }
 
 function getRoleNames(user) {
@@ -172,10 +198,14 @@ module.exports = {
     // Override update: never allow status or approval fields to be set via general PUT
     async update(req, res) {
         try {
-            const body = stripProtectedFields(req.body);
-            const item = await Course.findByIdAndUpdate(req.params.id, { ...body, updatedBy: req.user._id }, { new: true });
+            const body = mapLanguageForStorage(stripProtectedFields(req.body));
+            const updateOps = { $set: { ...body, updatedBy: req.user._id } };
+            if (body.courseLanguage !== undefined) {
+                updateOps.$unset = { language: '' };
+            }
+            const item = await Course.findByIdAndUpdate(req.params.id, updateOps, { new: true });
             if (!item) return res.status(404).json({ success: false, message: 'Not found' });
-            return res.json({ success: true, data: signCourseThumbnailOnSend(item) });
+            return res.json({ success: true, data: formatCourseForApi(item) });
         } catch (err) {
             return res.status(400).json({ success: false, message: err.message });
         }
@@ -208,7 +238,7 @@ module.exports = {
             const data = course.toObject ? course.toObject() : course;
             sanitizeCourseContents(data);
             if (data.thumbnail) data.thumbnail = signStorageCdnUrl(data.thumbnail, STORAGE_THUMB_TTL_SEC);
-            res.json({ success: true, data });
+            res.json({ success: true, data: formatCourseForApi(data) });
         } catch (err) {
             res.status(500).json({ success: false, message: err.message });
         }
@@ -226,7 +256,7 @@ module.exports = {
 
     async create(req, res) {
         try {
-            const body = stripProtectedFields(req.body);
+            const body = mapLanguageForStorage(stripProtectedFields(req.body));
             const courseData = {
                 ...body,
                 createdBy: req.user._id,
@@ -234,7 +264,7 @@ module.exports = {
             };
             const item = new Course(courseData);
             await item.save();
-            res.status(201).json({ success: true, data: signCourseThumbnailOnSend(item) });
+            res.status(201).json({ success: true, data: formatCourseForApi(item) });
         } catch (err) {
             res.status(400).json({ success: false, message: err.message });
         }
@@ -248,7 +278,7 @@ module.exports = {
                 return res.status(404).json({ success: false, message: 'Course not found' });
             }
 
-            const courseObj = cloneDocFields(originalCourse);
+            const courseObj = normalizeStoredCourseFields(cloneDocFields(originalCourse));
             courseObj.title = `${courseObj.title || 'Untitled Course'} (Copy)`;
             courseObj.status = 'draft';
             courseObj.createdBy = req.user._id;

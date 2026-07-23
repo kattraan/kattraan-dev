@@ -53,6 +53,9 @@ const UserSchema = new mongoose.Schema({
   phoneNumber: { type: String, default: null },
   sessions: [{
     refreshToken: { type: String, required: true },
+    /** Prior refresh hash kept briefly so concurrent tab refreshes don't log the user out. */
+    previousRefreshToken: { type: String, default: null },
+    previousRefreshExpires: { type: Date, default: null },
     ip: { type: String, default: null },
     userAgent: { type: String, default: null },
     createdAt: { type: Date, default: Date.now },

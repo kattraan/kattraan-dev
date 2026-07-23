@@ -79,6 +79,18 @@ async function saveVideoMetadata(req, res) {
 
     await Chapter.findByIdAndUpdate(chapterId, { $push: { contents: video._id } });
 
+    // Notify enrolled learners (fire-and-forget)
+    const notificationService = require('../../services/notification.service');
+    notificationService
+      .notifyCourseVideoAdded({
+        courseId: courseId || undefined,
+        chapterId,
+        videoTitle: video.title,
+        videoId: video._id,
+        excludeUserId: req.user?._id,
+      })
+      .catch((e) => console.error('[saveVideoMetadata] notification', e.message || e));
+
     return res.status(201).json({
       success: true,
       data: sanitizeVideo(video),

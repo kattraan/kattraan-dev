@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Bell, Shield, User, Settings, LogOut, ChevronDown } from "lucide-react";
+import { Shield, User, Settings, LogOut, ChevronDown } from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "@/config/routes";
 import { logout } from "@/features/auth/store/authSlice";
 import DashboardMenuButton from "@/components/common/DashboardMenuButton";
+import NotificationBell from "@/features/notifications/components/NotificationBell";
 
 const AdminHeader = () => {
   const { user } = useSelector((state) => state.auth);
@@ -52,9 +53,7 @@ const AdminHeader = () => {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
-        <button className="relative w-10 h-10 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500 dark:text-white/40 hover:text-gray-800 dark:hover:text-white transition-all">
-          <Bell size={20} />
-        </button>
+        <NotificationBell />
         <div className="relative flex items-center gap-2 sm:gap-4 pl-3 sm:pl-6 border-l border-gray-200 dark:border-white/10" ref={profileRef}>
           <div className="text-right hidden sm:block">
             <p className="text-gray-900 dark:text-white text-sm font-bold">{displayName}</p>

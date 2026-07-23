@@ -93,6 +93,12 @@ export function courseDescriptionPlainText(html) {
   return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
+/** Plain-text snippet for cards, checkout, and other compact previews. */
+export function courseDescriptionPreviewText(desc) {
+  if (!desc || typeof desc !== 'string') return '';
+  return decodeHtmlEntities(courseDescriptionPlainText(desc)).trim();
+}
+
 export function courseDescriptionPlainLength(html) {
   return courseDescriptionPlainText(html).length;
 }

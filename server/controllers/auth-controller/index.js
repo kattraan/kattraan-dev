@@ -230,6 +230,24 @@ const adminApproveInstructor = async (req, res) => {
 
     await user.save();
     const safeProfile = await getSafeProfile(user);
+
+    try {
+      const notificationService = require("../../services/notification.service");
+      const approved = action === "approve";
+      await notificationService.createNotification({
+        userId: user._id,
+        type: "instructor_approval",
+        title: approved ? "Instructor account approved" : "Instructor application update",
+        body: approved
+          ? "Your instructor account was approved. You can start creating courses."
+          : "Your instructor application was not approved. Check your enrollment status for details.",
+        link: approved ? "/instructor-dashboard" : "/waiting-approval",
+        meta: { action },
+      });
+    } catch (e) {
+      console.error("[adminApproveInstructor] notification", e.message || e);
+    }
+
     res.json({ success: true, message: `Instructor ${action}d successfully`, user: safeProfile });
   } catch (error) {
     console.error("Approval Error:", error);
@@ -395,21 +413,32 @@ const refreshAccessToken = async (req, res) => {
       });
     }
 
-    // Find the session matching this refresh token
-    // We need to iterate and compare hash
+    // Find the session matching this refresh token (current or brief previous grace)
+    // so two browser tabs refreshing at once don't invalidate each other.
     let sessionIndex = -1;
+    let matchedPrevious = false;
     for (let i = 0; i < user.sessions.length; i++) {
-      const isValid = await bcrypt.compare(refreshToken, user.sessions[i].refreshToken);
-      if (isValid) {
+      const session = user.sessions[i];
+      const isCurrent = await bcrypt.compare(refreshToken, session.refreshToken);
+      if (isCurrent) {
         sessionIndex = i;
         break;
+      }
+      if (
+        session.previousRefreshToken &&
+        session.previousRefreshExpires &&
+        session.previousRefreshExpires > new Date()
+      ) {
+        const isPrevious = await bcrypt.compare(refreshToken, session.previousRefreshToken);
+        if (isPrevious) {
+          sessionIndex = i;
+          matchedPrevious = true;
+          break;
+        }
       }
     }
 
     if (sessionIndex === -1) {
-      // Token reuse scenario? Or just invalid.
-      // Ideally, if we detect reuse (token valid signature but not in DB), we should invalidate all sessions.
-      // For now, simpler approach: just deny.
       return res.status(403).json({ success: false, message: "Invalid refresh token (session not found)" });
     }
 
@@ -420,41 +449,56 @@ const refreshAccessToken = async (req, res) => {
       return res.status(403).json({ success: false, message: "Session expired" });
     }
 
-    // **Token Rotation**
-    // 1. Generate new tokens
-    // FETCH REAL ROLES MANUALLY since User schema has no ref
+    // If this request still holds the just-rotated previous token, only mint a new
+    // access token and re-send the already-current refresh cookie (no second rotation).
     const roleIds = user.roles;
     const rolesData = await Role.find({ roleId: { $in: roleIds } });
     const roleNames = rolesData.map(r => r.roleName);
 
-    // Create new Access Token
     const newAccessToken = jwt.sign(
       { _id: user._id, roles: roleIds, roleNames: roleNames },
       process.env.JWT_SECRET,
       { expiresIn: "15m" }
     );
 
-    // Create new Refresh Token
+    const sameSite = getAuthCookieSameSite();
+    const secure = getAuthCookieSecure();
+
+    if (matchedPrevious) {
+      user.sessions[sessionIndex].lastActive = new Date();
+      await user.save();
+
+      res.cookie("accessToken", newAccessToken, {
+        httpOnly: true,
+        secure,
+        sameSite,
+        path: "/",
+        maxAge: 15 * 60 * 1000,
+      });
+      // Keep the current refresh cookie as-is (already set by the winning tab).
+      return res.status(200).json({ success: true, message: "Token refreshed" });
+    }
+
+    // **Token Rotation** (keep old hash for ~60s for concurrent tabs)
     const newRefreshToken = jwt.sign(
       { _id: user._id },
       process.env.JWT_REFRESH_SECRET,
       { expiresIn: "7d" }
     );
 
+    const previousHash = user.sessions[sessionIndex].refreshToken;
     const newRefreshTokenHash = await bcrypt.hash(newRefreshToken, 10);
 
-    // 2. Update session with new generic token and timestamp
+    user.sessions[sessionIndex].previousRefreshToken = previousHash;
+    // Long enough for discarded/background tabs to wake up and refresh
+    // without losing the race to another tab's rotation.
+    user.sessions[sessionIndex].previousRefreshExpires = new Date(Date.now() + 5 * 60 * 1000);
     user.sessions[sessionIndex].refreshToken = newRefreshTokenHash;
     user.sessions[sessionIndex].lastActive = new Date();
-    user.sessions[sessionIndex].expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // Extend session
+    user.sessions[sessionIndex].expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     await user.save();
 
-    // Log refresh
-    // await logAudit(user._id, 'REFRESH_TOKEN', req); 
-
-    const sameSite = getAuthCookieSameSite();
-    const secure = getAuthCookieSecure();
     res.cookie("refreshToken", newRefreshToken, {
       httpOnly: true,
       secure,

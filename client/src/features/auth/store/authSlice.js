@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import authService from '@/features/auth/services/authService';
 import { normalizeUser } from '@/features/auth/utils/roleUtils';
+import { refreshAuthSession, recheckAuthAfterRefreshFailure } from '@/api/apiClient';
 
 // Async Thunks
 export const login = createAsyncThunk('auth/login', async ({ email, password }, thunkAPI) => {
@@ -104,14 +105,30 @@ export const becomeLearner = createAsyncThunk('auth/becomeLearner', async (_, th
 
 export const checkAuth = createAsyncThunk('auth/checkAuth', async (_, thunkAPI) => {
     try {
-        const response = await authService.checkAuth();
-        // Server now returns { success, isAuthenticated, data?: { user } } with HTTP 200 always.
-        // Reject silently (no thrown error) when the user is not logged in.
+        let response = await authService.checkAuth();
+        // Access token is short-lived (15m). On full page reload / tab return,
+        // /check-auth returns isAuthenticated:false for an expired access cookie.
+        // refreshAuthSession is cross-tab locked and retries before giving up.
         if (!response?.isAuthenticated) {
+            try {
+                await refreshAuthSession();
+            } catch {
+                const user = await recheckAuthAfterRefreshFailure();
+                if (user) return user;
+                return thunkAPI.rejectWithValue(null);
+            }
+            response = await authService.checkAuth();
+        }
+        if (!response?.isAuthenticated) {
+            // Last chance: peer tab may have set cookies a moment ago.
+            const user = await recheckAuthAfterRefreshFailure();
+            if (user) return user;
             return thunkAPI.rejectWithValue(null);
         }
         return response.data?.user;
     } catch (error) {
+        const user = await recheckAuthAfterRefreshFailure();
+        if (user) return user;
         return thunkAPI.rejectWithValue(null);
     }
 });

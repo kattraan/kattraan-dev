@@ -21,6 +21,8 @@ const learnerCourseProgressRoutes = require("./routes/learner-routes/course-prog
 const learnerCoursesRoutes = require("./routes/learner-routes/learner-courses-routes");
 const learnerAssignmentsRoutes = require("./routes/learner-routes/learner-assignments-routes");
 const learnerChapterEngagementRoutes = require("./routes/learner-routes/chapter-engagement-routes");
+const learnerStreakRoutes = require("./routes/learner-routes/streak-routes");
+const certificateRoutes = require("./routes/certificate-routes/certificate.routes");
 const userRoutes = require("./routes/users-routes/users-routes");
 const instructorLearnersRoutes = require("./routes/instructor-routes/learners.routes");
 const instructorStatsRoutes = require("./routes/instructor-routes/stats.routes");
@@ -30,6 +32,7 @@ const cashfreeRoutes = require("./routes/payment-routes/cashfree.routes");
 const cartRoutes = require("./routes/cart-routes/cart.routes");
 const videoRoutes = require("./routes/video-routes/video.routes");
 const communityRoutes = require("./routes/community-routes");
+const notificationRoutes = require("./routes/notification-routes/notification.routes");
 const webhooksRoutes = require("./routes/webhooks/bunnyStream.routes");
 const cashfreeWebhookRoutes = require("./routes/webhooks/cashfree.routes");
 const csrfProtection = require("./middleware/csrf");
@@ -228,6 +231,8 @@ app.use("/api/learner/course-progress", learnerCourseProgressRoutes);
 app.use("/api/learner/courses", learnerCoursesRoutes);
 app.use("/api/learner/assignments", learnerAssignmentsRoutes);
 app.use("/api/learner/chapter-engagement", learnerChapterEngagementRoutes);
+app.use("/api/learner/streak", learnerStreakRoutes);
+app.use("/api/certificates", certificateRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/instructor/learners", instructorLearnersRoutes);
 app.use("/api/instructor/stats", instructorStatsRoutes);
@@ -240,6 +245,7 @@ app.use("/api/payment/cashfree", cashfreeRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/videos", videoRoutes);
 app.use("/api/community", communityRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // 404 Handler
 app.use((req, res) => {

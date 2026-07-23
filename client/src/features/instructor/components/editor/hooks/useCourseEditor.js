@@ -1,7 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 
-const AUTO_SAVE_DEBOUNCE_MS = 2000;
-
 /** Get video duration in seconds from a URL (for backfilling missing duration). */
 function getVideoDurationFromUrl(url) {
   return new Promise((resolve) => {
@@ -49,6 +47,7 @@ const INITIAL_COURSE_DETAILS = {
   disableQnA: false,
   disableComments: false,
   visibility: "private", // 'public' | 'private' – intent only; actual publish is via Submit for Review
+  language: "en",
   chapterEngagementTemplates: [],
 };
 
@@ -107,14 +106,11 @@ export function useCourseEditor() {
   const [engagementTemplates, setEngagementTemplates] = useState([]);
 
   const fileInputRef = useRef(null);
-  const skipNextAutoSaveRef = useRef(true);
   const durationBackfillRunRef = useRef(false);
   const courseDetailsRef = useRef(courseDetails);
   const activeDripTypeRef = useRef(activeDripType);
   const localEditVersionRef = useRef(0);
   const lastSyncedEditVersionRef = useRef(0);
-  const saveInFlightRef = useRef(false);
-  const queuedAutosaveRef = useRef(false);
 
   useEffect(() => {
     courseDetailsRef.current = courseDetails;
@@ -165,7 +161,6 @@ export function useCourseEditor() {
     });
     if (data.dripType) setActiveDripType(data.dripType);
     setIsLoadingData(false);
-    skipNextAutoSaveRef.current = true; // Skip auto-save for this sync-from-API update
     lastSyncedEditVersionRef.current = localEditVersionRef.current;
   }, [courseData]);
 
@@ -311,7 +306,6 @@ export function useCourseEditor() {
 
       const editVersionAtStart = localEditVersionRef.current;
       setIsSaving(true);
-      saveInFlightRef.current = true;
       try {
         const payload = {
           ...latestDetails,
@@ -334,7 +328,6 @@ export function useCourseEditor() {
         if (localEditVersionRef.current === editVersionAtStart) {
           lastSyncedEditVersionRef.current = editVersionAtStart;
           if (shouldLoad) {
-            skipNextAutoSaveRef.current = true;
             await loadCourse();
           }
         }
@@ -346,38 +339,10 @@ export function useCourseEditor() {
         toast.error(title, message);
       } finally {
         setIsSaving(false);
-        saveInFlightRef.current = false;
-        if (queuedAutosaveRef.current) {
-          queuedAutosaveRef.current = false;
-          // Flush the latest local edits that arrived while a save was in flight.
-          handleSave(null, true, false);
-        }
       }
     },
     [id, dispatch, loadCourse, toast],
   );
-
-  // Auto-save as draft when courseDetails changes (debounced). Skip the update that came from API sync.
-  useEffect(() => {
-    if (!id || courseDetails.status === "pending_approval") return;
-    if (skipNextAutoSaveRef.current) {
-      skipNextAutoSaveRef.current = false;
-      return;
-    }
-    if (!courseDetails.title?.trim()) return;
-
-    localEditVersionRef.current += 1;
-
-    const timer = setTimeout(() => {
-      if (saveInFlightRef.current) {
-        queuedAutosaveRef.current = true;
-        return;
-      }
-      handleSave(null, true, false); // no status override, reload after save, no toast
-    }, AUTO_SAVE_DEBOUNCE_MS);
-
-    return () => clearTimeout(timer);
-  }, [courseDetails, id, handleSave]);
 
   const handleSubmitForReview = useCallback(async () => {
     if (!id) return;
@@ -1036,8 +1001,6 @@ export function useCourseEditor() {
             const key =
               activeFileUploadType === "course-cover" ? "thumbnail" : "image";
             const merged = { ...courseDetails, [key]: url };
-            // Avoid debounced auto-save overwriting thumbnail with stale state; show preview immediately
-            skipNextAutoSaveRef.current = true;
             setCourseDetails(merged);
             await dispatch(updateCourse({ id, courseData: merged })).unwrap();
             await loadCourse();

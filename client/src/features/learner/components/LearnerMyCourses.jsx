@@ -41,10 +41,13 @@ const LearnerMyCourses = () => {
       )
     : courses;
 
-  const goToCourse = (courseId) => {
+  const goToCourse = (courseId, lastWatchedChapterId) => {
     const watchUrl = `${ROUTES.VIEW_COURSE}/${courseId}/watch`;
     const returnTo = encodeURIComponent(ROUTES.DASHBOARD_MY_COURSES);
-    navigate(`${watchUrl}?returnTo=${returnTo}`);
+    const chapterParam = lastWatchedChapterId
+      ? `&chapter=${encodeURIComponent(lastWatchedChapterId)}`
+      : '';
+    navigate(`${watchUrl}?returnTo=${returnTo}${chapterParam}`);
   };
 
   return (
@@ -111,7 +114,7 @@ const LearnerMyCourses = () => {
                 <Card
                   key={course.courseId || course.id}
                   className="bg-white dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 overflow-hidden flex flex-col group rounded-xl shadow-sm dark:shadow-none hover:shadow-md hover:border-primary-pink/30 dark:hover:border-primary-pink/30 transition-all duration-300 cursor-pointer"
-                  onClick={() => goToCourse(course.courseId || course.id)}
+                  onClick={() => goToCourse(course.courseId || course.id, course.lastWatchedChapterId)}
                 >
                   <div className="aspect-[16/10] relative overflow-hidden">
                     <img
@@ -180,7 +183,7 @@ const LearnerMyCourses = () => {
                           className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2"
                           onClick={(e) => {
                             e.stopPropagation();
-                            goToCourse(course.courseId || course.id);
+                            goToCourse(course.courseId || course.id, course.lastWatchedChapterId);
                           }}
                         >
                           <CheckCircle size={14} strokeWidth={2} />
@@ -193,7 +196,7 @@ const LearnerMyCourses = () => {
                           className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2 transition-colors duration-300"
                           onClick={(e) => {
                             e.stopPropagation();
-                            goToCourse(course.courseId || course.id);
+                            goToCourse(course.courseId || course.id, course.lastWatchedChapterId);
                           }}
                         >
                           <PlayCircle size={14} strokeWidth={2} />

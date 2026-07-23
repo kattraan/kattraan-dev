@@ -17,6 +17,15 @@ const LoginPage = () => {
 
   useEffect(() => {
     if (!isAuthenticated || !user) return;
+
+    const params = new URLSearchParams(location.search);
+    const returnTo = params.get('returnTo');
+    const fromState = location.state?.from?.pathname;
+    const safeReturn =
+      returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//')
+        ? returnTo
+        : null;
+
     if (hasRole(user, 'admin')) { navigate(ROUTES.ADMIN_DASHBOARD, { replace: true }); return; }
     if (hasRole(user, 'instructor')) {
       if (user.status === 'pending_enrollment') { navigate(ROUTES.INSTRUCTOR_ENROLLMENT, { replace: true }); return; }
@@ -24,7 +33,7 @@ const LoginPage = () => {
       navigate(ROUTES.INSTRUCTOR_DASHBOARD, { replace: true });
       return;
     }
-    navigate(location.state?.from?.pathname || ROUTES.DASHBOARD, { replace: true });
+    navigate(safeReturn || fromState || ROUTES.DASHBOARD, { replace: true });
   }, [isAuthenticated, user, navigate, location]);
 
   useEffect(() => () => dispatch(clearError()), [dispatch]);

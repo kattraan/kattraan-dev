@@ -292,6 +292,14 @@ const decideJoinRequest = async (req, res) => {
     membership.decidedAt = new Date();
     await membership.save();
 
+    let communityTitle = "a community";
+    try {
+      const community = await Community.findById(req.params.id).select("name").lean();
+      communityTitle = community?.name || communityTitle;
+    } catch (_) {
+      /* ignore */
+    }
+
     try {
       const { getIO } = require("../../socket");
       getIO()
@@ -302,6 +310,26 @@ const decideJoinRequest = async (req, res) => {
         });
     } catch (_) {
       // Socket layer is best-effort for notifications; REST flow must not fail because of it.
+    }
+
+    try {
+      const notificationService = require("../../services/notification.service");
+      const approved = membership.status === "approved";
+      await notificationService.createNotification({
+        userId: membership.user,
+        type: "community_join_decided",
+        title: approved ? "Community join approved" : "Community join declined",
+        body: approved
+          ? `You were approved to join ${communityTitle}.`
+          : `Your request to join ${communityTitle} was declined.`,
+        link: approved ? `/dashboard/community/${req.params.id}` : "/dashboard/community",
+        meta: {
+          communityId: String(req.params.id),
+          status: membership.status,
+        },
+      });
+    } catch (e) {
+      console.error("[decideJoinRequest] notification", e.message || e);
     }
 
     res.json({ success: true, membership });
@@ -342,11 +370,33 @@ const removeMember = async (req, res) => {
     );
     if (!membership) return res.status(404).json({ success: false, message: "Member not found" });
 
+    let communityName = "a community";
+    try {
+      const community = await Community.findById(req.params.id).select("name").lean();
+      communityName = community?.name || communityName;
+    } catch (_) {
+      /* ignore */
+    }
+
     try {
       const { getIO } = require("../../socket");
       getIO()?.to(`user:${req.params.userId}`).emit("community-removed", { communityId: req.params.id });
     } catch (_) {
       // best-effort
+    }
+
+    try {
+      const notificationService = require("../../services/notification.service");
+      await notificationService.createNotification({
+        userId: req.params.userId,
+        type: "community_removed",
+        title: "Removed from community",
+        body: `You were removed from ${communityName}.`,
+        link: "/dashboard/community",
+        meta: { communityId: String(req.params.id) },
+      });
+    } catch (e) {
+      console.error("[removeMember] notification", e.message || e);
     }
 
     res.json({ success: true, message: "Member removed" });
