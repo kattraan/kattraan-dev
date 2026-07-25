@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Upload, Globe, Lock, Save } from 'lucide-react';
 import { Card, ContentCard } from '@/components/ui';
 import CourseDescriptionRichEditor from '../components/CourseDescriptionRichEditor';
@@ -7,6 +7,7 @@ import {
   courseDescriptionToEditorHtml,
 } from '@/utils/courseDescriptionHtml';
 import { COURSE_LANGUAGES } from '@/data/languages';
+import { normalizeBunnyStorageUrl } from '@/utils/normalizeBunnyStorageUrl';
 
 /**
  * Information tab for course metadata and settings
@@ -20,6 +21,22 @@ const InformationTab = ({
     handleSave,
     isSaving,
 }) => {
+    const [coverBroken, setCoverBroken] = useState(false);
+    const coverSrc = courseDetails.thumbnail
+      ? (String(courseDetails.thumbnail).startsWith('blob:')
+          ? courseDetails.thumbnail
+          : normalizeBunnyStorageUrl(courseDetails.thumbnail))
+      : '';
+
+    useEffect(() => {
+      setCoverBroken(false);
+    }, [coverSrc]);
+
+    const openCoverPicker = () => {
+      setActiveFileUploadType('course-cover');
+      fileInputRef.current?.click();
+    };
+
     return (
         <div className="flex-1 min-h-0 flex flex-col min-w-0 animate-in slide-in-from-right-4 duration-500 font-satoshi">
             <ContentCard
@@ -56,22 +73,38 @@ const InformationTab = ({
                 <div className="space-y-2">
                     <label className="text-sm font-bold text-gray-600 dark:text-white/60 transition-colors duration-300">Cover Image <span className="text-red-500">*</span></label>
                     <Card 
-                        onClick={() => { setActiveFileUploadType('course-cover'); fileInputRef.current.click(); }}
-                        className="bg-gray-50 dark:bg-[#3A3A3A] border-2 border-dashed border-gray-300 dark:border-white/10 rounded-xl p-12 flex flex-col items-center justify-center cursor-pointer hover:border-primary-pink/50 dark:hover:border-white/20 transition-all duration-300"
+                        onClick={openCoverPicker}
+                        className="relative bg-gray-50 dark:bg-[#3A3A3A] border-2 border-dashed border-gray-300 dark:border-white/10 rounded-xl overflow-hidden cursor-pointer hover:border-primary-pink/50 dark:hover:border-white/20 transition-all duration-300 min-h-[180px] flex flex-col items-center justify-center"
                     >
-                        {courseDetails.thumbnail ? (
-                            <img src={courseDetails.thumbnail} alt="Cover" className="max-h-40 rounded-lg" loading="lazy" />
+                        {coverSrc && !coverBroken ? (
+                            <div className="relative w-full flex flex-col items-center justify-center p-4">
+                                <img
+                                    key={coverSrc}
+                                    src={coverSrc}
+                                    alt="Cover"
+                                    className="max-h-48 w-full object-contain rounded-lg"
+                                    loading="lazy"
+                                    onError={() => setCoverBroken(true)}
+                                />
+                                <p className="mt-3 text-xs font-semibold text-gray-500 dark:text-white/50">
+                                    {isSaving ? 'Uploading…' : 'Click to change cover image'}
+                                </p>
+                            </div>
                         ) : (
-                            <>
+                            <div className="p-12 flex flex-col items-center justify-center">
                                 <div className="w-12 h-12 rounded-xl bg-gray-200 dark:bg-white/5 flex items-center justify-center mb-3 transition-colors duration-300">
                                     <Upload size={24} className="text-gray-500 dark:text-white/40 transition-colors duration-300" />
                                 </div>
-                                <p className="text-sm font-bold text-gray-900 dark:text-white mb-1 transition-colors duration-300">Drop your image here, or <span className="bg-gradient-to-r from-[#FF8A80] to-[#C946C6] bg-clip-text text-transparent underline decoration-[#FF8A80]">browse</span></p>
-                                <p className="text-xs text-gray-500 dark:text-white/40 transition-colors duration-300">Supports: JPG, JPEG, PNG (Max 500KB)</p>
-                            </>
+                                <p className="text-sm font-bold text-gray-900 dark:text-white mb-1 transition-colors duration-300 text-center">
+                                    {coverBroken
+                                        ? 'Cover image failed to load — click to re-upload'
+                                        : <>Drop your image here, or <span className="bg-gradient-to-r from-[#FF8A80] to-[#C946C6] bg-clip-text text-transparent underline decoration-[#FF8A80]">browse</span></>}
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-white/40 transition-colors duration-300">Supports: JPG, JPEG, PNG, WebP (auto-optimized, max ~500KB)</p>
+                            </div>
                         )}
                     </Card>
-                    <p className="text-xs text-gray-400 dark:text-white/30 transition-colors duration-300">Image must be at least 500 px wide. Optimize your size for better performance.</p>
+                    <p className="text-xs text-gray-400 dark:text-white/30 transition-colors duration-300">Image must be at least 500 px wide. Large files are compressed automatically before upload.</p>
                 </div>
 
                 {/* Intro Video Upload */}

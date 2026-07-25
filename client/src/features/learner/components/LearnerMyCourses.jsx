@@ -51,7 +51,7 @@ const LearnerMyCourses = () => {
   };
 
   return (
-    <DashboardLayout title="My Courses" subtitle="Continue exactly where you left off.">
+    <DashboardLayout title="My Learning" subtitle="Continue exactly where you left off.">
       <div className="space-y-10 font-satoshi">
         {error && (
           <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-sm">

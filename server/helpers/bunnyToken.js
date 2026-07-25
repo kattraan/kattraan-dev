@@ -54,14 +54,56 @@ function generateSignedPlaybackUrl(videoPath, expirationTime) {
 }
 
 /**
- * Bunny Pull Zone token (Storage images/files). Use the token key from the **same** pull zone as BUNNY_CDN_HOSTNAME.
+ * Bunny Pull Zone token (Storage images/files). Use the token key from the **same** pull zone as
+ * BUNNY_STORAGE_CDN_HOSTNAME (preferred) or BUNNY_CDN_HOSTNAME.
  * If unset, storage URLs are returned unsigned (pull zone must allow public access without token).
  */
 const STORAGE_PULL_TOKEN = (process.env.BUNNY_STORAGE_PULL_ZONE_TOKEN_KEY || '').trim();
-const STORAGE_CDN_HOST_RAW = (process.env.BUNNY_CDN_HOSTNAME || '').trim();
+/** Storage pull zone host — do not use Bunny Stream (vz-*) hostnames here. */
+const STORAGE_CDN_HOST_RAW = (
+  process.env.BUNNY_STORAGE_CDN_HOSTNAME ||
+  process.env.BUNNY_CDN_HOSTNAME ||
+  ''
+).trim();
+
+/** Known wrong hosts previously used for storage object URLs. */
+const LEGACY_STORAGE_CDN_HOSTS = new Set([
+  'vz-81730109-16e.b-cdn.net',
+  'kattraan-storage.b-cdn.net',
+]);
 
 function storageCdnHostnameNormalized() {
   return STORAGE_CDN_HOST_RAW.replace(/^https?:\/\//i, '').split('/')[0].toLowerCase();
+}
+
+function isLikelyStorageObjectPath(pathname) {
+  return /^\/(images|docs|videos|audio|other)\//i.test(String(pathname || ''));
+}
+
+/**
+ * Rewrite legacy / Stream hostnames on storage object URLs to the storage pull zone.
+ * Stream CDN (vz-*) returns 403 for /images/* even when the file exists in storage.
+ */
+function normalizeStorageCdnUrl(url) {
+  if (!url || typeof url !== 'string') return url;
+  const target = storageCdnHostnameNormalized();
+  if (!target) return url;
+  let urlObj;
+  try {
+    urlObj = new URL(url);
+  } catch {
+    return url;
+  }
+  const host = urlObj.hostname.toLowerCase();
+  if (host === target) return url;
+  const shouldRewrite =
+    LEGACY_STORAGE_CDN_HOSTS.has(host) ||
+    (host.startsWith('vz-') && isLikelyStorageObjectPath(urlObj.pathname));
+  if (!shouldRewrite) return url;
+  urlObj.hostname = target;
+  // Drop tokens issued for the wrong pull zone
+  urlObj.search = '';
+  return urlObj.toString();
 }
 
 /**
@@ -109,22 +151,24 @@ function generateSignedUrlWithKey(originalUrl, ttlSeconds, tokenKey) {
 }
 
 /**
- * If BUNNY_STORAGE_PULL_ZONE_TOKEN_KEY is set and the URL is on BUNNY_CDN_HOSTNAME, add token query params
+ * If BUNNY_STORAGE_PULL_ZONE_TOKEN_KEY is set and the URL is on the storage pull zone, add token query params
  * so browsers can load images (cover thumbnails, etc.) from a token-protected pull zone.
  * Re-signing uses pathname only, so expired signed URLs in the DB still refresh correctly on read.
  */
 function signStorageCdnUrl(url, ttlSeconds = 60 * 60 * 24 * 7) {
-  if (!STORAGE_PULL_TOKEN || !url) return url;
+  if (!url) return url;
+  const normalized = normalizeStorageCdnUrl(url);
+  if (!STORAGE_PULL_TOKEN) return normalized;
   const cdnHost = storageCdnHostnameNormalized();
-  if (!cdnHost) return url;
+  if (!cdnHost) return normalized;
   let hostname;
   try {
-    hostname = new URL(url).hostname.toLowerCase();
+    hostname = new URL(normalized).hostname.toLowerCase();
   } catch {
-    return url;
+    return normalized;
   }
-  if (hostname !== cdnHost) return url;
-  return generateSignedUrlWithKey(url, ttlSeconds, STORAGE_PULL_TOKEN);
+  if (hostname !== cdnHost) return normalized;
+  return generateSignedUrlWithKey(normalized, ttlSeconds, STORAGE_PULL_TOKEN);
 }
 
 /**
@@ -164,4 +208,5 @@ module.exports = {
   signPath,
   signPathWithKey,
   signStorageCdnUrl,
+  normalizeStorageCdnUrl,
 };

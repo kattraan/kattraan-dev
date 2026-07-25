@@ -11,7 +11,7 @@ require('../../models/AudioContent');
 require('../../models/ResourceContent');
 const LearnerCourses = require('../../models/LearnerCourses');
 const createCrudController = require('../common/crud.controller');
-const { signStorageCdnUrl } = require('../../helpers/bunnyToken');
+const { signStorageCdnUrl, normalizeStorageCdnUrl } = require('../../helpers/bunnyToken');
 
 const STORAGE_THUMB_TTL_SEC = 60 * 60 * 24 * 7;
 
@@ -199,6 +199,17 @@ module.exports = {
     async update(req, res) {
         try {
             const body = mapLanguageForStorage(stripProtectedFields(req.body));
+            // Persist storage cover URLs on the storage pull zone (no Stream host / query tokens)
+            if (typeof body.thumbnail === 'string' && body.thumbnail) {
+                let thumb = normalizeStorageCdnUrl(body.thumbnail);
+                try {
+                    const u = new URL(thumb);
+                    u.search = '';
+                    u.hash = '';
+                    thumb = u.toString();
+                } catch { /* keep normalized */ }
+                body.thumbnail = thumb;
+            }
             const updateOps = { $set: { ...body, updatedBy: req.user._id } };
             if (body.courseLanguage !== undefined) {
                 updateOps.$unset = { language: '' };

@@ -120,8 +120,6 @@ function App() {
             <Route path={ROUTES.SHIPPING_DELIVERY} element={<MainLayout><ShippingPage /></MainLayout>} />
             <Route path={`${ROUTES.BLOG_ARTICLE}/:id`} element={<MainLayout><BlogArticlePage /></MainLayout>} />
             <Route path={ROUTES.CATEGORIES} element={<MainLayout><CategoriesPage /></MainLayout>} />
-            <Route path={ROUTES.COURSES} element={<MainLayout><CourseList /></MainLayout>} />
-            <Route path={`${ROUTES.COURSE_DETAILS}/:courseId`} element={<MainLayout><CourseDetailsPage /></MainLayout>} />
             <Route path={`${ROUTES.CERTIFICATE_VERIFY}/:certificateId`} element={<MainLayout><CertificateVerifyPage /></MainLayout>} />
             
             {/* Auth Routes */}
@@ -136,7 +134,14 @@ function App() {
                <Route path={ROUTES.WAITING_APPROVAL} element={<WaitingForApproval />} />
             </Route>
 
-            {/* Protected Routes (Authenticated Users) - Learner Dashboard */}
+            {/* Courses require login — guests are sent to /login, then returned here */}
+            <Route element={<ProtectedRoute allowedRoles={['learner', 'instructor', 'admin']} />}>
+              <Route path={ROUTES.COURSES} element={<MainLayout><CourseList /></MainLayout>} />
+              <Route path={`${ROUTES.COURSE_DETAILS}/:courseId`} element={<MainLayout><CourseDetailsPage /></MainLayout>} />
+              <Route path={ROUTES.CART} element={<MainLayout><CartPage /></MainLayout>} />
+            </Route>
+
+            {/* Learner dashboard — My Learning, certificates, community, etc. */}
             <Route element={<ProtectedRoute allowedRoles={['learner', 'instructor', 'admin']} />}>
               <Route element={<DashboardLayout role={DASHBOARD_ROLES.LEARNER} />}>
                 <Route path={ROUTES.DASHBOARD} element={<Dashboard />} />
@@ -154,8 +159,7 @@ function App() {
                 <Route path={ROUTES.COMMUNITY} element={<CommunityHubPage />} />
                 <Route path={`${ROUTES.COMMUNITY}/:id`} element={<CommunityRoomPage />} />
               </Route>
-              <Route path={ROUTES.LEARNER_DASHBOARD} element={<Navigate to={ROUTES.DASHBOARD} replace />} />
-              <Route path={ROUTES.CART} element={<MainLayout><CartPage /></MainLayout>} />
+              <Route path={ROUTES.LEARNER_DASHBOARD} element={<Navigate to={ROUTES.MY_LEARNING} replace />} />
             </Route>
 
             {/* Instructor Domain - Nested Route Module */}

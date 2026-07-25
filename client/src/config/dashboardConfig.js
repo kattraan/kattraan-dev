@@ -94,7 +94,7 @@ const dashboardConfig = {
         icon: "LayoutDashboard",
       },
       {
-        label: "My Courses",
+        label: "My Learning",
         path: ROUTES.DASHBOARD_MY_COURSES,
         icon: "BookOpen",
       },

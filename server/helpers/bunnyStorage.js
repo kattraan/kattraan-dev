@@ -7,7 +7,12 @@ const mime = require("mime-types");
 const STORAGE_ZONE_NAME = (process.env.BUNNY_STORAGE_ZONE_NAME || "").trim();
 const STORAGE_PASSWORD = (process.env.BUNNY_STORAGE_PASSWORD || "").trim();
 const STORAGE_REGION = (process.env.BUNNY_STORAGE_REGION || "").trim();
-const CDN_HOSTNAME = (process.env.BUNNY_CDN_HOSTNAME || "").trim();
+// Storage pull zone (e.g. kattraan.b-cdn.net) — never use Bunny Stream (vz-*) host here
+const CDN_HOSTNAME = (
+    process.env.BUNNY_STORAGE_CDN_HOSTNAME ||
+    process.env.BUNNY_CDN_HOSTNAME ||
+    ""
+).trim().replace(/^https?:\/\//i, "").split("/")[0];
 
 /**
  * Bunny Storage HTTP API host (see https://docs.bunny.net/storage/http).
@@ -37,7 +42,12 @@ async function uploadMediaToBunny(filePath) {
     }
     if (!CDN_HOSTNAME) {
         throw new Error(
-            "BUNNY_CDN_HOSTNAME is not set in server/.env (your Pull Zone hostname, e.g. myzone.b-cdn.net)."
+            "BUNNY_STORAGE_CDN_HOSTNAME (or BUNNY_CDN_HOSTNAME) is not set in server/.env (storage Pull Zone hostname, e.g. kattraan.b-cdn.net — not a Stream vz-* host)."
+        );
+    }
+    if (/^vz-/i.test(CDN_HOSTNAME)) {
+        throw new Error(
+            `Storage CDN host looks like Bunny Stream (${CDN_HOSTNAME}). Set BUNNY_STORAGE_CDN_HOSTNAME to your storage pull zone (e.g. kattraan.b-cdn.net).`
         );
     }
 

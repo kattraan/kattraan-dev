@@ -110,7 +110,7 @@ const MessageComposer = ({
 
             {editingMessage && (
                 <div className="flex items-center justify-between px-4 pt-3 text-xs">
-                    <span className="text-primary-pink font-semibold">Editing message</span>
+                    <span className="text-blue-600 dark:text-blue-400 font-semibold">Editing message</span>
                     <button onClick={onCancelEdit} className="text-gray-400 dark:text-white/30 hover:text-gray-700 dark:hover:text-white">
                         <X size={14} />
                     </button>
@@ -155,13 +155,13 @@ const MessageComposer = ({
                     disabled={disabled}
                     placeholder={disabled ? 'You cannot post in this community' : 'Type a message…'}
                     rows={1}
-                    className="flex-1 resize-none rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-4 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/30 focus:outline-none focus:border-primary-pink/50 disabled:opacity-50 max-h-32"
+                    className="flex-1 resize-none rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-4 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/30 focus:outline-none focus:border-blue-500/50 disabled:opacity-50 max-h-32"
                 />
                 <button
                     type="button"
                     onClick={submit}
                     disabled={disabled || (!value.trim() && !attachment)}
-                    className="flex-shrink-0 w-11 h-11 rounded-full bg-gradient-to-r from-primary-pink to-primary-purple text-white flex items-center justify-center disabled:opacity-40 hover:brightness-110 transition-all"
+                    className="flex-shrink-0 w-11 h-11 rounded-full bg-blue-600 text-white flex items-center justify-center disabled:opacity-40 hover:bg-blue-700 transition-all"
                     aria-label="Send message"
                 >
                     <Send size={18} />

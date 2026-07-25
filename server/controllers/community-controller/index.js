@@ -3,6 +3,7 @@ const CommunityMembership = require("../../models/CommunityMembership");
 const CommunityMessage = require("../../models/CommunityMessage");
 const Course = require("../../models/Course");
 const LearnerCourses = require("../../models/LearnerCourses");
+const User = require("../../models/User");
 const { isAdmin } = require("../../middleware/communityOwnership");
 const { uploadMediaToBunny } = require("../../helpers/bunnyStorage");
 
@@ -112,12 +113,75 @@ const listCommunities = async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
+    const communityIds = communities.map((c) => c._id);
+    const lastMessageRows =
+      communityIds.length === 0
+        ? []
+        : await CommunityMessage.aggregate([
+            {
+              $match: {
+                community: { $in: communityIds },
+                isDeleted: { $ne: true },
+              },
+            },
+            { $sort: { createdAt: -1 } },
+            {
+              $group: {
+                _id: "$community",
+                body: { $first: "$body" },
+                createdAt: { $first: "$createdAt" },
+                sender: { $first: "$sender" },
+                attachments: { $first: "$attachments" },
+              },
+            },
+          ]);
+
+    const senderIds = [
+      ...new Set(
+        lastMessageRows
+          .map((row) => (row.sender ? String(row.sender) : null))
+          .filter(Boolean)
+      ),
+    ];
+    const senders =
+      senderIds.length === 0
+        ? []
+        : await User.find({ _id: { $in: senderIds } })
+            .select("userName")
+            .lean();
+    const senderById = Object.fromEntries(
+      senders.map((u) => [String(u._id), u.userName])
+    );
+    const lastMessageByCommunity = Object.fromEntries(
+      lastMessageRows.map((row) => [
+        String(row._id),
+        {
+          body: row.body || "",
+          createdAt: row.createdAt,
+          senderName: senderById[String(row.sender)] || "Someone",
+          hasAttachment: Array.isArray(row.attachments) && row.attachments.length > 0,
+        },
+      ])
+    );
+
     const withStatus = await Promise.all(
       communities.map(async (c) => ({
         ...c,
         membershipStatus: await getMembershipStatus(c, req),
+        lastMessage: lastMessageByCommunity[String(c._id)] || null,
       }))
     );
+
+    // Members with recent chat activity float to the top of the list
+    withStatus.sort((a, b) => {
+      const aTime = a.lastMessage?.createdAt
+        ? new Date(a.lastMessage.createdAt).getTime()
+        : new Date(a.createdAt || 0).getTime();
+      const bTime = b.lastMessage?.createdAt
+        ? new Date(b.lastMessage.createdAt).getTime()
+        : new Date(b.createdAt || 0).getTime();
+      return bTime - aTime;
+    });
 
     res.json({ success: true, communities: withStatus });
   } catch (error) {

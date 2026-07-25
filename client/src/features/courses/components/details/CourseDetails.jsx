@@ -135,7 +135,7 @@ const CourseDetails = ({
             )}
 
             {/* Course Content - Exact Specification Match */}
-            <div className="mt-12">
+            <div id="course-curriculum" className="mt-12 scroll-mt-28">
                 <h2 className="text-2xl font-bold mb-6 tracking-tight">Course Content</h2>
 
                 {/* Outer Box Container - Matching user specs */}

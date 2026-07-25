@@ -23,7 +23,7 @@ const LearnerSidebar = ({ isCollapsed, setIsCollapsed }) => {
 
     const navItems = [
         { label: 'Dashboard', icon: LayoutDashboard, path: ROUTES.DASHBOARD, exact: true },
-        { label: 'My Courses', icon: BookOpen, path: ROUTES.DASHBOARD_MY_COURSES },
+        { label: 'My Learning', icon: BookOpen, path: ROUTES.DASHBOARD_MY_COURSES },
         { label: 'Live Classes', icon: Video, path: ROUTES.DASHBOARD_CLASSES },
         { label: 'Assignments', icon: FileText, path: ROUTES.DASHBOARD_ASSIGNMENTS },
         { label: 'Certificates', icon: GraduationCap, path: ROUTES.DASHBOARD_CERTIFICATES },

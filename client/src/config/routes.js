@@ -29,6 +29,8 @@ export const ROUTES = {
   // Learner dashboard
   DASHBOARD: "/dashboard",
   DASHBOARD_MY_COURSES: "/dashboard/my-courses",
+  /** Alias used in marketing / nav copy */
+  MY_LEARNING: "/dashboard/my-courses",
   DASHBOARD_CLASSES: "/dashboard/classes",
   DASHBOARD_ASSIGNMENTS: "/dashboard/assignments",
   DASHBOARD_CERTIFICATES: "/dashboard/certificates",

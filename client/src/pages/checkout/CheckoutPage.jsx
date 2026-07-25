@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import {
   ShieldCheck,
   Lock,
@@ -9,6 +9,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Info,
+  Phone,
+  X,
 } from 'lucide-react';
 import { load as loadCashfree } from '@cashfreepayments/cashfree-js';
 import apiClient from '@/api/apiClient';
@@ -16,6 +18,23 @@ import { useCurrency } from '@/context/CurrencyContext';
 import { ROUTES } from '@/config/routes';
 import { useToast } from '@/components/ui/Toast';
 import { courseDescriptionPreviewText } from '@/utils/courseDescriptionHtml';
+import { updateProfile } from '@/features/auth/store/authSlice';
+
+/** Valid Indian mobiles: 10 digits starting with 6–9 (or +91 / 91 prefix). */
+function normalizeIndianPhone(phone) {
+  let digits = String(phone || '').replace(/\D/g, '');
+  if (digits.length === 12 && digits.startsWith('91')) digits = digits.slice(2);
+  if (digits.length === 11 && digits.startsWith('0')) digits = digits.slice(1);
+  if (digits.length === 10 && /^[6-9]/.test(digits)) return `+91${digits}`;
+  return null;
+}
+
+function digitsOnlyPhone(phone) {
+  const digits = String(phone || '').replace(/\D/g, '');
+  if (digits.length === 12 && digits.startsWith('91')) return digits.slice(2);
+  if (digits.length === 10) return digits;
+  return digits.slice(-10);
+}
 
 /**
  * CheckoutPage — handles Cashfree payment for a paid course.
@@ -24,6 +43,7 @@ import { courseDescriptionPreviewText } from '@/utils/courseDescriptionHtml';
 export default function CheckoutPage() {
   const { courseId } = useParams();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const toast = useToast();
   const user = useSelector((state) => state.auth?.user);
   const { formatPrice, formatINR, userCurrency, convertFromINR } = useCurrency();
@@ -34,6 +54,11 @@ export default function CheckoutPage() {
   const [error, setError] = useState(null);
   const [paid, setPaid] = useState(false);
   const [cashfreeTestMode, setCashfreeTestMode] = useState(false);
+  const [cashfreeMockMode, setCashfreeMockMode] = useState(false);
+  const [showPhonePopup, setShowPhonePopup] = useState(false);
+  const [phoneInput, setPhoneInput] = useState('');
+  const [phoneError, setPhoneError] = useState(null);
+  const [savingPhone, setSavingPhone] = useState(false);
 
   // Load course details
   useEffect(() => {
@@ -51,8 +76,14 @@ export default function CheckoutPage() {
   useEffect(() => {
     apiClient
       .get('/payment/cashfree/mode')
-      .then((res) => setCashfreeTestMode(!!res.data?.testMode))
-      .catch(() => setCashfreeTestMode(false));
+      .then((res) => {
+        setCashfreeTestMode(!!res.data?.testMode);
+        setCashfreeMockMode(!!res.data?.mock);
+      })
+      .catch(() => {
+        setCashfreeTestMode(false);
+        setCashfreeMockMode(false);
+      });
   }, []);
 
   useEffect(() => {
@@ -107,10 +138,18 @@ export default function CheckoutPage() {
       });
   }, [courseId, toast, userCurrency]);
 
-  const handlePayment = useCallback(async () => {
+  const openPhonePopup = useCallback(() => {
+    const existing = user?.phoneNumber || user?.phone || user?.mobile || '';
+    setPhoneInput(digitsOnlyPhone(existing));
+    setPhoneError(null);
+    setShowPhonePopup(true);
+  }, [user]);
+
+  const startCheckout = useCallback(async ({ fromPhoneModal = false } = {}) => {
     if (!course || paying) return;
     setPaying(true);
     setError(null);
+    if (!fromPhoneModal) setShowPhonePopup(false);
 
     try {
       const displayAmt = convertFromINR(course.price);
@@ -122,18 +161,89 @@ export default function CheckoutPage() {
 
       if (!data.success) throw new Error(data.message || 'Failed to create order');
 
-      const { paymentSessionId, orderId, displayAmount } = data;
+      const { paymentSessionId, orderId, displayAmount, mock } = data;
       if (!paymentSessionId) throw new Error('Cashfree payment session was not returned.');
 
       localStorage.setItem('cashfreePendingOrder', JSON.stringify({ orderId, paymentSessionId, displayAmount }));
+      setShowPhonePopup(false);
 
-      const cashfree = await loadCashfree({ mode: cashfreeTestMode ? 'sandbox' : 'production' });
-      await cashfree.checkout({ paymentSessionId, redirectTarget: '_self' });
+      // Local mock: skip Cashfree checkout UI and verify immediately.
+      if (mock || cashfreeMockMode || String(paymentSessionId).startsWith('mock_session_')) {
+        const verifyRes = await apiClient.post('/payment/cashfree/verify', {
+          orderId,
+          paymentSessionId,
+          courseId,
+          displayCurrency: userCurrency,
+          displayAmount,
+        });
+        if (!verifyRes.data?.success) {
+          throw new Error(verifyRes.data?.message || 'Mock payment verification failed');
+        }
+        localStorage.removeItem('cashfreePendingOrder');
+        setPaid(true);
+        toast?.success('Payment successful! You are now enrolled.');
+        setPaying(false);
+        return;
+      }
+
+      const cashfreeSdk = await loadCashfree({ mode: cashfreeTestMode ? 'sandbox' : 'production' });
+      await cashfreeSdk.checkout({ paymentSessionId, redirectTarget: '_self' });
     } catch (err) {
-      setError(err?.response?.data?.message || err.message || 'Something went wrong');
+      const message = err?.response?.data?.message || err.message || 'Something went wrong';
+      const isPhoneIssue = /phone|mobile/i.test(message);
       setPaying(false);
+
+      if (fromPhoneModal || isPhoneIssue) {
+        setPhoneError(
+          isPhoneIssue
+            ? 'Enter a valid 10-digit Indian mobile number starting with 6–9.'
+            : message,
+        );
+        setShowPhonePopup(true);
+        setError(null);
+      } else {
+        setError(message);
+      }
     }
-  }, [course, courseId, paying, userCurrency, convertFromINR, user, toast, cashfreeTestMode]);
+  }, [course, courseId, paying, userCurrency, convertFromINR, cashfreeTestMode, cashfreeMockMode, toast]);
+
+  const handlePayment = useCallback(() => {
+    if (!course || paying || savingPhone) return;
+    const existing = user?.phoneNumber || user?.phone || user?.mobile || '';
+    if (!normalizeIndianPhone(existing)) {
+      openPhonePopup();
+      return;
+    }
+    startCheckout();
+  }, [course, paying, savingPhone, user, openPhonePopup, startCheckout]);
+
+  const handlePhoneSubmit = useCallback(async (e) => {
+    e.preventDefault();
+    if (!user?._id || savingPhone || paying) return;
+
+    const normalized = normalizeIndianPhone(phoneInput);
+    if (!normalized) {
+      setPhoneError('Enter a valid 10-digit Indian mobile number starting with 6–9.');
+      return;
+    }
+
+    setSavingPhone(true);
+    setPhoneError(null);
+    setError(null);
+
+    try {
+      await dispatch(updateProfile({
+        userId: user._id,
+        payload: { phoneNumber: normalized },
+      })).unwrap();
+      await startCheckout({ fromPhoneModal: true });
+    } catch (err) {
+      setPhoneError(typeof err === 'string' ? err : 'Could not save phone number. Please try again.');
+      setShowPhonePopup(true);
+    } finally {
+      setSavingPhone(false);
+    }
+  }, [user, savingPhone, paying, phoneInput, dispatch, startCheckout]);
 
   // ─── Paid success screen ─────────────────────────────────────────────────
   if (paid) {
@@ -149,15 +259,15 @@ export default function CheckoutPage() {
           </p>
           <button
             onClick={() => navigate(`${ROUTES.VIEW_COURSE}/${courseId}/watch`)}
-            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#ed85b4] to-[#c1269d] text-white font-semibold hover:opacity-90 transition-opacity mb-3"
+            className="w-full py-3.5 rounded-xl btn-gradient font-semibold mb-3"
           >
             Start Learning
           </button>
           <button
-            onClick={() => navigate(ROUTES.DASHBOARD_MY_COURSES)}
+            onClick={() => navigate(ROUTES.MY_LEARNING)}
             className="w-full py-3 rounded-xl border border-white/20 text-white/70 hover:text-white hover:bg-white/5 transition-all text-sm"
           >
-            Go to My Courses
+            Go to My Learning
           </button>
         </div>
       </div>
@@ -253,13 +363,17 @@ export default function CheckoutPage() {
           </div>
         )}
 
-        {cashfreeTestMode && (
+        {(cashfreeMockMode || cashfreeTestMode) && (
           <div className="mb-6 flex gap-3 items-start p-4 bg-amber-500/10 border border-amber-500/35 rounded-xl text-amber-100/95 text-sm">
             <Info className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-400" />
             <div className="space-y-3 min-w-0">
-              <p className="font-semibold text-amber-200">Cashfree test mode</p>
+              <p className="font-semibold text-amber-200">
+                {cashfreeMockMode ? 'Local mock payments' : 'Cashfree test mode'}
+              </p>
               <p className="text-white/80 text-xs leading-relaxed">
-                Checkout will open in a new tab. Use Cashfree&apos;s sandbox test payment methods to complete the flow and then return here to continue.
+                {cashfreeMockMode
+                  ? 'Cashfree API keys are not configured. Pay will enroll you locally without opening Cashfree. Add real sandbox keys and set CASHFREE_MOCK=false for real checkout.'
+                  : "Checkout will open Cashfree's sandbox. Use their test payment methods, then return here to continue."}
               </p>
             </div>
           </div>
@@ -268,8 +382,8 @@ export default function CheckoutPage() {
         {/* Pay button */}
         <button
           onClick={handlePayment}
-          disabled={paying}
-          className="w-full py-4 rounded-xl bg-gradient-to-r from-[#ed85b4] to-[#c1269d] text-white font-bold text-base hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-pink-900/30"
+          disabled={paying || savingPhone}
+          className="w-full py-4 rounded-xl btn-gradient font-bold text-base disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {paying ? (
             <>
@@ -290,6 +404,112 @@ export default function CheckoutPage() {
           <span>Secured by Cashfree · 30-day money-back guarantee</span>
         </div>
       </div>
+
+      {/* Phone number modal */}
+      {showPhonePopup && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          onClick={() => {
+            if (savingPhone || paying) return;
+            setShowPhonePopup(false);
+            setPhoneError(null);
+          }}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-white/15 bg-[#161225] p-6 shadow-2xl shadow-black/50"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="checkout-phone-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3 mb-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary-pink/15 flex items-center justify-center">
+                  <Phone className="w-5 h-5 text-primary-pink" />
+                </div>
+                <div>
+                  <h3 id="checkout-phone-title" className="text-lg font-bold text-white">
+                    Enter mobile number
+                  </h3>
+                  <p className="text-white/50 text-sm mt-0.5">
+                    10 digits starting with 6–9
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (savingPhone || paying) return;
+                  setShowPhonePopup(false);
+                  setPhoneError(null);
+                }}
+                className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handlePhoneSubmit} className="space-y-4">
+              <div className="flex rounded-xl border border-white/15 bg-white/5 overflow-hidden focus-within:ring-2 focus-within:ring-primary-pink/50 focus-within:border-primary-pink/40">
+                <span className="px-4 py-3.5 text-sm font-semibold text-white/60 border-r border-white/10 select-none">
+                  +91
+                </span>
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  autoFocus
+                  maxLength={10}
+                  value={phoneInput}
+                  onChange={(e) => {
+                    setPhoneInput(e.target.value.replace(/\D/g, '').slice(0, 10));
+                    setPhoneError(null);
+                  }}
+                  placeholder="10-digit mobile number"
+                  className="flex-1 min-w-0 px-4 py-3.5 bg-transparent text-white text-base placeholder:text-white/30 focus:outline-none"
+                  disabled={savingPhone || paying}
+                />
+              </div>
+
+              {(phoneError || (error && /phone|mobile/i.test(error))) && (
+                <p className="text-red-300 text-sm flex items-center gap-1.5">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  {phoneError || 'Enter a valid 10-digit Indian mobile number starting with 6–9.'}
+                </p>
+              )}
+
+              <div className="flex gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (savingPhone || paying) return;
+                    setShowPhonePopup(false);
+                    setPhoneError(null);
+                  }}
+                  className="flex-1 py-3 rounded-xl border border-white/15 text-white/70 font-semibold text-sm hover:bg-white/5 transition-colors disabled:opacity-50"
+                  disabled={savingPhone || paying}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingPhone || paying || !normalizeIndianPhone(phoneInput)}
+                  className="flex-[1.4] py-3 rounded-xl btn-gradient font-bold text-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {savingPhone || paying ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {savingPhone ? 'Saving…' : 'Processing…'}
+                    </>
+                  ) : (
+                    'Continue to payment'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

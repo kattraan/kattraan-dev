@@ -9,6 +9,47 @@ import Tus from '@uppy/tus';
 const VIDEO_CREATE_URL = '/videos/create';
 const VIDEO_SAVE_URL = '/videos/save';
 const MIME_MP4 = 'video/mp4';
+/** Reject empty / cloud-placeholder / truncated files that finish TUS instantly and never play. */
+const MIN_VIDEO_BYTES = 100 * 1024; // 100 KB
+const MAX_VIDEO_BYTES = 10 * 1024 * 1024 * 1024; // 10 GB
+
+/**
+ * Strip characters that break Bunny titles, TUS metadata, or HTML rendering (e.g. `<`).
+ * @param {string} value
+ * @returns {string}
+ */
+export function sanitizeVideoTitle(value) {
+  return String(value || '')
+    .replace(/[<>:"/\\|?*\u0000-\u001f]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Validate a local video File before creating a Bunny entry / starting TUS.
+ * @param {File} file
+ * @throws {Error}
+ */
+export function assertValidVideoFile(file) {
+  if (!file || !(file instanceof File)) {
+    throw new Error('Please select a video file from your computer.');
+  }
+  if (!file.size || file.size < MIN_VIDEO_BYTES) {
+    throw new Error(
+      'This video file is empty or incomplete (0 MB). If it is on OneDrive/Google Drive, make it available offline first, then re-select the file.',
+    );
+  }
+  if (file.size > MAX_VIDEO_BYTES) {
+    throw new Error('File is too large. Maximum size is 10GB.');
+  }
+  const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+  const looksLikeVideo =
+    (file.type && file.type.startsWith('video/')) ||
+    ['.mp4', '.mov', '.webm', '.m4v'].includes(ext);
+  if (!looksLikeVideo) {
+    throw new Error('Please upload a video file (MP4 recommended).');
+  }
+}
 
 /**
  * Create a Bunny Stream video and get TUS upload credentials.
@@ -16,7 +57,8 @@ const MIME_MP4 = 'video/mp4';
  * @returns {Promise<{ videoId: string, uploadUrl: string, libraryId: string, expirationTime: number, signature: string }>}
  */
 export async function createVideoUpload(title) {
-  const { data } = await apiClient.post(VIDEO_CREATE_URL, { title: title || 'Untitled Video' });
+  const safeTitle = sanitizeVideoTitle(title) || 'Untitled Video';
+  const { data } = await apiClient.post(VIDEO_CREATE_URL, { title: safeTitle });
   if (!data?.success) throw new Error(data?.message || 'Failed to create video');
   return {
     videoId: data.videoId,
@@ -61,14 +103,25 @@ function getVideoDuration(file) {
  * Used by useVideoUpload (curriculum) and can be used elsewhere.
  *
  * @param {File} file - MP4 file
- * @param {object} options - { chapterId, title?, description?, courseId?, onProgress?(percent: number) }
+ * @param {object} options - { chapterId, title?, description?, courseId?, onProgress?(percent: number), onUploadFinished?() }
  * @returns {Promise<{ success: boolean, data: { _id: string } }>}
  */
 export function uploadVideoDirect(file, options = {}) {
-  const { chapterId, title, description, courseId, onProgress } = options;
-  const titleStr = (title && String(title).trim()) || file.name || 'Untitled Video';
+  const { chapterId, title, description, courseId, onProgress, onUploadFinished } = options;
 
   return new Promise((resolve, reject) => {
+    try {
+      assertValidVideoFile(file);
+    } catch (err) {
+      reject(err);
+      return;
+    }
+
+    const titleStr =
+      sanitizeVideoTitle(title) ||
+      sanitizeVideoTitle(file.name) ||
+      'Untitled Video';
+
     createVideoUpload(titleStr)
       .then((credentials) => {
         const uppy = new Uppy({ id: `bunny-tus-${Date.now()}`, autoProceed: true, allowMultiple: false });
@@ -84,12 +137,22 @@ export function uploadVideoDirect(file, options = {}) {
           },
           uploadDataCreationStrategy: 'individual',
         });
-        uppy.addFile({ name: file.name, type: file.type || MIME_MP4, data: file });
+        // Prefer a safe filename for TUS metadata; keep original type/size.
+        const base = sanitizeVideoTitle(file.name.replace(/\.[^.]+$/, ''));
+        const ext = file.name.includes('.') ? file.name.slice(file.name.lastIndexOf('.')) : '.mp4';
+        const safeFileName = (base || 'video') + ext;
+        uppy.addFile({
+          name: safeFileName,
+          type: file.type || MIME_MP4,
+          data: file,
+        });
         const fileIds = uppy.getFiles().map((f) => f.id);
         if (fileIds.length) uppy.setFileMeta(fileIds[0], { filetype: file.type || MIME_MP4, title: titleStr });
 
         uppy.on('progress', (p) => typeof onProgress === 'function' && onProgress(p));
         uppy.on('upload-success', async () => {
+          // Bytes are on Bunny; remaining work is metadata save (not still "uploading").
+          if (typeof onUploadFinished === 'function') onUploadFinished();
           let duration = 0;
           try {
             duration = await getVideoDuration(file);

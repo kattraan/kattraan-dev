@@ -16,8 +16,8 @@ const renderBodyWithMentions = (body) => {
                 className={clsx(
                     'font-semibold rounded px-1',
                     isEveryone
-                        ? 'bg-orange-500/20 text-orange-600 dark:text-orange-300'
-                        : 'bg-primary-pink/15 text-primary-pink'
+                        ? 'bg-blue-500/15 text-blue-700 dark:text-blue-300'
+                        : 'bg-blue-500/15 text-blue-600 dark:text-blue-400'
                 )}
             >
                 {part}
@@ -70,7 +70,7 @@ const MessageBubble = ({ message, isOwn, currentUserId, canModerate, onReact, on
             <div className={clsx('flex items-end gap-1.5', isOwn ? 'flex-row-reverse' : 'flex-row')}>
                 <div className="flex flex-col gap-1.5 max-w-full">
                     {message.replyTo && (
-                        <div className="px-3 py-1.5 rounded-xl text-xs border-l-2 border-primary-pink/50 bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-white/40">
+                        <div className="px-3 py-1.5 rounded-xl text-xs border-l-2 border-gray-400 dark:border-white/30 bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-white/40">
                             <span className="font-semibold">{message.replyTo.senderName}</span>{' '}
                             {message.replyTo.body}
                         </div>
@@ -80,7 +80,7 @@ const MessageBubble = ({ message, isOwn, currentUserId, canModerate, onReact, on
                         className={clsx(
                             'px-4 py-2.5 rounded-2xl text-sm leading-relaxed break-words',
                             isOwn
-                                ? 'bg-gradient-to-r from-primary-pink to-primary-purple text-white rounded-br-md'
+                                ? 'bg-blue-600 text-white rounded-br-md'
                                 : 'bg-gray-100 dark:bg-white/[0.06] text-gray-900 dark:text-white/85 border border-gray-200 dark:border-white/5 rounded-bl-md'
                         )}
                     >
@@ -129,7 +129,7 @@ const MessageBubble = ({ message, isOwn, currentUserId, canModerate, onReact, on
                                         className={clsx(
                                             'flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border transition-colors',
                                             reacted
-                                                ? 'bg-primary-pink/15 border-primary-pink/40 text-primary-pink'
+                                                ? 'bg-blue-500/15 border-blue-500/40 text-blue-600 dark:text-blue-400'
                                                 : 'bg-gray-100 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-600 dark:text-white/60'
                                         )}
                                     >

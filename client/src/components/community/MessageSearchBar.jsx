@@ -33,7 +33,7 @@ const MessageSearchBar = ({ communityId, onClose }) => {
                         onChange={(e) => setQuery(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && runSearch()}
                         placeholder="Search messages…"
-                        className="w-full pl-9 pr-4 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/30 focus:outline-none focus:border-primary-pink/50"
+                        className="w-full pl-9 pr-4 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/30 focus:outline-none focus:border-blue-500/50"
                     />
                 </div>
                 <button onClick={handleClose} className="text-gray-400 dark:text-white/30 hover:text-gray-700 dark:hover:text-white">

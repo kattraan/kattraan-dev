@@ -25,6 +25,11 @@ import courseService from "@/features/courses/services/courseService";
 import { useToast } from "@/components/ui/Toast";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { logger } from "@/utils/logger";
+import {
+  normalizeBunnyStorageUrl,
+  toPersistentStorageUrl,
+} from "@/utils/normalizeBunnyStorageUrl";
+import { compressImageForUpload } from "@/utils/compressImageForUpload";
 import { useVideoUpload } from "./useVideoUpload";
 import { listEngagementTemplates } from "@/features/instructor/services/chapterEngagementTemplateService";
 
@@ -139,6 +144,12 @@ export function useCourseEditor() {
     setCourseDetails({
       ...data,
       status: normalizeStatus(data.status),
+      thumbnail: data.thumbnail
+        ? normalizeBunnyStorageUrl(data.thumbnail) || data.thumbnail
+        : data.thumbnail,
+      image: data.image
+        ? normalizeBunnyStorageUrl(data.image) || data.image
+        : data.image,
       whatYouWillLearn:
         typeof data.whatYouWillLearn === "string"
           ? data.whatYouWillLearn
@@ -256,10 +267,10 @@ export function useCourseEditor() {
           toast.success("Success", "Video lesson created!");
         }
         await loadCourse();
-        // Defer clearing upload state so refetched course data can propagate to UI first;
-        // otherwise the pending card disappears before the new video appears in the list.
+        // Keep the success state visible briefly so the instructor sees "Upload successful"
+        // before the pending card is replaced by the saved lesson row.
         if (typeof done === "function") {
-          setTimeout(done, 150);
+          setTimeout(done, 1800);
         }
       } catch (err) {
         logger.error("Video save error:", err);
@@ -989,22 +1000,53 @@ export function useCourseEditor() {
       const file = e.target.files?.[0];
       if (!file || !activeFileUploadType) return;
 
+      const isCourseCover = activeFileUploadType === "course-cover";
+      const isCourseIntro = activeFileUploadType === "course-thumbnail";
+      let localPreviewUrl = null;
+      const previousThumbnail = courseDetailsRef.current?.thumbnail;
+
+      // Instant UI preview for cover images (blob URL) while upload runs
+      if (isCourseCover && file.type.startsWith("image/")) {
+        localPreviewUrl = URL.createObjectURL(file);
+        setCourseDetails((prev) => ({ ...prev, thumbnail: localPreviewUrl }));
+      }
+
       setIsSaving(true);
       try {
-        const uploadRes = await courseService.uploadMedia(file, id);
+        let fileToUpload = file;
+        if (isCourseCover && file.type.startsWith("image/")) {
+          try {
+            fileToUpload = await compressImageForUpload(file, {
+              maxBytes: 500 * 1024,
+              maxWidth: 1600,
+            });
+          } catch (compressErr) {
+            logger.warn("Cover image compression skipped:", compressErr);
+          }
+        }
+
+        const uploadRes = await courseService.uploadMedia(fileToUpload, id);
         if (uploadRes.success) {
-          const { url } = uploadRes.data;
-          if (
-            activeFileUploadType === "course-cover" ||
-            activeFileUploadType === "course-thumbnail"
-          ) {
-            const key =
-              activeFileUploadType === "course-cover" ? "thumbnail" : "image";
-            const merged = { ...courseDetails, [key]: url };
-            setCourseDetails(merged);
-            await dispatch(updateCourse({ id, courseData: merged })).unwrap();
+          const { url: rawUrl } = uploadRes.data;
+          const displayUrl = normalizeBunnyStorageUrl(rawUrl) || rawUrl;
+          const persistUrl = toPersistentStorageUrl(rawUrl) || displayUrl;
+
+          if (isCourseCover || isCourseIntro) {
+            const key = isCourseCover ? "thumbnail" : "image";
+            const base = courseDetailsRef.current || courseDetails;
+            const merged = { ...base, [key]: persistUrl };
+            // Keep signed/display URL in UI (blob revoked below)
+            setCourseDetails({ ...merged, [key]: displayUrl });
+            await dispatch(
+              updateCourse({ id, courseData: merged }),
+            ).unwrap();
             await loadCourse();
-            if (e.target) e.target.value = "";
+            toast.success(
+              "Success",
+              isCourseCover
+                ? "Cover image updated!"
+                : "Intro video updated!",
+            );
             return;
           }
 
@@ -1022,16 +1064,19 @@ export function useCourseEditor() {
             chapter: uploadingChapterId,
             type: finalType,
             title: file.name,
-            metadata: { fileName: file.name, fileSize: file.size },
+            metadata: {
+              fileName: file.name,
+              fileSize: fileToUpload.size,
+            },
           };
-          if (finalType === "video") contentData.videoUrl = url;
-          else if (finalType === "audio") contentData.audioUrl = url;
-          else if (finalType === "image") contentData.imageUrl = url;
+          if (finalType === "video") contentData.videoUrl = displayUrl;
+          else if (finalType === "audio") contentData.audioUrl = displayUrl;
+          else if (finalType === "image") contentData.imageUrl = displayUrl;
           else if (finalType === "resource") {
-            contentData.fileUrl = url;
+            contentData.fileUrl = displayUrl;
             contentData.fileType = file.name.split(".").pop().toLowerCase();
           } else {
-            contentData.fileUrl = url;
+            contentData.fileUrl = displayUrl;
           }
 
           await courseService.createContent(finalType, contentData);
@@ -1043,12 +1088,32 @@ export function useCourseEditor() {
         }
       } catch (error) {
         logger.error("Upload error:", error);
+        if (isCourseCover) {
+          setCourseDetails((prev) => ({
+            ...prev,
+            thumbnail: previousThumbnail || "",
+          }));
+        }
+        const status = error?.response?.status;
         const { title: t9, message: m9 } = error.apiMessageForToast || {
           title: "Upload Failed",
-          message: "File upload failed. Please try again.",
+          message:
+            status === 413
+              ? "Image is too large for the server. Try a smaller file (under 500KB)."
+              : "File upload failed. Please try again.",
         };
-        toast.error(t9, m9);
+        toast.error(
+          t9,
+          status === 413
+            ? "Image is too large for the server. Try a smaller file (under 500KB)."
+            : m9,
+        );
       } finally {
+        if (localPreviewUrl) {
+          const toRevoke = localPreviewUrl;
+          // Let React swap <img src> off the blob before revoking
+          setTimeout(() => URL.revokeObjectURL(toRevoke), 0);
+        }
         setIsSaving(false);
         setUploadingChapterId(null);
         if (e.target) e.target.value = "";
@@ -1101,7 +1166,11 @@ export function useCourseEditor() {
       activeFileUploadType === "course-thumbnail"
     )
       return "video/*";
-    if (activeFileUploadType === "image") return "image/*";
+    if (
+      activeFileUploadType === "image" ||
+      activeFileUploadType === "course-cover"
+    )
+      return "image/jpeg,image/jpg,image/png,image/webp";
     if (activeFileUploadType === "audio")
       return "audio/*,.mp3,.wav,.ogg,.m4a,.aac";
     if (activeFileUploadType === "pdf") return ".pdf";

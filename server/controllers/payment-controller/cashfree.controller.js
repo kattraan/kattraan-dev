@@ -49,9 +49,10 @@ function amountsMatch(a, b, tolerance = 0.01) {
 }
 
 function normalizeIndianPhone(phone) {
-  const normalized = String(phone || '').replace(/\D/g, '');
-  if (normalized.length === 10) return `+91${normalized}`;
-  if (normalized.length === 12 && normalized.startsWith('91')) return `+${normalized}`;
+  let digits = String(phone || '').replace(/\D/g, '');
+  if (digits.length === 12 && digits.startsWith('91')) digits = digits.slice(2);
+  if (digits.length === 11 && digits.startsWith('0')) digits = digits.slice(1);
+  if (digits.length === 10 && /^[6-9]/.test(digits)) return `+91${digits}`;
   return null;
 }
 
@@ -115,6 +116,27 @@ async function createOrder(req, res) {
       { upsert: true, new: true, setDefaultsOnInsert: true },
     );
 
+    // Local mock: no Cashfree credentials required; client verifies immediately.
+    if (cashfree.isMockMode()) {
+      const paymentSessionId = `mock_session_${orderId}`;
+      console.warn('[Cashfree] MOCK create-order — not calling Cashfree API');
+      return res.json({
+        success: true,
+        mock: true,
+        orderId,
+        paymentSessionId,
+        cfOrderId: orderId,
+        amount: amount * 100,
+        currency: 'INR',
+        courseTitle: course.title,
+        courseThumbnail: course.thumbnail || '',
+        priceINR,
+        displayCurrency: displayCurrency || 'INR',
+        displayAmount: displayAmount || priceINR,
+        returnUrl,
+      });
+    }
+
     const cfOrder = await cashfree.createOrder({
       orderId,
       amount,
@@ -150,11 +172,39 @@ async function createOrder(req, res) {
     });
   } catch (err) {
     console.error('[Cashfree] create-order error:', err.response?.data || err.message || err);
-    const desc = err.response?.data?.message || err.message;
-    const status = err.response?.status && err.response.status >= 400 && err.response.status < 500 ? err.response.status : 500;
-    res.status(status).json({
+
+    // Never forward Cashfree's 401 as our HTTP 401 — the client treats 401 as a
+    // session expiry and tries /auth/refresh, which looks like "authentication Failed".
+    if (err.code === 'cashfree_not_configured' || err.statusCode === 503) {
+      return res.status(503).json({
+        success: false,
+        message: err.message || 'Cashfree is not configured on the server.',
+      });
+    }
+
+    const cfType = err.response?.data?.type;
+    const cfMessage = err.response?.data?.message || err.message;
+    if (
+      err.response?.status === 401 ||
+      cfType === 'authentication_error' ||
+      /authentication failed/i.test(String(cfMessage || ''))
+    ) {
+      return res.status(502).json({
+        success: false,
+        message:
+          'Cashfree API authentication failed. Check CASHFREE_APP_ID / CASHFREE_SECRET_KEY and that CASHFREE_ENV matches the key type (sandbox vs production).',
+      });
+    }
+
+    const status =
+      err.response?.status && err.response.status >= 400 && err.response.status < 500
+        ? err.response.status
+        : 500;
+    // Avoid leaking provider 401-shaped statuses; map other 4xx through as-is.
+    const safeStatus = status === 401 ? 502 : status;
+    res.status(safeStatus).json({
       success: false,
-      message: desc || 'Failed to create payment order',
+      message: cfMessage || 'Failed to create payment order',
     });
   }
 }
@@ -177,6 +227,38 @@ async function verifyPayment(req, res) {
         return res.status(400).json({ success: false, message: 'Payment does not match this course' });
       }
       return res.json({ success: true, message: 'Payment already verified', orderId: existingOrder._id });
+    }
+
+    // Local mock checkout: fulfill from PendingPayment without calling Cashfree.
+    const isMockSession =
+      cashfree.isMockMode() &&
+      typeof paymentSessionId === 'string' &&
+      paymentSessionId.startsWith('mock_session_');
+    if (isMockSession) {
+      const pending = await PendingPayment.findOne({ orderId }).lean();
+      if (!pending || String(pending.userId) !== userId) {
+        return res.status(400).json({ success: false, message: 'Mock payment session is invalid or expired' });
+      }
+      if (String(pending.courseId) !== String(courseId)) {
+        return res.status(400).json({ success: false, message: 'Payment does not match this course' });
+      }
+
+      const { order } = await fulfillCoursePurchase({
+        userId,
+        courseId: String(courseId),
+        paymentId: orderId,
+        providerOrderId: paymentSessionId,
+        displayCurrency: displayCurrency || pending.displayCurrency,
+        displayAmount: displayAmount != null ? displayAmount : pending.displayAmount,
+      });
+      await markPendingFulfilled(orderId);
+      console.warn('[Cashfree] MOCK verify — enrolled without Cashfree');
+      return res.json({
+        success: true,
+        mock: true,
+        message: 'Mock payment verified and enrollment confirmed',
+        orderId: order._id,
+      });
     }
 
     let cfOrder;
@@ -265,8 +347,9 @@ async function verifyPayment(req, res) {
 function getPaymentMode(_req, res) {
   const keyId = (process.env.CASHFREE_APP_ID || process.env.CASHFREE_CLIENT_ID || '').trim();
   const envName = String(process.env.CASHFREE_ENV || '').trim().toLowerCase();
-  const testMode = !keyId || keyId.includes('test') || envName !== 'production';
-  res.json({ success: true, testMode });
+  const mock = cashfree.isMockMode();
+  const testMode = mock || !keyId || keyId.includes('test') || envName !== 'production';
+  res.json({ success: true, testMode, mock });
 }
 
 module.exports = { createOrder, verifyPayment, getPaymentMode, normalizeIndianPhone };

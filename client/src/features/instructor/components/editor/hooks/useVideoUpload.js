@@ -1,6 +1,10 @@
 import { useState, useCallback, useRef } from "react";
 import courseService from "@/features/courses/services/courseService";
-import { uploadVideoDirect } from "@/features/courses/services/videoUploadService";
+import {
+  assertValidVideoFile,
+  sanitizeVideoTitle,
+  uploadVideoDirect,
+} from "@/features/courses/services/videoUploadService";
 
 /**
  * Get video duration in seconds from a File using the browser's video element.
@@ -92,7 +96,9 @@ export function useVideoUpload(courseId, { onUploadComplete, onError }) {
       const hasVideo = !!videoFile;
 
       const resolvedTitle =
-        title || existingContent?.title || "Chapter Video";
+        sanitizeVideoTitle(title) ||
+        sanitizeVideoTitle(existingContent?.title) ||
+        "Chapter Video";
 
       if (!hasVideo && !isEditing) {
         setStateForKey(key, {
@@ -101,6 +107,20 @@ export function useVideoUpload(courseId, { onUploadComplete, onError }) {
         });
         onError?.(new Error("No video file"), key);
         return;
+      }
+
+      if (videoFile) {
+        try {
+          assertValidVideoFile(videoFile);
+        } catch (validationErr) {
+          setStateForKey(key, {
+            status: "error",
+            error: validationErr.message,
+            progress: 0,
+          });
+          onError?.(validationErr, key);
+          return;
+        }
       }
 
       let videoUrl = existingContent?.videoUrl || "";
@@ -132,16 +152,21 @@ export function useVideoUpload(courseId, { onUploadComplete, onError }) {
               onProgress: (percent) => {
                 setStateForKey(key, (prev) => ({
                   ...prev,
-                  // Guard against late progress events overriding a completed state.
+                  // Guard against late progress events overriding a later state.
                   progress:
-                    prev?.status === "complete" ? 100 : Math.min(100, percent),
+                    prev?.status === "complete" || prev?.status === "processing"
+                      ? 100
+                      : Math.min(100, percent),
                   status:
-                    prev?.status === "complete" || prev?.status === "error"
+                    prev?.status === "complete" ||
+                    prev?.status === "error" ||
+                    prev?.status === "processing"
                       ? prev.status
-                      : percent >= 100
-                        ? "processing"
-                        : "uploading",
+                      : "uploading",
                 }));
+              },
+              onUploadFinished: () => {
+                setStateForKey(key, { progress: 100, status: "processing" });
               },
             });
             if (!res?.success || !res?.data)
@@ -166,15 +191,16 @@ export function useVideoUpload(courseId, { onUploadComplete, onError }) {
             (percent) => {
               setStateForKey(key, (prev) => ({
                 ...prev,
-                // Guard against late progress events overriding a completed state.
                 progress:
-                  prev?.status === "complete" ? 100 : Math.min(100, percent),
+                  prev?.status === "complete" || prev?.status === "processing"
+                    ? 100
+                    : Math.min(100, percent),
                 status:
-                  prev?.status === "complete" || prev?.status === "error"
+                  prev?.status === "complete" ||
+                  prev?.status === "error" ||
+                  prev?.status === "processing"
                     ? prev.status
-                    : percent >= 100
-                      ? "processing"
-                      : "uploading",
+                    : "uploading",
               }));
             },
           );

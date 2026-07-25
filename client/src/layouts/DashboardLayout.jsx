@@ -46,7 +46,7 @@ const DashboardLayout = ({ role = DASHBOARD_ROLES.LEARNER }) => {
 
   return (
     <DashboardLayoutContext.Provider value={{ openMobileSidebar, closeMobileSidebar }}>
-    <div className="min-h-[100dvh] h-[100dvh] bg-gray-100 dark:bg-black flex font-satoshi selection:bg-primary-pink/30 relative overflow-hidden transition-colors duration-300">
+    <div className="min-h-[100dvh] h-[100dvh] bg-gray-100 dark:bg-black flex font-satoshi selection:bg-blue-500/30 relative overflow-hidden transition-colors duration-300">
       {/* Background */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <img
@@ -55,8 +55,6 @@ const DashboardLayout = ({ role = DASHBOARD_ROLES.LEARNER }) => {
           className="absolute inset-0 w-full h-full object-cover opacity-10 dark:opacity-[0.4] pointer-events-none transition-opacity duration-300"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/80 to-gray-50 dark:via-black/40 dark:to-black transition-colors duration-300" />
-        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary-pink/5 blur-[150px] -z-10 rounded-full" />
-        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-primary-purple/5 blur-[150px] -z-10 rounded-full" />
       </div>
 
       {isMobileSidebarOpen && (

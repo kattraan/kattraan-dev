@@ -19,6 +19,10 @@ import {
 import { useToast } from "@/components/ui/Toast";
 import { useCurrency } from "@/context/CurrencyContext";
 import { useCart } from "@/context/CartContext";
+import {
+  findFirstPreviewChapterId,
+  buildCourseWatchPreviewUrl,
+} from "@/features/courses/utils/coursePreviewUrl";
 
 function formatDuration(minutes) {
   const total = Number(minutes) || 0;
@@ -44,6 +48,7 @@ const CourseSidebar = ({
   approving = false,
   rejecting = false,
   isEnrolled = false,
+  isOwner = false,
   enrollmentCheckLoading = false,
   onEnrollmentChange,
 }) => {
@@ -78,7 +83,7 @@ const CourseSidebar = ({
       // Keep user in the same screen; update CTA so it doesn't show an "Enrolled" swap.
       onEnrollmentChange?.(true);
       setEnrollModalOpen(false);
-      toast.success("Enrolled", "You can find this course in My Courses.");
+      toast.success("Enrolled", "You can find this course in My Learning.");
     } catch (err) {
       const msg =
         err.response?.data?.message || err.message || "Enrollment failed.";
@@ -227,16 +232,45 @@ const CourseSidebar = ({
 
                     {/* Action Buttons */}
                     <div className="space-y-4 mb-8">
-                      {isEnrolled ? (
+                      {isOwner ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const chapterId = findFirstPreviewChapterId(courseData);
+                            const watchUrl = buildCourseWatchPreviewUrl(courseId, chapterId);
+                            if (watchUrl) {
+                              navigate(watchUrl);
+                              return;
+                            }
+                            document
+                              .getElementById("course-curriculum")
+                              ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                          }}
+                          className="w-full relative overflow-hidden rounded-lg btn-gradient transition-all active:scale-[0.98]"
+                        >
+                          <span className="relative z-10 block py-3.5 text-white font-medium text-[16px]">
+                            Preview Course
+                          </span>
+                        </button>
+                      ) : isEnrolled ? (
                         <>
                           <button
                             type="button"
-                            onClick={() => navigate(ROUTES.DASHBOARD_MY_COURSES)}
+                            onClick={() =>
+                              navigate(`${ROUTES.VIEW_COURSE}/${courseId}/watch`)
+                            }
                             className="w-full relative overflow-hidden rounded-lg btn-gradient transition-all active:scale-[0.98]"
                           >
                             <span className="relative z-10 block py-3.5 text-white font-medium text-[16px]">
-                              Go to Courses
+                              Continue Learning
                             </span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => navigate(ROUTES.MY_LEARNING)}
+                            className="w-full relative overflow-hidden rounded-lg border border-white/20 bg-white/5 text-white font-medium py-3.5 transition-all active:scale-[0.98]"
+                          >
+                            My Learning
                           </button>
                         </>
                       ) : (

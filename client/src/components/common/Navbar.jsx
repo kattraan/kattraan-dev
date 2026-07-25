@@ -154,25 +154,16 @@ const Navbar = () => {
 
   const getNavItems = () => {
 
-    const baseItems = [
-
-      { name: "Explore", hasDropdown: true, path: ROUTES.COURSES },
-
-      { name: "Home", hasDropdown: false, path: ROUTES.HOME },
-
-      { name: "Courses", hasDecoration: true, path: ROUTES.COURSES },
-
-    ];
-
-
-
+    // Guests: Courses/Explore hit protected /courses → login, then return to catalog
     if (!isAuthenticated) {
 
       return [
 
-        ...baseItems,
+        { name: "Explore", hasDropdown: true, path: ROUTES.COURSES },
 
-        { name: "My learnings", hasDropdown: false, path: ROUTES.LOGIN },
+        { name: "Home", hasDropdown: false, path: ROUTES.HOME },
+
+        { name: "Courses", hasDecoration: true, path: ROUTES.COURSES },
 
         {
 
@@ -194,9 +185,13 @@ const Navbar = () => {
 
       return [
 
-        ...baseItems,
+        { name: "Explore", hasDropdown: true, path: ROUTES.COURSES },
 
-        { name: "My learnings", hasDropdown: false, path: ROUTES.DASHBOARD },
+        { name: "Home", hasDropdown: false, path: ROUTES.HOME },
+
+        { name: "Courses", hasDecoration: true, path: ROUTES.COURSES },
+
+        { name: "My Learning", hasDropdown: false, path: ROUTES.MY_LEARNING },
 
         {
 
@@ -218,7 +213,11 @@ const Navbar = () => {
 
       return [
 
-        ...baseItems,
+        { name: "Explore", hasDropdown: true, path: ROUTES.COURSES },
+
+        { name: "Home", hasDropdown: false, path: ROUTES.HOME },
+
+        { name: "Courses", hasDecoration: true, path: ROUTES.COURSES },
 
         {
 
@@ -236,21 +235,16 @@ const Navbar = () => {
 
 
 
+    // Learners (students): Explore + Home + Courses + My Learning
     return [
 
-      ...baseItems,
+      { name: "Explore", hasDropdown: true, path: ROUTES.COURSES },
 
-      { name: "My learnings", hasDropdown: false, path: ROUTES.DASHBOARD },
+      { name: "Home", hasDropdown: false, path: ROUTES.HOME },
 
-      {
+      { name: "Courses", hasDecoration: true, path: ROUTES.COURSES },
 
-        name: "Become an Instructor",
-
-        hasDropdown: false,
-
-        path: ROUTES.INSTRUCTOR_SIGNUP,
-
-      },
+      { name: "My Learning", hasDropdown: false, path: ROUTES.MY_LEARNING },
 
     ];
 

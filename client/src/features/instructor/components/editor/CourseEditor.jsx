@@ -1,6 +1,10 @@
 import React, { useCallback } from 'react';
 import { useCourseEditor } from './hooks/useCourseEditor';
 import { ROUTES } from '@/config/routes';
+import {
+  findFirstPreviewChapterId,
+  buildCourseWatchPreviewUrl,
+} from '@/features/courses/utils/coursePreviewUrl';
 import { EditorProvider, useEditorContext } from './context/EditorContext';
 import EditorHeader from './components/EditorHeader';
 import EditorTabs from './components/EditorTabs';
@@ -27,8 +31,11 @@ function CourseEditorContent() {
   } = editor;
   const onBack = useCallback(() => editor.navigate(ROUTES.INSTRUCTOR_MY_COURSES), [editor]);
   const onPreview = useCallback(() => {
-    if (courseId) window.open(`${ROUTES.COURSE_DETAILS}/${courseId}`, '_blank');
-  }, [courseId]);
+    if (!courseId) return;
+    const chapterId = findFirstPreviewChapterId(courseDetails);
+    const watchUrl = buildCourseWatchPreviewUrl(courseId, chapterId);
+    window.open(watchUrl || `${ROUTES.COURSE_DETAILS}/${courseId}`, '_blank');
+  }, [courseId, courseDetails]);
   const isPending = courseDetails.status === 'pending_approval';
 
   return (

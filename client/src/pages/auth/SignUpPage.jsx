@@ -54,8 +54,8 @@ const SignUpPage = () => {
       return;
     }
 
-    // Default: regular learner
-    navigate(ROUTES.DASHBOARD, { replace: true });
+    // Learners land on the course catalog for enrollment (not the dashboard)
+    navigate(ROUTES.COURSES, { replace: true });
   }, [isAuthenticated, user, navigate]);
 
   useEffect(() => {

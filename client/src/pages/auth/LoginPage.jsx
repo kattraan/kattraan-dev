@@ -33,7 +33,8 @@ const LoginPage = () => {
       navigate(ROUTES.INSTRUCTOR_DASHBOARD, { replace: true });
       return;
     }
-    navigate(safeReturn || fromState || ROUTES.DASHBOARD, { replace: true });
+    // Learners land on the course catalog for enrollment (not the dashboard)
+    navigate(safeReturn || fromState || ROUTES.COURSES, { replace: true });
   }, [isAuthenticated, user, navigate, location]);
 
   useEffect(() => () => dispatch(clearError()), [dispatch]);

@@ -162,18 +162,17 @@ const CommunityRoomPage = () => {
     return (
         <div className="max-w-5xl mx-auto flex flex-col font-satoshi h-full py-6 px-4 sm:px-6">
             {/* Header */}
-            <div className="relative rounded-2xl overflow-hidden bg-gradient-to-r from-primary-purple via-primary-pink to-orange-400 p-1 mb-6 shadow-xl flex-shrink-0">
-                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20 mix-blend-overlay"></div>
-                <div className="relative bg-white/95 dark:bg-[#1a1625]/95 backdrop-blur-xl rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#1a1625] mb-6 shadow-sm flex-shrink-0">
+                <div className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
                         <button 
                             onClick={() => navigate(-1)} 
-                            className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-white/70 hover:bg-primary-pink/10 hover:text-primary-pink transition-colors"
+                            className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-white/70 hover:bg-gray-200 dark:hover:bg-white/15 hover:text-gray-900 dark:hover:text-white transition-colors"
                         >
                             <ArrowLeft size={20} />
                         </button>
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-pink to-primary-purple flex items-center justify-center flex-shrink-0 shadow-inner">
-                            <MessageCircle size={24} className="text-white" />
+                        <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-white/10 flex items-center justify-center flex-shrink-0">
+                            <MessageCircle size={24} className="text-gray-600 dark:text-white/70" />
                         </div>
                         <div className="flex-1 min-w-0">
                             <h1 className="font-extrabold text-xl text-gray-900 dark:text-white truncate flex items-center gap-2">
@@ -185,7 +184,7 @@ const CommunityRoomPage = () => {
                                 )}
                             </h1>
                             <p className="text-sm text-gray-500 dark:text-white/50 truncate flex items-center gap-1 mt-0.5">
-                                <Sparkles size={12} className="text-primary-pink" />
+                                <Sparkles size={12} className="text-gray-400 dark:text-white/40" />
                                 {currentCommunity.course?.title}
                             </p>
                         </div>
@@ -195,7 +194,7 @@ const CommunityRoomPage = () => {
                         <div className="flex items-center gap-2 self-end sm:self-auto w-full sm:w-auto justify-end">
                             <button
                                 onClick={() => setSearchOpen((o) => !o)}
-                                className={`p-2.5 rounded-xl transition-colors ${searchOpen ? 'bg-primary-pink text-white shadow-md' : 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-white/70 hover:bg-gray-200 dark:hover:bg-white/20'}`}
+                                className={`p-2.5 rounded-xl transition-colors ${searchOpen ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-sm' : 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-white/70 hover:bg-gray-200 dark:hover:bg-white/20'}`}
                                 aria-label="Search messages"
                             >
                                 <Search size={18} />
@@ -229,13 +228,9 @@ const CommunityRoomPage = () => {
                     </Button>
                 </div>
             ) : (
-                <div className="flex-1 flex flex-col min-h-[500px] rounded-3xl border border-gray-200 dark:border-white/5 bg-white dark:bg-[#1a1625] shadow-2xl overflow-hidden relative">
-                    {/* Background decorations for chat area */}
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-primary-pink/5 rounded-full blur-3xl pointer-events-none"></div>
-                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-primary-purple/5 rounded-full blur-3xl pointer-events-none"></div>
-
+                <div className="flex-1 flex flex-col min-h-[500px] rounded-3xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#1a1625] shadow-sm overflow-hidden relative">
                     {searchOpen && (
-                        <div className="relative z-20 border-b border-gray-100 dark:border-white/5 bg-white/80 dark:bg-[#1a1625]/80 backdrop-blur-md">
+                        <div className="relative z-20 border-b border-gray-100 dark:border-white/5 bg-white dark:bg-[#1a1625]">
                             <MessageSearchBar communityId={id} onClose={() => setSearchOpen(false)} />
                         </div>
                     )}
@@ -287,9 +282,9 @@ const CommunityRoomPage = () => {
                             return (
                                 <div className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-white/50 bg-gray-50 dark:bg-white/5 self-start px-4 py-2 rounded-full animate-pulse shadow-sm">
                                     <div className="flex gap-1.5 mr-1">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-primary-pink/60 dark:bg-primary-pink/80"></span>
-                                        <span className="w-1.5 h-1.5 rounded-full bg-primary-pink/60 dark:bg-primary-pink/80 animation-delay-200"></span>
-                                        <span className="w-1.5 h-1.5 rounded-full bg-primary-pink/60 dark:bg-primary-pink/80 animation-delay-400"></span>
+                                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-white/50"></span>
+                                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-white/50 animation-delay-200"></span>
+                                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-white/50 animation-delay-400"></span>
                                     </div>
                                     <span>{typingText}</span>
                                 </div>
@@ -298,7 +293,7 @@ const CommunityRoomPage = () => {
                         <div ref={messagesEndRef} className="h-1" />
                     </div>
 
-                    <div className="relative z-20 border-t border-gray-100 dark:border-white/5 bg-white/95 dark:bg-[#1a1625]/95 backdrop-blur-md p-4">
+                    <div className="relative z-20 border-t border-gray-100 dark:border-white/5 bg-white dark:bg-[#1a1625] p-4">
                         <MessageComposer
                             communityId={id}
                             onSend={handleSend}

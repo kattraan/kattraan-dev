@@ -1,10 +1,44 @@
 const { Cashfree, CFEnvironment } = require('cashfree-pg');
 
+function getCredentials() {
+  const clientId = (process.env.CASHFREE_APP_ID || process.env.CASHFREE_CLIENT_ID || '').trim();
+  const clientSecret = (process.env.CASHFREE_SECRET_KEY || process.env.CASHFREE_CLIENT_SECRET || '').trim();
+  return { clientId, clientSecret };
+}
+
+/**
+ * Local-only mock: skip live Cashfree when CASHFREE_MOCK=true (never in production).
+ * Use this until real sandbox App ID / Secret Key are set in .env.
+ */
+function isMockMode() {
+  if (process.env.NODE_ENV === 'production') return false;
+  const flag = String(process.env.CASHFREE_MOCK || '').trim().toLowerCase();
+  return flag === '1' || flag === 'true' || flag === 'yes';
+}
+
+function assertCredentialsConfigured() {
+  if (isMockMode()) {
+    return { clientId: 'mock', clientSecret: 'mock' };
+  }
+  const { clientId, clientSecret } = getCredentials();
+  if (!clientId || !clientSecret) {
+    const err = new Error(
+      'Cashfree is not configured. Set CASHFREE_APP_ID and CASHFREE_SECRET_KEY in server/.env, or set CASHFREE_MOCK=true for local testing without Cashfree.',
+    );
+    err.statusCode = 503;
+    err.code = 'cashfree_not_configured';
+    throw err;
+  }
+  return { clientId, clientSecret };
+}
+
 function getClient() {
+  const { clientId, clientSecret } = assertCredentialsConfigured();
   const env = (process.env.CASHFREE_ENV || '').toLowerCase();
-  const clientId = process.env.CASHFREE_APP_ID || process.env.CASHFREE_CLIENT_ID || '';
-  const clientSecret = process.env.CASHFREE_SECRET_KEY || process.env.CASHFREE_CLIENT_SECRET || '';
-  const looksProduction = env === 'production' || clientId.toLowerCase().includes('prod') || clientSecret.toLowerCase().includes('prod');
+  const looksProduction =
+    env === 'production' ||
+    clientId.toLowerCase().includes('prod') ||
+    clientSecret.toLowerCase().includes('prod');
   const environment = looksProduction ? CFEnvironment.PRODUCTION : CFEnvironment.SANDBOX;
 
   return new Cashfree(environment, clientId, clientSecret, undefined, undefined, undefined, false);
@@ -40,4 +74,10 @@ async function getOrder(orderId) {
   return response.data;
 }
 
-module.exports = { createOrder, getOrder };
+module.exports = {
+  createOrder,
+  getOrder,
+  getCredentials,
+  assertCredentialsConfigured,
+  isMockMode,
+};

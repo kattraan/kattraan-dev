@@ -29,6 +29,7 @@ const VideoUploadModal = ({
   const [title, setTitle] = useState("");
   const [engagementTemplateId, setEngagementTemplateId] = useState("");
   const [thumbnailPreview, setThumbnailPreview] = useState(null);
+  const [fileError, setFileError] = useState("");
 
   const videoInputRef = useRef(null);
   const thumbnailInputRef = useRef(null);
@@ -40,6 +41,7 @@ const VideoUploadModal = ({
       setVideoFile(null);
       setThumbnailFile(null);
       setSubtitles([]);
+      setFileError("");
       setEngagementTemplateId(
         existingContent.engagementTemplateId ||
           existingContent.metadata?.engagementTemplateId ||
@@ -51,6 +53,7 @@ const VideoUploadModal = ({
       setThumbnailFile(null);
       setThumbnailPreview(null);
       setSubtitles([]);
+      setFileError("");
       setEngagementTemplateId("");
     }
   }, [isOpen, existingContent, chapterTitle]);
@@ -61,8 +64,20 @@ const VideoUploadModal = ({
 
   const handleVideoSelect = (e) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setVideoFile(file);
+    if (!file) return;
+    // Catch empty / cloud-placeholder files before upload starts.
+    if (!file.size || file.size < 100 * 1024) {
+      setFileError(
+        "This file is empty or incomplete (shows as 0 MB). Download it fully to your PC (OneDrive/Google Drive → Always keep on this device), then select it again.",
+      );
+      setVideoFile(null);
+      e.target.value = "";
+      return;
+    }
+    setFileError("");
+    setVideoFile(file);
+    if (!title.trim()) {
+      setTitle(file.name.replace(/\.[^.]+$/, "").replace(/[<>:"/\\|?*]/g, " ").trim());
     }
   };
 
@@ -93,14 +108,24 @@ const VideoUploadModal = ({
 
   const handleStartProcessing = () => {
     if (!isEditing && !videoFile) return;
+    if (videoFile && (!videoFile.size || videoFile.size < 100 * 1024)) {
+      setFileError(
+        "This file is empty or incomplete (shows as 0 MB). Use a full local copy of the video before uploading.",
+      );
+      return;
+    }
     const selectedTemplate = templates.find(
       (template) => String(template._id) === String(engagementTemplateId),
     );
+    const safeTitle = String(title || "")
+      .replace(/[<>:"/\\|?*]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
     onSave({
       videoFile,
       thumbnailFile,
       subtitles,
-      title,
+      title: safeTitle,
       description: existingContent?.description ?? "",
       resourceFiles: [],
       engagementTemplateId,
@@ -208,9 +233,15 @@ const VideoUploadModal = ({
               type="file"
               ref={videoInputRef}
               className="hidden"
-              accept="video/*"
+              accept="video/mp4,video/*,.mp4"
               onChange={handleVideoSelect}
             />
+            {fileError && (
+              <div className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-[12px] font-semibold text-red-300">
+                <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                <span>{fileError}</span>
+              </div>
+            )}
           </div>
 
           {/* Add Title */}

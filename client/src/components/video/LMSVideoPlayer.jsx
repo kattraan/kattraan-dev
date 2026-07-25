@@ -112,6 +112,7 @@ export default function LMSVideoPlayer({
   const [selectedQualityId, setSelectedQualityId] = useState('auto');
   const [hlsQualityEnabled, setHlsQualityEnabled] = useState(false);
   const [error, setError] = useState(null);
+  const [forceRefreshTick, setForceRefreshTick] = useState(0);
   const [bufferedEnd, setBufferedEnd] = useState(0);
   const [playbackUrl, setPlaybackUrl] = useState(null);
   /** Progress-bar hover: mini preview + exact time under cursor */
@@ -537,35 +538,60 @@ export default function LMSVideoPlayer({
 
   // Secure video access: fetch signed playback URL once per video content.
   // Do NOT periodically setPlaybackUrl — changing React state remounts HLS and resets playback (~45s with old refresh).
+  // forceRefreshTick lets Retry re-fetch after play/encoding failures without remounting the page.
   useEffect(() => {
     if (!videoContentId) {
       setPlaybackUrl(null);
       return;
     }
     let cancelled = false;
+    let encodingPollTimer = null;
+    let encodingAttempts = 0;
     setError(null);
-    (async () => {
+    setPlaybackUrl(null);
+
+    const fetchPlayUrl = async () => {
       try {
         const res = await courseService.getVideoPlayUrlByVideoId(videoContentId);
         const url = res?.playbackUrl ?? res?.data?.playbackUrl;
-        if (!cancelled && url) {
+        if (cancelled) return;
+        if (url) {
           lastPlaybackUrlRef.current = url;
           setPlaybackUrl(url);
+          setError(null);
+          return;
         }
+        setError(
+          new Error(
+            'Playback URL was empty. The video may still be processing, or the upload did not finish — try re-uploading.',
+          ),
+        );
       } catch (err) {
-        if (!cancelled) {
-          const msg =
-            err?.response?.data?.message ||
-            err?.message ||
-            'Could not load video. Check enrollment or re-upload if you changed Bunny accounts.';
-          setError(new Error(msg));
+        if (cancelled) return;
+        const status = err?.response?.status;
+        const msg =
+          err?.response?.data?.message ||
+          err?.message ||
+          'Could not load video. Check enrollment or re-upload if you changed Bunny accounts.';
+        // While Bunny is encoding, keep trying for a few minutes.
+        if (status === 409 && encodingAttempts < 15) {
+          encodingAttempts += 1;
+          setError(new Error(`${msg} (retrying…)`));
+          encodingPollTimer = setTimeout(() => {
+            if (!cancelled) fetchPlayUrl();
+          }, 8000);
+          return;
         }
+        setError(new Error(msg));
       }
-    })();
+    };
+
+    fetchPlayUrl();
     return () => {
       cancelled = true;
+      if (encodingPollTimer) clearTimeout(encodingPollTimer);
     };
-  }, [videoContentId]);
+  }, [videoContentId, forceRefreshTick]);
 
   // Source change: attach HLS.js for m3u8 streams or fall back to native src
   useEffect(() => {
@@ -772,6 +798,32 @@ export default function LMSVideoPlayer({
         className={`aspect-video w-full bg-gray-200 dark:bg-[#121212] flex flex-col items-center justify-center rounded-xl transition-colors duration-300 ${className}`}
       >
         <p className="text-gray-500 dark:text-white/40 text-sm">No video for this lesson</p>
+      </div>
+    );
+  }
+
+  // Show play/encoding errors even before a playback URL exists (otherwise users
+  // stay stuck on "Loading video…" forever when the play API fails).
+  if (videoContentId && !videoUrl && error) {
+    return (
+      <div
+        className={`aspect-video w-full bg-black flex flex-col items-center justify-center rounded-xl gap-4 p-6 ${className}`}
+      >
+        <AlertCircle size={48} className="text-red-400" aria-hidden />
+        <p className="text-white text-center text-sm max-w-md">{error.message}</p>
+        <button
+          type="button"
+          onClick={() => {
+            setError(null);
+            setPlaybackUrl(null);
+            // Re-trigger the signed-URL fetch effect by toggling a nonce via state reset:
+            // remount key is handled below through forceRefreshTick.
+            setForceRefreshTick((n) => n + 1);
+          }}
+          className="px-4 py-2 rounded-lg bg-primary-pink/20 text-primary-pink font-semibold text-sm hover:bg-primary-pink/30 transition-colors"
+        >
+          Retry
+        </button>
       </div>
     );
   }

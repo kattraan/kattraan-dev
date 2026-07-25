@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import Navbar from '@/components/common/Navbar';
@@ -11,17 +11,28 @@ import CourseSidebar from '@/features/courses/components/details/CourseSidebar';
 import courseService from '@/features/courses/services/courseService';
 import { checkEnrollment } from '@/features/learner/services/learnerCoursesService';
 import { mapCourseToDetails } from '@/features/courses/utils/mapCourseToDetails';
+import { hasRole } from '@/features/auth/utils/roleUtils';
 import { ROUTES } from '@/config/routes';
 
 const CourseDetailsPage = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
   const isAuthenticated = useSelector((state) => state.auth?.isAuthenticated);
+  const user = useSelector((state) => state.auth?.user);
   const [courseData, setCourseData] = useState(null);
   const [loading, setLoading] = useState(!!courseId);
   const [error, setError] = useState(null);
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [enrollmentLoading, setEnrollmentLoading] = useState(false);
+
+  const isOwner = useMemo(() => {
+    if (!user?._id || !courseData?.createdById) return false;
+    return String(courseData.createdById) === String(user._id);
+  }, [user?._id, courseData?.createdById]);
+
+  const isAdmin = hasRole(user, 'admin');
+  // Creators and admins can open curriculum without enrolling/paying
+  const canAccessContent = isEnrolled || isOwner || isAdmin;
 
   useEffect(() => {
     if (!courseId) {
@@ -135,7 +146,7 @@ const CourseDetailsPage = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">
             <CourseDetails
               courseData={courseData}
-              isEnrolled={isEnrolled}
+              isEnrolled={canAccessContent}
               enrollmentLoading={enrollmentLoading}
               // Used by CourseDetails -> watch links so "Back to course"
               // returns to the same course details screen (not /view-course).
@@ -144,6 +155,7 @@ const CourseDetailsPage = () => {
             <CourseSidebar
               courseData={courseData}
               isEnrolled={isEnrolled}
+              isOwner={isOwner}
               enrollmentCheckLoading={enrollmentLoading}
               onEnrollmentChange={setIsEnrolled}
             />

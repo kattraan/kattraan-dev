@@ -1,5 +1,6 @@
 import { normalizeWhatYouWillLearn } from '@/utils/courseDescriptionHtml';
 import { getLanguageLabel } from '@/data/languages';
+import { normalizeBunnyStorageUrl } from '@/utils/normalizeBunnyStorageUrl';
 
 /**
  * Maps API course shape to the courseData shape expected by CourseDetails and CourseSidebar.
@@ -29,6 +30,12 @@ export function mapCourseToDetails(course) {
       ? Number(course.originalPrice)
       : 0;
   const createdBy = course.createdBy;
+  const createdById =
+    createdBy?._id != null
+      ? String(createdBy._id)
+      : createdBy != null && typeof createdBy !== 'object'
+        ? String(createdBy)
+        : null;
   const instructorName = course.instructor?.name ?? course.instructor?.firstName ?? createdBy?.userName ?? 'Instructor';
   // Subtitle under instructor name: only use explicit profile fields on `course.instructor`.
   // Do not use enrollmentData.experience / expertise — they are often short codes (e.g. "y m") not a job title.
@@ -40,14 +47,15 @@ export function mapCourseToDetails(course) {
   const whatYouWillLearn = normalizeWhatYouWillLearn(course.whatYouWillLearn);
   let videoPreview = course.thumbnail || course.image || course.thumbnailUrl || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80';
   if (typeof videoPreview === 'string') {
-    videoPreview = videoPreview.replace('vz-81730109-16e.b-cdn.net', 'kattraan.b-cdn.net').replace('kattraan-storage.b-cdn.net', 'kattraan.b-cdn.net');
+    videoPreview = normalizeBunnyStorageUrl(videoPreview);
   }
   if (typeof instructorImage === 'string') {
-    instructorImage = instructorImage.replace('vz-81730109-16e.b-cdn.net', 'kattraan.b-cdn.net').replace('kattraan-storage.b-cdn.net', 'kattraan.b-cdn.net');
+    instructorImage = normalizeBunnyStorageUrl(instructorImage);
   }
 
   return {
     _id: course._id,
+    createdById,
     title: course.title || 'Untitled Course',
     subtitle: typeof course.subtitle === 'string' ? course.subtitle.trim() : '',
     description: descriptionText,

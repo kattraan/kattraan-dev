@@ -9,8 +9,9 @@ import { ROUTES } from '@/config/routes';
  * Shows a skeleton screen while the initial auth check is in-flight so the
  * layout is never blocked at the root App level.
  * @param {Array<string>} allowedRoles - Optional list of roles allowed to access the route
+ * @param {string|null} redirectLearnersTo - If set, pure learners (not instructor/admin) are redirected here
  */
-const ProtectedRoute = ({ allowedRoles = [] }) => {
+const ProtectedRoute = ({ allowedRoles = [], redirectLearnersTo = null }) => {
   const { isAuthenticated, loading, user } = useSelector((state) => state.auth);
   const location = useLocation();
 
@@ -31,6 +32,15 @@ const ProtectedRoute = ({ allowedRoles = [] }) => {
 
   if (allowedRoles.length > 0 && !allowedRoles.some((role) => hasRole(user, role))) {
     return <Navigate to={ROUTES.HOME} replace />;
+  }
+
+  const isPureLearner =
+    hasRole(user, 'learner') &&
+    !hasRole(user, 'instructor') &&
+    !hasRole(user, 'admin');
+
+  if (redirectLearnersTo && isPureLearner) {
+    return <Navigate to={redirectLearnersTo} replace />;
   }
 
   if (hasRole(user, 'instructor') && location.pathname.startsWith(ROUTES.INSTRUCTOR_DASHBOARD)) {

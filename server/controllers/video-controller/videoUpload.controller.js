@@ -21,7 +21,8 @@ function sanitizeVideo(video) {
  */
 async function createVideo(req, res) {
   try {
-    const title = (req.body?.title && String(req.body.title).trim()) || 'Untitled Video';
+    const rawTitle = (req.body?.title && String(req.body.title).trim()) || 'Untitled Video';
+    const title = rawTitle.replace(/[<>:"/\\|?*\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim() || 'Untitled Video';
     const credentials = await createVideoAndGetUploadCredentials(title);
     return res.json({
       success: true,
@@ -63,12 +64,26 @@ async function saveVideoMetadata(req, res) {
 
     const meta = {};
     if (fileName != null && String(fileName).trim()) meta.fileName = String(fileName).trim();
-    if (typeof fileSize === 'number' && fileSize >= 0) meta.fileSize = fileSize;
+    if (typeof fileSize === 'number' && fileSize > 0) meta.fileSize = fileSize;
+
+    // Guard against empty TUS "success" that never produced playable bytes.
+    if (typeof fileSize === 'number' && fileSize > 0 && fileSize < 100 * 1024) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'Video file is too small (incomplete upload). Please re-upload a full local MP4 file.',
+      });
+    }
+
+    const safeTitle = String(title || '')
+      .replace(/[<>:"/\\|?*\u0000-\u001f]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
 
     const video = new VideoContent({
       chapter: chapterId,
       type: 'video',
-      title: (title && String(title).trim()) || 'Untitled Video',
+      title: safeTitle || 'Untitled Video',
       description: description ? String(description).trim() : undefined,
       bunnyVideoId: bunnyVideoId.trim(),
       duration: typeof duration === 'number' && duration >= 0 ? duration : undefined,

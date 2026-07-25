@@ -107,7 +107,7 @@ const CourseDescriptionRichEditor = ({
         onBlur={() => {
           focusedRef.current = false;
         }}
-        className="min-h-[220px] max-h-[min(50vh,420px)] overflow-y-auto px-4 py-3 text-gray-900 dark:text-white text-[15px] leading-relaxed outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:dark:text-white/25 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:my-2 [&_li]:my-1 [&_a]:text-primary-pink [&_a]:underline [scrollbar-width:thin] [scrollbar-color:#e2e2e2_transparent] dark:[scrollbar-color:rgba(255,255,255,0.15)_transparent] [&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-thumb]:rounded-full dark:[&::-webkit-scrollbar-thumb]:bg-white/20"
+        className="min-h-[220px] max-h-[min(50vh,420px)] overflow-y-auto px-4 py-3 text-gray-900 dark:text-white text-[15px] leading-relaxed outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:dark:text-white/25 [&_*]:!text-inherit [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:my-2 [&_li]:my-1 [&_a]:!text-primary-pink [&_a]:underline [scrollbar-width:thin] [scrollbar-color:#e2e2e2_transparent] dark:[scrollbar-color:rgba(255,255,255,0.15)_transparent] [&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-thumb]:rounded-full dark:[&::-webkit-scrollbar-thumb]:bg-white/20"
       />
     </div>
   );

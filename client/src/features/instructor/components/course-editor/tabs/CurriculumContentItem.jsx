@@ -31,10 +31,13 @@ const CurriculumContentItem = React.memo(function CurriculumContentItem({
     setIsEditingDesc(false);
   }, [content.description]);
   const chId = chapterId;
-  const isVideoUploading =
+  const isVideoUploadActive =
     content.type === 'video' &&
     uploadState &&
-    ['uploading', 'processing', 'error'].includes(uploadState.status);
+    ['uploading', 'processing', 'complete', 'error'].includes(uploadState.status);
+  const isVideoUploading =
+    isVideoUploadActive && uploadState.status !== 'complete';
+  const isUploadComplete = uploadState?.status === 'complete';
 
   if (content.type === 'quiz') {
     return (
@@ -89,7 +92,7 @@ const CurriculumContentItem = React.memo(function CurriculumContentItem({
           <div className="space-y-4">
             <div className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-4 flex items-center justify-between group/vcard hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-all duration-300">
               <div className="flex items-center gap-4 flex-1 min-w-0">
-                {content.thumbnail && !isVideoUploading ? (
+                {content.thumbnail && !isVideoUploadActive ? (
                   <div
                     onClick={(e) => { e.stopPropagation(); onTriggerContent('video', chId); }}
                     className="w-14 h-14 rounded-xl overflow-hidden border border-gray-200 dark:border-white/10 shrink-0 cursor-pointer hover:opacity-80 hover:ring-2 hover:ring-primary-pink/40 transition-all duration-200"
@@ -97,8 +100,14 @@ const CurriculumContentItem = React.memo(function CurriculumContentItem({
                     <img src={content.thumbnail} alt={content.title} className="w-full h-full object-cover" loading="lazy" />
                   </div>
                 ) : (
-                  <div className="w-12 h-12 rounded-xl bg-primary-pink/10 dark:bg-primary-pink/20 flex items-center justify-center text-primary-pink transition-colors duration-300 shrink-0">
-                    {isVideoUploading && uploadState?.status !== 'error' ? (
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors duration-300 shrink-0 ${
+                    isUploadComplete
+                      ? 'bg-emerald-500/15 text-emerald-500'
+                      : 'bg-primary-pink/10 dark:bg-primary-pink/20 text-primary-pink'
+                  }`}>
+                    {isUploadComplete ? (
+                      <Check size={24} strokeWidth={2.5} />
+                    ) : isVideoUploading && uploadState?.status !== 'error' ? (
                       <Loader2 size={24} className="animate-spin" />
                     ) : (
                       <PlayCircle size={24} />
@@ -109,22 +118,35 @@ const CurriculumContentItem = React.memo(function CurriculumContentItem({
                   <p className="text-[14px] font-bold text-gray-900 dark:text-white truncate max-w-[400px] transition-colors duration-300">
                     {uploadState?.title || content.title || 'Untitled Video'}
                   </p>
-                  {isVideoUploading && uploadState ? (
+                  {isVideoUploadActive && uploadState ? (
                     <div className="mt-2 space-y-1.5">
                       <div className="flex items-center justify-between gap-2 text-[11px]">
-                        <span className="font-bold uppercase tracking-wider text-gray-500 dark:text-white/40">
-                          {(uploadState.status === 'uploading' && uploadState.progress < 100) && 'Uploading...'}
-                          {(uploadState.status === 'processing' || (uploadState.status === 'uploading' && uploadState.progress >= 100)) && 'Processing...'}
+                        <span className={`font-bold uppercase tracking-wider ${
+                          isUploadComplete
+                            ? 'text-emerald-600 dark:text-emerald-400'
+                            : uploadState.status === 'error'
+                              ? 'text-red-500'
+                              : 'text-gray-500 dark:text-white/40'
+                        }`}>
+                          {uploadState.status === 'uploading' && 'Uploading...'}
+                          {uploadState.status === 'processing' && 'Processing...'}
+                          {uploadState.status === 'complete' && 'Upload successful'}
                           {uploadState.status === 'error' && 'Upload failed. Retry.'}
                         </span>
                         {uploadState.status !== 'error' && (
-                          <span className="font-black text-primary-pink tabular-nums">{uploadState.progress ?? 0}%</span>
+                          <span className={`font-black tabular-nums ${
+                            isUploadComplete ? 'text-emerald-600 dark:text-emerald-400' : 'text-primary-pink'
+                          }`}>
+                            {uploadState.progress ?? 0}%
+                          </span>
                         )}
                       </div>
-                      {(uploadState.status === 'uploading' || uploadState.status === 'processing') && (
+                      {(uploadState.status === 'uploading' || uploadState.status === 'processing' || uploadState.status === 'complete') && (
                         <div className="h-1.5 rounded-full bg-gray-200 dark:bg-white/10 overflow-hidden">
                           <div
-                            className="h-full rounded-full bg-primary-pink transition-all duration-300 ease-out"
+                            className={`h-full rounded-full transition-all duration-300 ease-out ${
+                              isUploadComplete ? 'bg-emerald-500' : 'bg-primary-pink'
+                            }`}
                             style={{ width: `${uploadState.progress ?? 0}%` }}
                           />
                         </div>
@@ -132,7 +154,12 @@ const CurriculumContentItem = React.memo(function CurriculumContentItem({
                     </div>
                   ) : (
                     <p className="text-[11px] font-black uppercase tracking-wider text-gray-500 dark:text-white/30 mt-0.5 transition-colors duration-300">
-                      MP4 • {content.metadata?.fileSize ? (content.metadata.fileSize / (1024 * 1024)).toFixed(2) + ' MB' : 'Video Lesson'}
+                      MP4 •{' '}
+                      {content.metadata?.fileSize
+                        ? content.metadata.fileSize < 100 * 1024
+                          ? 'Incomplete file (re-upload required)'
+                          : (content.metadata.fileSize / (1024 * 1024)).toFixed(2) + ' MB'
+                        : 'Video Lesson'}
                     </p>
                   )}
                 </div>
@@ -146,7 +173,7 @@ const CurriculumContentItem = React.memo(function CurriculumContentItem({
                     <RefreshCw size={14} /> Retry
                   </button>
                 )}
-                {!isVideoUploading && (
+                {!isVideoUploadActive && (
                   <>
                     <button onClick={(e) => { e.stopPropagation(); onTriggerContent('video', chId); }} className="w-10 h-10 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-transparent flex items-center justify-center text-gray-400 dark:text-white/20 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white transition-colors duration-300 shadow-sm dark:shadow-none"><Edit2 size={16} /></button>
                     <button onClick={(e) => { e.stopPropagation(); onDeleteContent('video', content._id); }} className="w-10 h-10 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-transparent flex items-center justify-center text-gray-400 dark:text-white/20 hover:bg-red-50 dark:hover:bg-red-500/20 hover:text-red-500 transition-colors duration-300 shadow-sm dark:shadow-none"><Trash2 size={16} /></button>
