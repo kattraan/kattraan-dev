@@ -9,6 +9,7 @@ import {
   Award,
   Activity,
 } from 'lucide-react';
+import Skeleton from '@/components/ui/Skeleton';
 
 const ICONS = {
   enrolled: BookOpen,
@@ -37,11 +38,11 @@ const RecentActivityFeed = ({ activities = [], onActivityClick, loading = false 
     return (
       <div className="space-y-4 rounded-[32px] border border-gray-200 bg-white/95 p-6 shadow-sm backdrop-blur-sm dark:border-white/[0.12] dark:bg-white/[0.06]">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="flex animate-pulse gap-4">
-            <div className="h-6 w-6 rounded-full bg-gray-200 dark:bg-white/10" />
+          <div key={i} className="flex gap-4">
+            <Skeleton className="h-6 w-6 rounded-full shrink-0" />
             <div className="flex-1 space-y-2">
-              <div className="h-3 w-4/5 rounded bg-gray-200 dark:bg-white/10" />
-              <div className="h-2 w-1/4 rounded bg-gray-200 dark:bg-white/10" />
+              <Skeleton className="h-3 w-4/5" />
+              <Skeleton className="h-2 w-1/4" />
             </div>
           </div>
         ))}

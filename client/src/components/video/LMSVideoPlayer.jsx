@@ -58,6 +58,9 @@ const LOADING_TIMEOUT_MS = 20000;
 /** Reposition watermark every N seconds of playback. */
 const WATERMARK_MOVE_INTERVAL_SEC = 10;
 
+/** Learners may pause only after this % of the video has been watched. */
+const PAUSE_UNLOCK_PERCENT = 0;
+
 function randomWatermarkPosition() {
   return {
     top: 8 + Math.random() * 75,
@@ -117,9 +120,13 @@ export default function LMSVideoPlayer({
   const [playbackUrl, setPlaybackUrl] = useState(null);
   /** Progress-bar hover: mini preview + exact time under cursor */
   const [seekHover, setSeekHover] = useState(null);
+  const [pauseLockedHint, setPauseLockedHint] = useState(false);
+  const pauseHintTimerRef = useRef(null);
   const hasResumedRef = useRef(false);
   /** User intent: false after explicit pause; true after explicit play. Prevents canplay/buffer from auto-resuming. */
   const userWantsPlaybackRef = useRef(autoPlay);
+  /** Guard so onEnded / near-end detection only fires once per lesson. */
+  const endedNotifiedRef = useRef(false);
 
   const [watermarkPos, setWatermarkPos] = useState(randomWatermarkPosition);
   const [wallClockTs, setWallClockTs] = useState(() => new Date().toLocaleString());
@@ -130,6 +137,17 @@ export default function LMSVideoPlayer({
   const chapterId = activeChapter?._id || activeChapter?.id;
   const title = activeChapter?.title || 'Lesson video';
   const contentDuration = typeof videoContent?.duration === 'number' && videoContent.duration > 0 ? videoContent.duration : 0;
+
+  const resolvePlaybackDuration = useCallback(
+    (video) => {
+      const vd = video?.duration;
+      if (Number.isFinite(vd) && vd > 0 && vd !== Infinity) return vd;
+      if (contentDuration > 0) return contentDuration;
+      if (Number.isFinite(duration) && duration > 0) return duration;
+      return 0;
+    },
+    [contentDuration, duration],
+  );
 
   // Legacy: if chapter content still includes videoUrl (e.g. instructor preview), use it
   const legacyVideoUrl = videoContent?.videoUrl;
@@ -163,17 +181,49 @@ export default function LMSVideoPlayer({
     [getSeekCeiling],
   );
 
+  /** Pause is locked for learners until furthest-watched progress reaches PAUSE_UNLOCK_PERCENT. */
+  const canPause = useCallback(() => {
+    if (!restrictSeeking || isCompleted) return true;
+    const video = videoRef.current;
+    const dur =
+      (video && Number.isFinite(video.duration) && video.duration > 0 && video.duration) ||
+      (Number.isFinite(duration) && duration > 0 ? duration : 0);
+    if (!dur) return false;
+    const ceiling = getSeekCeiling();
+    const furthest = Number.isFinite(ceiling) && ceiling < Infinity
+      ? ceiling
+      : Math.max(video?.currentTime || 0, currentTime);
+    return (furthest / dur) * 100 >= PAUSE_UNLOCK_PERCENT;
+  }, [restrictSeeking, isCompleted, duration, currentTime, getSeekCeiling]);
+
+  const showPauseLockedHint = useCallback(() => {
+    setPauseLockedHint(true);
+    if (pauseHintTimerRef.current) clearTimeout(pauseHintTimerRef.current);
+    pauseHintTimerRef.current = setTimeout(() => setPauseLockedHint(false), 2200);
+  }, []);
+
   const togglePlay = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
     if (video.paused) {
       userWantsPlaybackRef.current = true;
+      const dur = video.duration;
+      // If paused at the end after Cancel / finished, restart from the beginning on Play
+      if (Number.isFinite(dur) && dur > 0 && video.currentTime >= dur - 0.4) {
+        endedNotifiedRef.current = false;
+        video.currentTime = 0;
+        setCurrentTime(0);
+      }
       video.play().catch(() => setError(new Error('Playback failed')));
     } else {
+      if (!canPause()) {
+        showPauseLockedHint();
+        return;
+      }
       userWantsPlaybackRef.current = false;
       video.pause();
     }
-  }, []);
+  }, [canPause, showPauseLockedHint]);
 
   const handleTimeUpdate = useCallback(() => {
     const video = videoRef.current;
@@ -197,11 +247,22 @@ export default function LMSVideoPlayer({
       }
       onPlaybackStateChange?.({
         currentTime: video.currentTime,
-        duration: video.duration,
+        duration: resolvePlaybackDuration(video),
         isPlaying: !video.paused,
       });
+      // HLS / scrub-to-end often skip native `ended`
+      if (
+        !endedNotifiedRef.current &&
+        Number.isFinite(video.duration) &&
+        video.duration > 0 &&
+        video.currentTime >= video.duration - 0.4
+      ) {
+        endedNotifiedRef.current = true;
+        setIsPlaying(false);
+        onEnded?.();
+      }
     }
-  }, [onPlaybackStateChange, restrictSeeking, isCompleted, getSeekCeiling]);
+  }, [onPlaybackStateChange, restrictSeeking, isCompleted, getSeekCeiling, onEnded]);
 
   const handleLoadedMetadata = useCallback(() => {
     const video = videoRef.current;
@@ -238,20 +299,40 @@ export default function LMSVideoPlayer({
     const video = videoRef.current;
     if (video && Number.isFinite(video.duration)) setDuration(video.duration);
   }, []);
-  const handlePause = useCallback(() => setIsPlaying(false), []);
+  const handlePause = useCallback(() => {
+    const video = videoRef.current;
+    // If pause is still locked, resume immediately (covers PiP / OS interruptions while locked).
+    if (video && userWantsPlaybackRef.current && !canPause()) {
+      video.play().catch(() => {});
+      return;
+    }
+    setIsPlaying(false);
+  }, [canPause]);
   const handleSeeked = useCallback(() => {
     const video = videoRef.current;
     if (video) {
       setCurrentTime(video.currentTime);
       onPlaybackStateChange?.({
         currentTime: video.currentTime,
-        duration: video.duration,
+        duration: resolvePlaybackDuration(video),
         isPlaying: !video.paused,
       });
+      if (
+        !endedNotifiedRef.current &&
+        Number.isFinite(video.duration) &&
+        video.duration > 0 &&
+        video.currentTime >= video.duration - 0.4
+      ) {
+        endedNotifiedRef.current = true;
+        setIsPlaying(false);
+        onEnded?.();
+      }
     }
-  }, [onPlaybackStateChange]);
+  }, [onPlaybackStateChange, onEnded]);
 
   const handleEnded = useCallback(() => {
+    if (endedNotifiedRef.current) return;
+    endedNotifiedRef.current = true;
     setIsPlaying(false);
     onEnded?.();
   }, [onEnded]);
@@ -285,22 +366,29 @@ export default function LMSVideoPlayer({
       }
       const rect = bar.getBoundingClientRect();
       if (rect.width <= 0) return;
+      // Position tooltip under the cursor (not the clamped seek time)
       const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+      const percent = ratio * 100;
       let time = ratio * duration;
+      // Preview frame may still be clamped when seeking is restricted
+      let previewTime = time;
       if (restrictSeeking && !isCompleted) {
-        time = Math.min(time, getSeekCeiling());
+        previewTime = Math.min(time, getSeekCeiling());
       }
-      const percent = duration > 0 ? (time / duration) * 100 : 0;
-      // Keep preview card on-screen
+      // Keep preview card on-screen while still tracking cursor X
       const edgePad = 11; // ~ half of preview width as %
       const leftPercent = Math.min(100 - edgePad, Math.max(edgePad, percent));
       setSeekHover({ time, percent, leftPercent });
 
       const preview = previewVideoRef.current;
-      if (preview && Number.isFinite(time) && Math.abs(time - lastPreviewSeekRef.current) >= 0.35) {
-        lastPreviewSeekRef.current = time;
+      if (
+        preview &&
+        Number.isFinite(previewTime) &&
+        Math.abs(previewTime - lastPreviewSeekRef.current) >= 0.35
+      ) {
+        lastPreviewSeekRef.current = previewTime;
         try {
-          preview.currentTime = time;
+          preview.currentTime = previewTime;
         } catch (_) {}
       }
     },
@@ -406,6 +494,11 @@ export default function LMSVideoPlayer({
     if (video && initialTime > 0 && !hasResumedRef.current) {
       hasResumedRef.current = true;
       const resumeTime = clampSeekTime(initialTime);
+      const dur = video.duration;
+      // Resume at end of a finished lesson — don't re-trigger Up Next
+      if (Number.isFinite(dur) && dur > 0 && resumeTime >= dur - 0.5) {
+        endedNotifiedRef.current = true;
+      }
       video.currentTime = resumeTime;
       setCurrentTime(resumeTime);
     }
@@ -531,10 +624,15 @@ export default function LMSVideoPlayer({
     return () => clearTimeout(t);
   }, [videoUrl, isLoading]);
 
-  // New lesson: allow autoplay again until user pauses
+  // New lesson: allow autoplay again until user pauses; reset end notification
   useEffect(() => {
     userWantsPlaybackRef.current = autoPlay;
+    endedNotifiedRef.current = false;
   }, [videoContentId, autoPlay]);
+
+  useEffect(() => () => {
+    if (pauseHintTimerRef.current) clearTimeout(pauseHintTimerRef.current);
+  }, []);
 
   // Secure video access: fetch signed playback URL once per video content.
   // Do NOT periodically setPlaybackUrl — changing React state remounts HLS and resets playback (~45s with old refresh).
@@ -845,6 +943,7 @@ export default function LMSVideoPlayer({
   const watchedPercent = duration > 0 && Number.isFinite(seekCeiling) && seekCeiling < Infinity
     ? (seekCeiling / duration) * 100
     : 100;
+  const pauseAllowed = !restrictSeeking || isCompleted || watchedPercent >= PAUSE_UNLOCK_PERCENT;
 
   return (
     <div
@@ -926,9 +1025,18 @@ export default function LMSVideoPlayer({
         <button
           type="button"
           onClick={togglePlay}
-          className="absolute top-0 left-0 right-0 bottom-20 z-[5] cursor-pointer"
-          aria-label="Pause"
+          className={`absolute top-0 left-0 right-0 bottom-20 z-[5] ${
+            pauseAllowed ? 'cursor-pointer' : 'cursor-not-allowed'
+          }`}
+          aria-label={pauseAllowed ? 'Pause' : 'Pause locked until 50% watched'}
+          title={!pauseAllowed ? 'Pause unlocks after watching 50%' : undefined}
         />
+      )}
+
+      {pauseLockedHint && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 px-3 py-1.5 rounded-md bg-black/85 text-white text-xs font-medium shadow-lg pointer-events-none">
+          Pause unlocks after watching 50%
+        </div>
       )}
 
       {!error && (
@@ -942,14 +1050,16 @@ export default function LMSVideoPlayer({
             ref={progressBarRef}
             className="relative py-2 -my-2"
             onMouseMove={handleProgressMouseMove}
+            onMouseEnter={handleProgressMouseMove}
             onMouseLeave={handleProgressMouseLeave}
           >
+            {/* Hover preview + timestamp — follows cursor along the bar */}
             <div
-              className={`absolute bottom-3 z-20 pointer-events-none flex flex-col items-center transition-opacity ${
+              className={`absolute bottom-3 z-20 pointer-events-none flex flex-col items-center ${
                 seekHover ? 'opacity-100' : 'opacity-0'
               }`}
               style={{
-                left: `${seekHover?.leftPercent ?? 50}%`,
+                left: `${seekHover?.leftPercent ?? 0}%`,
                 transform: 'translateX(-50%)',
               }}
               aria-hidden={!seekHover}
@@ -963,7 +1073,7 @@ export default function LMSVideoPlayer({
                   preload="metadata"
                 />
               </div>
-              <div className="mt-1.5 px-2 py-0.5 rounded bg-black/90 text-white text-xs font-medium tabular-nums shadow">
+              <div className="mt-1.5 px-2 py-0.5 rounded bg-black/90 text-white text-xs font-medium tabular-nums shadow whitespace-nowrap">
                 {formatTime(seekHover?.time ?? 0)}
               </div>
             </div>
@@ -1004,6 +1114,7 @@ export default function LMSVideoPlayer({
                 step={0.1}
                 value={currentTime}
                 onChange={handleSeek}
+                onMouseMove={handleProgressMouseMove}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-moz-range-thumb]:appearance-none"
                 aria-label="Seek"
               />
@@ -1015,8 +1126,23 @@ export default function LMSVideoPlayer({
             <button
               type="button"
               onClick={togglePlay}
-              className="w-11 h-11 flex items-center justify-center rounded-full bg-white/10 hover:bg-primary-pink/20 hover:scale-105 active:scale-95 transition-all duration-200 text-white shrink-0"
-              aria-label={isPlaying ? 'Pause' : 'Play'}
+              className={`w-11 h-11 flex items-center justify-center rounded-full bg-white/10 transition-all duration-200 text-white shrink-0 ${
+                isPlaying && !pauseAllowed
+                  ? 'opacity-50 cursor-not-allowed'
+                  : 'hover:bg-primary-pink/20 hover:scale-105 active:scale-95'
+              }`}
+              aria-label={
+                isPlaying
+                  ? pauseAllowed
+                    ? 'Pause'
+                    : 'Pause locked until 50% watched'
+                  : 'Play'
+              }
+              title={
+                isPlaying && !pauseAllowed
+                  ? 'Pause unlocks after watching 50%'
+                  : undefined
+              }
             >
               {isPlaying ? (
                 <Pause size={22} strokeWidth={2.5} />

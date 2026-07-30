@@ -48,6 +48,7 @@ const DashboardSidebar = ({
   setIsCollapsed,
   isMobileOpen = false,
   onMobileClose,
+  showLogout = false,
 }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -135,20 +136,22 @@ const DashboardSidebar = ({
         })}
       </nav>
 
-      <div
-        className={`p-4 border-t ${logoBorder} transition-colors duration-300`}
-      >
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-red-500 hover:bg-red-500/10 transition-all"
+      {showLogout && (
+        <div
+          className={`p-4 border-t ${logoBorder} transition-colors duration-300`}
         >
-          <LogOut size={20} className={isCollapsed ? "mx-auto" : ""} />
-          {!isCollapsed && (
-            <span className="text-[15px] font-bold">Logout</span>
-          )}
-        </button>
-      </div>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-red-500 hover:bg-red-500/10 transition-all"
+          >
+            <LogOut size={20} className={isCollapsed ? "mx-auto" : ""} />
+            {!isCollapsed && (
+              <span className="text-[15px] font-bold">Logout</span>
+            )}
+          </button>
+        </div>
+      )}
     </aside>
   );
 };

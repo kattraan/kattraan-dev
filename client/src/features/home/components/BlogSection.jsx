@@ -17,12 +17,12 @@ const BlogCard = ({ article, alignment = 'left', variant = 'large' }) => {
 
   return (
     <div 
-      className={`group relative flex flex-col w-[95%] mx-auto border border-white/10 rounded-[40px] p-5 transition-all duration-300 hover:scale-[1.02] backdrop-blur-[4px] shadow-2xl overflow-hidden ${isCentered ? 'items-center text-center' : 'items-start text-left'}`} 
+      className={`group relative flex flex-col w-full border border-white/10 rounded-3xl sm:rounded-[40px] p-5 sm:p-5 transition-all duration-300 hover:scale-[1.02] backdrop-blur-[4px] shadow-2xl overflow-hidden ${isCentered ? 'items-center text-center' : 'items-start text-left'}`} 
       style={{ background: 'linear-gradient(91.43deg, rgba(217, 217, 217, 0.224) 1.92%, rgba(217, 217, 217, 0.048) 102.33%)' }}
     >
       
       {/* Article Image with Badge Overlay */}
-      <div className={`relative w-full ${isLarge ? 'h-[200px]' : 'h-[130px]'} rounded-[24px] overflow-hidden mb-4 shrink-0`}>
+      <div className={`relative w-full ${isLarge ? 'h-[220px] sm:h-[200px]' : 'h-[160px] sm:h-[130px]'} rounded-2xl sm:rounded-[24px] overflow-hidden mb-4 shrink-0`}>
         <img 
           src={article.image} 
           alt={article.title}
@@ -40,10 +40,10 @@ const BlogCard = ({ article, alignment = 'left', variant = 'large' }) => {
 
       {/* Content */}
       <div className="flex-1 flex flex-col w-full">
-        <h3 className={`text-white text-[20px] font-bold leading-tight mb-2 transition-colors ${isCentered ? 'text-center' : 'text-left'}`}>
+        <h3 className={`text-white text-lg sm:text-[20px] font-bold leading-snug mb-2 transition-colors ${isCentered ? 'text-center' : 'text-left'}`}>
           {article.title}
         </h3>
-        <p className={`text-white/80 text-[13px] leading-relaxed mb-4 font-medium ${isCentered ? 'mx-auto' : ''}`}>
+        <p className={`text-white/80 text-sm sm:text-[13px] leading-relaxed mb-4 font-medium ${isCentered ? 'mx-auto' : ''}`}>
           {article.description}
         </p>
       </div>
@@ -75,9 +75,9 @@ const BlogSection = () => {
   const col3 = [articles[2], articles[5]];
 
   return (
-    <section className="relative w-full pt-10 pb-20 px-4 flex justify-center bg-transparent border-none">
+    <section className="relative w-full pt-8 sm:pt-10 pb-16 sm:pb-20 px-3 sm:px-4 flex justify-center bg-transparent border-none">
       {/* Background Container for the Section - Split Backgrounds */}
-      <div className="relative w-full max-w-[1252px] rounded-[32px] overflow-hidden p-8 md:p-12 shadow-2xl bg-[#030002] border border-white/10">
+      <div className="relative w-full max-w-[1252px] rounded-2xl sm:rounded-[32px] overflow-hidden p-4 sm:p-8 md:p-12 shadow-2xl bg-[#030002] border border-white/10">
         
         {/* Top Background Image (blog.png) - Fixed Height 572px, Radius 32px, Opacity 52% - No Border to avoid lines in cards */}
         <div 
@@ -102,8 +102,8 @@ const BlogSection = () => {
         ></div>
 
         {/* Header */}
-        <div className="relative z-10 text-center mb-8">
-          <h2 className="text-[32px] font-bold mb-2 tracking-tight">
+        <div className="relative z-10 text-center mb-6 sm:mb-8">
+          <h2 className="text-2xl sm:text-[28px] lg:text-[32px] font-bold mb-2 tracking-tight">
             <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] to-[#808080]">Stay ahead of</span> <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4]">What's next</span>
           </h2>
           <p className="text-white/50 text-sm md:text-base font-medium tracking-wide">
@@ -113,8 +113,14 @@ const BlogSection = () => {
 
         </div>
 
-        {/* Blog Masonry Grid */}
-        <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+        {/* Blog — mobile: flat list; tablet+: masonry columns */}
+        <div className="relative z-10 flex flex-col gap-6 md:hidden">
+          {articles.map((article) => (
+            <BlogCard key={article.id} article={article} alignment="left" variant="large" />
+          ))}
+        </div>
+
+        <div className="relative z-10 hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 items-start">
           {/* Column 1 - Left Aligned */}
           <div className="flex flex-col gap-8">
             <BlogCard article={col1[0]} alignment="left" variant="large" />

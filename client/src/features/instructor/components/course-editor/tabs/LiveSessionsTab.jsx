@@ -17,6 +17,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import courseService from '@/features/courses/services/courseService';
 import { useToast } from '@/components/ui/Toast';
+import DatePopoverField from '@/components/ui/datetime/DatePopoverField';
 import { parseDatetimeLocal, toDatetimeLocalValue, parseYmd, formatYmd } from '@/lib/datetimeLocal';
 
 const PAGE_SIZE = 8;
@@ -767,7 +768,7 @@ export default function LiveSessionsTab({ courseId, courseDetails, loadCourse })
 
   return (
     <>
-    <div className="p-6 sm:p-8 max-w-4xl pb-16 space-y-8">
+    <div className="p-6 sm:p-8 pb-16 space-y-8">
       <ScheduleModal
         open={modalOpen}
         mode={modalMode}

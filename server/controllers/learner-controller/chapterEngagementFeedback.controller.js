@@ -3,7 +3,8 @@ const Chapter = require("../../models/Chapter");
 const Content = require("../../models/Content");
 const InstructorEngagementTemplate = require("../../models/InstructorEngagementTemplate");
 const ChapterEngagementFeedback = require("../../models/ChapterEngagementFeedback");
-const progressService = require("../../services/progress.service");
+const videoService = require("../../services/video.service");
+const { resolveUserRole } = require("../../middleware/contentAccess");
 
 async function submitFeedback(req, res) {
   try {
@@ -25,8 +26,13 @@ async function submitFeedback(req, res) {
         .json({ success: false, message: "rating must be between 1 and 5" });
     }
 
-    const enrolled = await progressService.isEnrolled(userId, courseId);
-    if (!enrolled) {
+    // Same access rule as watch/playback: enrolled learner, course owner, or admin
+    const authorized = await videoService.isEnrolledOrElevated(
+      userId,
+      courseId,
+      resolveUserRole(req.user),
+    );
+    if (!authorized) {
       return res.status(403).json({
         success: false,
         message: "Access denied: not enrolled in this course",

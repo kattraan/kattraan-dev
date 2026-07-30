@@ -12,6 +12,7 @@ import {
   isCourseDescriptionHtml,
   sanitizeCourseDescriptionHtml,
 } from '@/utils/courseDescriptionHtml';
+import { CourseViewSkeleton } from '@/components/skeleton';
 
 function RejectModal({ isOpen, onClose, onConfirm, isLoading }) {
   const [reason, setReason] = useState('');
@@ -138,16 +139,7 @@ export default function ViewCoursePage() {
   const isPending = course && String(course.status).toLowerCase() === 'pending_approval';
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-black flex flex-col">
-        <div className="max-w-4xl mx-auto w-full px-6 py-8">
-          <div className="h-8 w-48 bg-gray-200 dark:bg-white/10 rounded animate-pulse mb-6" />
-          <div className="aspect-video bg-gray-200 dark:bg-white/10 rounded-2xl animate-pulse mb-6" />
-          <div className="h-12 bg-gray-200 dark:bg-white/10 rounded animate-pulse w-2/3 mb-6" />
-          <div className="h-32 bg-gray-200 dark:bg-white/10 rounded-2xl animate-pulse" />
-        </div>
-      </div>
-    );
+    return <CourseViewSkeleton />;
   }
 
   if (error || !course) {

@@ -11,9 +11,9 @@ export const CERTIFICATE_HEIGHT = 2380;
 export const CERTIFICATE_LAYOUT = {
   courseTitle: {
     left: 660,
-    top: 500,
-    maxWidth: 2500,
-    baseFontSize: 115,
+    top: 620,
+    maxWidth: 2150,
+    baseFontSize: 130,
     minFontSize: 80,
     maxLines: 3,
     fontWeight: 500,
@@ -23,16 +23,16 @@ export const CERTIFICATE_LAYOUT = {
   /** Name on the same baseline as the template "Instructor" label. */
   instructorName: {
     left: 890,
-    top: 1073,
+    top: 1118,
     fontSize: 57,
-    fontWeight: 500,
+    fontWeight: 800,
     color: '#111111',
   },
   learnerName: {
     left: 661,
-    top: 1840,
-    maxWidth: 2500,
-    baseFontSize: 128,
+    top: 1900,
+    maxWidth: 950,
+    baseFontSize: 130,
     minFontSize: 49,
     fontWeight: 700,
     color: '#111111',
@@ -40,17 +40,17 @@ export const CERTIFICATE_LAYOUT = {
   },
   /** Values sit below the grey "Completion" / "Course Duration" labels. */
   completionDate: {
-    left: 654,
-    top: 2166,
-    fontSize: 50,
-    fontWeight: 400,
+    left: 640,
+    top: 2210,
+    fontSize: 56,
+    fontWeight: 500,
     color: '#111111',
   },
   courseDuration: {
-    left: 1223,
-    top: 2167,
-    fontSize: 50,
-    fontWeight: 400,
+    left: 1250,
+    top: 2210,
+    fontSize: 56,
+    fontWeight: 500,
     color: '#111111',
   },
 };

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CalendarClock, ClipboardList, Video } from 'lucide-react';
+import Skeleton from '@/components/ui/Skeleton';
 import { formatUpcomingWhen } from '@/features/learner/utils/buildUpcomingItems';
 import { ROUTES } from '@/config/routes';
 
@@ -11,7 +12,14 @@ const UpcomingForYou = ({ items = [], loading = false }) => {
     return (
       <div className="space-y-3 rounded-[32px] border border-gray-200 bg-white/95 p-6 shadow-sm backdrop-blur-sm dark:border-white/[0.12] dark:bg-white/[0.06]">
         {[1, 2].map((i) => (
-          <div key={i} className="h-16 animate-pulse rounded-2xl bg-gray-100 dark:bg-white/[0.06]" />
+          <div key={i} className="flex items-start gap-3 rounded-2xl border border-gray-100 p-4 dark:border-white/[0.06]">
+            <Skeleton className="h-9 w-9 rounded-xl shrink-0" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-3 w-4/5" />
+              <Skeleton className="h-2 w-1/2" />
+              <Skeleton className="h-2 w-1/4" />
+            </div>
+          </div>
         ))}
       </div>
     );

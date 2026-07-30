@@ -11,7 +11,7 @@ const DashboardLayout = ({ title, subtitle, headerRight, children }) => {
     <div className="w-full">
       {/* Page title row – sticky inside the white scroll container */}
       {(title || subtitle || headerRight) && (
-        <div className="sticky top-0 z-20 -mx-5 md:-mx-6 px-5 md:px-6 py-2.5 mb-2 bg-white dark:bg-black border-b border-gray-100 dark:border-white/[0.05] transition-colors duration-300">
+        <div className="sticky top-0 z-20 -mx-3 sm:-mx-5 md:-mx-6 px-3 sm:px-5 md:px-6 py-2.5 mb-2 bg-white dark:bg-black border-b border-gray-100 dark:border-white/[0.05] transition-colors duration-300">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="min-w-0">
               {title && (

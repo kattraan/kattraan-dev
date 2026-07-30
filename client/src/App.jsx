@@ -3,8 +3,9 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import MainLayout from '@/layouts/MainLayout';
 import DashboardLayout, { DASHBOARD_ROLES } from '@/layouts/DashboardLayout';
 import ScrollToTop from '@/components/common/ScrollToTop';
-import AppLoader from '@/components/common/AppLoader';
+import RouteSkeleton from '@/components/skeleton/RouteSkeleton';
 import ProtectedRoute from '@/routes/ProtectedRoute';
+import EnrolledCourseGuard from '@/routes/EnrolledCourseGuard';
 import { ToastProvider } from '@/components/ui/Toast';
 import { useDispatch, useSelector } from 'react-redux';
 import { checkAuth } from '@/features/auth/store/authSlice';
@@ -13,8 +14,8 @@ import { ConfirmDialogProvider } from '@/components/ui/ConfirmDialog';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { CurrencyProvider } from '@/context/CurrencyContext';
 import { CartProvider } from '@/context/CartContext';
+import { LearnerEnrollmentProvider } from '@/context/LearnerEnrollmentContext';
 import InstructorRoutes from '@/routes/InstructorRoutes';
-import { LOADING } from '@/utils/constants';
 import { ROUTES } from '@/config/routes';
 import { refreshAuthSession } from '@/api/apiClient';
 
@@ -37,6 +38,7 @@ const ForgotPasswordPage = lazy(() => import('@/pages/auth/ForgotPasswordPage'))
 const ResetPasswordPage = lazy(() => import('@/pages/auth/ResetPasswordPage'));
 
 const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage'));
+const AdminUsersPage = lazy(() => import('@/pages/admin/AdminUsersPage'));
 const InstructorApprovalsPage = lazy(() => import('@/pages/admin/InstructorApprovalsPage'));
 const CourseReviewPage = lazy(() => import('@/pages/admin/CourseReviewPage'));
 const CourseReviewDetailPage = lazy(() => import('@/pages/admin/CourseReviewDetailPage'));
@@ -101,13 +103,14 @@ function App() {
 
   return (
       <CurrencyProvider>
+      <LearnerEnrollmentProvider>
       <CartProvider>
       <ToastProvider>
         <ConfirmDialogProvider>
           <Router>
             <ThemeProvider>
             <ScrollToTop />
-          <Suspense fallback={<AppLoader message={LOADING.ROUTE} />}>
+          <Suspense fallback={<RouteSkeleton />}>
             <Routes>
             {/* Public Routes */}
             <Route path={ROUTES.HOME} element={<MainLayout><LandingPage /></MainLayout>} />
@@ -137,12 +140,13 @@ function App() {
             {/* Courses require login — guests are sent to /login, then returned here */}
             <Route element={<ProtectedRoute allowedRoles={['learner', 'instructor', 'admin']} />}>
               <Route path={ROUTES.COURSES} element={<MainLayout><CourseList /></MainLayout>} />
-              <Route path={`${ROUTES.COURSE_DETAILS}/:courseId`} element={<MainLayout><CourseDetailsPage /></MainLayout>} />
+              <Route path={`${ROUTES.COURSE_DETAILS}/:courseId`} element={<CourseDetailsPage />} />
               <Route path={ROUTES.CART} element={<MainLayout><CartPage /></MainLayout>} />
             </Route>
 
-            {/* Learner dashboard — My Learning, certificates, community, etc. */}
+            {/* Learner dashboard — requires at least one course enrollment (admins bypass) */}
             <Route element={<ProtectedRoute allowedRoles={['learner', 'instructor', 'admin']} />}>
+              <Route element={<EnrolledCourseGuard />}>
               <Route element={<DashboardLayout role={DASHBOARD_ROLES.LEARNER} />}>
                 <Route path={ROUTES.DASHBOARD} element={<Dashboard />} />
                 <Route path={ROUTES.DASHBOARD_MY_COURSES} element={<LearnerMyCoursesPage />} />
@@ -159,7 +163,8 @@ function App() {
                 <Route path={ROUTES.COMMUNITY} element={<CommunityHubPage />} />
                 <Route path={`${ROUTES.COMMUNITY}/:id`} element={<CommunityRoomPage />} />
               </Route>
-              <Route path={ROUTES.LEARNER_DASHBOARD} element={<Navigate to={ROUTES.MY_LEARNING} replace />} />
+              <Route path={ROUTES.LEARNER_DASHBOARD} element={<Navigate to={ROUTES.DASHBOARD} replace />} />
+              </Route>
             </Route>
 
             {/* Instructor Domain - Nested Route Module */}
@@ -180,6 +185,7 @@ function App() {
             <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
               <Route element={<DashboardLayout role={DASHBOARD_ROLES.ADMIN} />}>
                 <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboardPage />} />
+                <Route path={ROUTES.ADMIN_USERS} element={<AdminUsersPage />} />
                 <Route path={ROUTES.ADMIN_INSTRUCTORS} element={<InstructorApprovalsPage />} />
                 <Route path={`${ROUTES.ADMIN_COURSE_REVIEW}/:courseId`} element={<CourseReviewDetailPage />} />
                 <Route path={ROUTES.ADMIN_COURSES} element={<CourseReviewPage />} />
@@ -195,6 +201,7 @@ function App() {
         </ConfirmDialogProvider>
       </ToastProvider>
       </CartProvider>
+      </LearnerEnrollmentProvider>
       </CurrencyProvider>
   );
 }

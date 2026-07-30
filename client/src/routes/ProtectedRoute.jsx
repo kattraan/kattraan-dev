@@ -3,6 +3,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { hasRole } from '@/features/auth/utils/roleUtils';
 import { ROUTES } from '@/config/routes';
+import DashboardSkeleton from '@/components/common/DashboardSkeleton';
 
 /**
  * Protects routes by authentication and optional role.
@@ -15,15 +16,9 @@ const ProtectedRoute = ({ allowedRoles = [], redirectLearnersTo = null }) => {
   const { isAuthenticated, loading, user } = useSelector((state) => state.auth);
   const location = useLocation();
 
-  // Auth check still in-flight – show skeleton instead of a premature redirect
+  // Auth check still in-flight – show route-matched skeleton instead of a premature redirect
   if (loading) {
-    return (
-      <div className="min-h-screen bg-[#0c091a] flex flex-col gap-4 p-8 animate-pulse">
-        <div className="h-10 w-48 rounded-lg bg-white/10" />
-        <div className="h-6 w-96 rounded bg-white/10" />
-        <div className="h-6 w-72 rounded bg-white/10" />
-      </div>
-    );
+    return <DashboardSkeleton pathname={location.pathname} />;
   }
 
   if (!isAuthenticated) {

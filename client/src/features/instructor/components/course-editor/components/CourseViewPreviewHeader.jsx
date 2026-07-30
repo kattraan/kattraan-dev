@@ -32,21 +32,21 @@ export default function CourseViewPreviewHeader({ courseTitle, onClose, profileR
   const initial = (user?.firstName || user?.name || user?.userName || user?.user_name || user?.full_name || user?.username || 'U')[0];
 
   return (
-    <header className="h-[72px] border-b border-gray-200 dark:border-white/10 flex items-center justify-between px-6 bg-white dark:bg-[#121212] relative z-20 transition-colors duration-300">
-      <div className="flex items-center gap-6">
-        <button type="button" onClick={onClose} className="w-10 h-10 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-white/10 transition-all group" aria-label="Close preview">
-          <ArrowLeft size={20} className="text-gray-600 dark:text-white/60 group-hover:text-gray-900 dark:group-hover:text-white group-hover:-translate-x-0.5 transition-all" />
+    <header className="h-14 sm:h-[72px] border-b border-gray-200 dark:border-white/10 flex items-center justify-between px-3 sm:px-6 bg-white dark:bg-[#121212] relative z-20 transition-colors duration-300 min-w-0 gap-2">
+      <div className="flex items-center gap-2 sm:gap-6 min-w-0 flex-1">
+        <button type="button" onClick={onClose} className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-white/10 transition-all group flex-shrink-0" aria-label="Close preview">
+          <ArrowLeft size={18} className="text-gray-600 dark:text-white/60 group-hover:text-gray-900 dark:group-hover:text-white group-hover:-translate-x-0.5 transition-all sm:w-5 sm:h-5" />
         </button>
-        <div className="flex items-center gap-4">
-          <BrandLogo className="scale-[0.85] origin-left" />
-          <div className="h-6 w-px bg-gray-200 dark:bg-white/10 mx-1" aria-hidden />
-          <h1 className="text-[17px] font-bold tracking-tight text-gray-900 dark:text-white/90 truncate max-w-[400px]">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+          <BrandLogo className="scale-[0.75] sm:scale-[0.85] origin-left hidden xs:block flex-shrink-0" />
+          <div className="hidden sm:block h-6 w-px bg-gray-200 dark:bg-white/10 mx-1 flex-shrink-0" aria-hidden />
+          <h1 className="text-sm sm:text-[17px] font-bold tracking-tight text-gray-900 dark:text-white/90 truncate min-w-0">
             {courseTitle || 'Course Preview'}
           </h1>
         </div>
       </div>
-      <div className="flex items-center gap-4">
-        <button type="button" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white transition-all text-xs font-bold">
+      <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+        <button type="button" className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white transition-all text-xs font-bold">
           <Share2 size={14} /> Share
         </button>
         <div className="relative" ref={profileRef}>

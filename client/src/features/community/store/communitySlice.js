@@ -144,6 +144,15 @@ export const uploadAttachment = createAsyncThunk('community/uploadAttachment', a
     }
 });
 
+export const uploadCommunityAvatar = createAsyncThunk('community/uploadCommunityAvatar', async ({ id, file }, thunkAPI) => {
+    try {
+        const data = await communityService.uploadCommunityAvatar(id, file);
+        return data.community;
+    } catch (error) {
+        return thunkError(error, thunkAPI);
+    }
+});
+
 const initialState = {
     communities: [],
     currentCommunity: null,
@@ -245,9 +254,16 @@ const communitySlice = createSlice({
             })
             .addCase(updateCommunity.fulfilled, (state, action) => {
                 const index = state.communities.findIndex((c) => c._id === action.payload._id);
-                if (index !== -1) state.communities[index] = action.payload;
+                if (index !== -1) state.communities[index] = { ...state.communities[index], ...action.payload };
                 if (state.currentCommunity?._id === action.payload._id) {
-                    state.currentCommunity = action.payload;
+                    state.currentCommunity = { ...state.currentCommunity, ...action.payload };
+                }
+            })
+            .addCase(uploadCommunityAvatar.fulfilled, (state, action) => {
+                const index = state.communities.findIndex((c) => c._id === action.payload._id);
+                if (index !== -1) state.communities[index] = { ...state.communities[index], ...action.payload };
+                if (state.currentCommunity?._id === action.payload._id) {
+                    state.currentCommunity = { ...state.currentCommunity, ...action.payload };
                 }
             })
             .addCase(archiveCommunity.fulfilled, (state, action) => {

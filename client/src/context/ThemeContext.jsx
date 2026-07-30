@@ -12,7 +12,7 @@ import { ROUTES } from "@/config/routes";
 const ThemeContext = createContext();
 
 /** These routes always use dark UI; global theme toggle does not affect them. */
-const PATHS_ALWAYS_DARK = [ROUTES.HOME, ROUTES.LOGIN, ROUTES.SIGNUP];
+const PATHS_ALWAYS_DARK = [ROUTES.HOME, ROUTES.LOGIN, ROUTES.SIGNUP, ROUTES.COURSES];
 
 export const ThemeProvider = ({ children }) => {
   const location = useLocation();

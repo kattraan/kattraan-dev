@@ -8,6 +8,7 @@ import BrandLogo from '@/components/common/BrandLogo';
 import heroBackground from "@/assets/hero-background.webp";
 import logo from '@/assets/logo.png';
 import { ROUTES } from '@/config/routes';
+import { getEmailValidationError } from '@/utils/emailValidation';
 
 const ForgotPasswordPage = () => {
   const [email, setEmail] = useState('');
@@ -19,8 +20,9 @@ const ForgotPasswordPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!email.toLowerCase().endsWith('@gmail.com')) {
-        setEmailError('Only @gmail.com addresses are supported');
+    const emailErr = getEmailValidationError(email);
+    if (emailErr) {
+        setEmailError(emailErr);
         return;
     }
 
@@ -81,11 +83,7 @@ const ForgotPasswordPage = () => {
                      value={email} 
                      onChange={(e) => {
                         setEmail(e.target.value);
-                        if (e.target.value && !e.target.value.toLowerCase().endsWith('@gmail.com')) {
-                            setEmailError('Only @gmail.com addresses are supported');
-                        } else {
-                            setEmailError('');
-                        }
+                        setEmailError(getEmailValidationError(e.target.value));
                      }} 
                      error={emailError}
                      required 

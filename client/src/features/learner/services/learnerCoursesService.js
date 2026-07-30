@@ -1,5 +1,11 @@
 import apiClient from '@/api/apiClient';
 
+export const ENROLLMENT_CHANGED_EVENT = 'kattraan:learner-enrollment-changed';
+
+export function notifyEnrollmentChanged() {
+  window.dispatchEvent(new CustomEvent(ENROLLMENT_CHANGED_EVENT));
+}
+
 /**
  * GET /api/learner/courses
  * Returns the current user's enrolled courses with progress.
@@ -46,5 +52,6 @@ export async function checkEnrollment(courseId) {
  */
 export async function enrollInCourse(courseId) {
   const res = await apiClient.post('/learner/courses/enroll', { courseId });
+  notifyEnrollmentChanged();
   return res?.data ?? res;
 }

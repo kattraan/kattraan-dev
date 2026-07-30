@@ -67,6 +67,9 @@ app.use(express.json());
 // Middleware
 app.use(
   helmet({
+    // SPA on another origin (e.g. Vite :5173 → API :5000) must be able to read responses.
+    // Helmet's default CORP "same-origin" blocks credentialed cross-origin fetch in browsers.
+    crossOriginResourcePolicy: { policy: "cross-origin" },
     crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
     crossOriginEmbedderPolicy: false,
   }),
@@ -169,45 +172,28 @@ app.use(
 // });
 
 // CORS: require CLIENT_URL in production so we never fall back to localhost.
-// Supports a comma-separated list (www + apex, preview deploys) so it stays in
-// sync with the CSRF Origin allowlist (middleware/csrf.js).
-const isProduction = process.env.NODE_ENV === "production";
-
-function normalizeOrigin(value) {
-  if (!value || typeof value !== "string") return null;
-  try {
-    return new URL(value.trim()).origin;
-  } catch {
-    return null;
-  }
-}
-
-const rawClientUrl =
-  process.env.CLIENT_URL || (isProduction ? "" : "http://localhost:5173");
-const clientOrigins = rawClientUrl
-  .split(",")
-  .map((s) => normalizeOrigin(s))
-  .filter(Boolean);
+// Dev allows any localhost / 127.0.0.1 origin dynamically (see helpers/clientOrigins).
+const {
+  isProduction,
+  isOriginAllowed,
+  configuredOrigins,
+} = require("./helpers/clientOrigins");
 
 if (
   isProduction &&
-  (clientOrigins.length === 0 ||
-    clientOrigins.every((o) => o.includes("localhost")))
+  (configuredOrigins.length === 0 ||
+    configuredOrigins.every((o) => o.includes("localhost")))
 ) {
   throw new Error(
     "CLIENT_URL must be set in production (e.g. https://your-app.com). Do not use localhost.",
   );
 }
 
-const allowedOriginSet = new Set(clientOrigins);
-
 // Single origin function used for both normal requests and preflight, so the
 // preflight path can never be looser than the actual request path.
 const corsOptions = {
   origin(origin, callback) {
-    // Non-browser clients (curl, server-to-server, same-origin) send no Origin.
-    if (!origin) return callback(null, true);
-    if (allowedOriginSet.has(origin)) return callback(null, true);
+    if (isOriginAllowed(origin)) return callback(null, true);
     return callback(new Error("Not allowed by CORS"));
   },
   credentials: true,
@@ -219,8 +205,8 @@ app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
 
 // Exposed for the Socket.IO server (server/socket/index.js) so CORS config stays in sync.
-app.clientOrigin = clientOrigins[0] || null;
-app.clientOrigins = clientOrigins;
+app.clientOrigin = configuredOrigins[0] || null;
+app.clientOrigins = configuredOrigins;
 
 // Routes
 app.use("/api/auth", authRoutes);

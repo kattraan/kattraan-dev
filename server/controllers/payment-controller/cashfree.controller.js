@@ -11,32 +11,95 @@ const {
 } = require('../../services/cashfreeOrderContext.service');
 
 function normalizeBaseUrl(rawValue, fallback) {
-  const value = (rawValue || fallback || '').trim();
-  if (!value) {
-    return fallback;
+  const candidates = String(rawValue || fallback || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  for (const value of candidates) {
+    try {
+      const parsed = new URL(value);
+      const isLocalhost = ['localhost', '127.0.0.1', '::1'].includes(parsed.hostname);
+      if (!isLocalhost) {
+        parsed.protocol = 'https:';
+      }
+      return parsed.origin;
+    } catch {
+      // Ignore malformed entries and use the next configured origin.
+    }
   }
 
+  return String(fallback || '').trim().replace(/\/$/, '');
+}
+
+function isLocalhostOrigin(origin) {
+  if (!origin) return false;
   try {
-    const parsed = new URL(value);
-    const isLocalhost = ['localhost', '127.0.0.1', '::1'].includes(parsed.hostname);
-    if (!isLocalhost) {
-      parsed.protocol = 'https:';
-    }
-    return parsed.origin;
-  } catch (err) {
-    return value.replace(/^http:/i, 'https:').replace(/\/$/, '');
+    const { hostname } = new URL(origin);
+    return hostname === 'localhost' || hostname === '127.0.0.1';
+  } catch {
+    return false;
   }
 }
 
-function buildCashfreeCallbackUrls(courseId, orderId) {
-  const frontendBase = normalizeBaseUrl(
+function isCashfreeProductionMode() {
+  if (cashfree.isMockMode()) return false;
+  const envName = String(process.env.CASHFREE_ENV || '').trim().toLowerCase();
+  const keyId = (process.env.CASHFREE_APP_ID || process.env.CASHFREE_CLIENT_ID || '').trim();
+  if (!keyId || keyId.includes('test')) return false;
+  return envName === 'production';
+}
+
+function resolveCashfreeFrontendOrigin(req) {
+  const { isOriginAllowed, normalizeOrigin, configuredOrigins } = require('../../helpers/clientOrigins');
+
+  const refererOrigin = (() => {
+    const referer = req.headers?.referer;
+    if (!referer) return null;
+    try {
+      return new URL(referer).origin;
+    } catch {
+      return null;
+    }
+  })();
+
+  const requestOrigins = [
+    req.body?.returnOrigin,
+    req.headers?.origin,
+    refererOrigin,
+  ]
+    .map((value) => normalizeOrigin(value))
+    .filter(Boolean);
+
+  for (const origin of requestOrigins) {
+    if (isOriginAllowed(origin)) return origin;
+  }
+
+  const configuredReturn = normalizeOrigin(process.env.CASHFREE_RETURN_URL);
+  if (configuredReturn) return configuredReturn;
+
+  return (
+    normalizeBaseUrl(process.env.CLIENT_URL || process.env.FRONTEND_URL, 'http://localhost:5173')
+  );
+}
+
+function buildCashfreeCallbackUrls(courseId, orderId, frontendOrigin) {
+  const frontendBase = frontendOrigin || normalizeBaseUrl(
     process.env.CASHFREE_RETURN_URL || process.env.CLIENT_URL || process.env.FRONTEND_URL,
-    'https://localhost:5173',
+    'http://localhost:5173',
   );
   const apiBase = normalizeBaseUrl(
     process.env.CASHFREE_NOTIFY_URL || process.env.API_URL || process.env.BASE_URL,
-    'https://localhost:5000',
+    'http://localhost:5000',
   );
+
+  if (!frontendBase || frontendBase.includes(',')) {
+    const err = new Error(
+      'Invalid Cashfree return URL. Set CASHFREE_RETURN_URL to a single origin (e.g. https://www.kattraan.com).',
+    );
+    err.statusCode = 500;
+    throw err;
+  }
 
   return {
     returnUrl: `${frontendBase.replace(/\/$/, '')}/checkout/${courseId}?payment=success&orderId=${encodeURIComponent(orderId)}`,
@@ -80,7 +143,16 @@ async function createOrder(req, res) {
 
     const amount = Number(priceINR.toFixed(2));
     const orderId = buildMerchantOrderId(courseId, userId);
-    const { returnUrl, notifyUrl } = buildCashfreeCallbackUrls(courseId, orderId);
+    const frontendOrigin = resolveCashfreeFrontendOrigin(req);
+    const { returnUrl, notifyUrl } = buildCashfreeCallbackUrls(courseId, orderId, frontendOrigin);
+
+    if (isLocalhostOrigin(frontendOrigin) && isCashfreeProductionMode()) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'Production Cashfree checkout cannot run on localhost. Test on https://www.kattraan.com, or enable local mock/sandbox mode (CASHFREE_MOCK=true with sandbox keys).',
+      });
+    }
 
     let customerPhone = req.user.phoneNumber || req.user.phone || req.user.mobile || '';
     let customerEmail = req.user.userEmail || req.user.email || '';
@@ -348,8 +420,24 @@ function getPaymentMode(_req, res) {
   const keyId = (process.env.CASHFREE_APP_ID || process.env.CASHFREE_CLIENT_ID || '').trim();
   const envName = String(process.env.CASHFREE_ENV || '').trim().toLowerCase();
   const mock = cashfree.isMockMode();
+  const productionMode = !mock && !!keyId && !keyId.includes('test') && envName === 'production';
   const testMode = mock || !keyId || keyId.includes('test') || envName !== 'production';
-  res.json({ success: true, testMode, mock });
+  res.json({
+    success: true,
+    testMode,
+    mock,
+    productionMode,
+    blockLocalhostProduction: productionMode,
+  });
 }
 
-module.exports = { createOrder, verifyPayment, getPaymentMode, normalizeIndianPhone };
+module.exports = {
+  createOrder,
+  verifyPayment,
+  getPaymentMode,
+  normalizeIndianPhone,
+  resolveCashfreeFrontendOrigin,
+  buildCashfreeCallbackUrls,
+  isLocalhostOrigin,
+  isCashfreeProductionMode,
+};

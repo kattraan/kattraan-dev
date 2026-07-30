@@ -17,12 +17,14 @@ export function resolveCertificateLayout(customLayout) {
 }
 
 async function ensureCertificateFonts() {
-  const sizes = [42, 44, 48, 50, 56, 62, 68, 76];
+  const sizes = [49, 50, 56, 57, 80, 115, 128, 130];
+  const weights = [400, 500, 700, 800];
   await Promise.all(
-    sizes.flatMap((size) => [
-      document.fonts.load(`500 ${size}px Satoshi`).catch(() => {}),
-      document.fonts.load(`700 ${size}px Satoshi`).catch(() => {}),
-    ]),
+    sizes.flatMap((size) =>
+      weights.map((weight) =>
+        document.fonts.load(`${weight} ${size}px Satoshi`).catch(() => {}),
+      ),
+    ),
   );
   await document.fonts.ready;
 }
@@ -248,7 +250,7 @@ async function renderWithCanvas2D(fields, layout = CERTIFICATE_LAYOUT) {
 
   const titleCfg = layout.courseTitle;
   let titleSize = titleCfg.baseFontSize;
-  ctx.font = `700 ${titleSize}px Satoshi, sans-serif`;
+  ctx.font = `${titleCfg.fontWeight} ${titleSize}px Satoshi, sans-serif`;
   while (titleSize >= titleCfg.minFontSize) {
     const words = title.split(/\s+/);
     let lines = 1;
@@ -264,7 +266,7 @@ async function renderWithCanvas2D(fields, layout = CERTIFICATE_LAYOUT) {
     }
     if (lines <= titleCfg.maxLines) break;
     titleSize -= 2;
-    ctx.font = `700 ${titleSize}px Satoshi, sans-serif`;
+    ctx.font = `${titleCfg.fontWeight} ${titleSize}px Satoshi, sans-serif`;
   }
   let line = '';
   let y = titleCfg.top;
@@ -282,26 +284,26 @@ async function renderWithCanvas2D(fields, layout = CERTIFICATE_LAYOUT) {
   if (line) ctx.fillText(line, titleCfg.left, y);
 
   const inst = layout.instructorName;
-  ctx.font = `700 ${inst.fontSize}px Satoshi, sans-serif`;
+  ctx.font = `${inst.fontWeight} ${inst.fontSize}px Satoshi, sans-serif`;
   ctx.fillText(instructor, inst.left, inst.top);
 
   const learn = layout.learnerName;
   let learnSize = learn.baseFontSize;
-  ctx.font = `700 ${learnSize}px Satoshi, sans-serif`;
+  ctx.font = `${learn.fontWeight} ${learnSize}px Satoshi, sans-serif`;
   while (learnSize >= learn.minFontSize && ctx.measureText(learner).width > learn.maxWidth) {
     learnSize -= 2;
-    ctx.font = `700 ${learnSize}px Satoshi, sans-serif`;
+    ctx.font = `${learn.fontWeight} ${learnSize}px Satoshi, sans-serif`;
   }
   ctx.fillText(learner, learn.left, learn.top);
 
   const dateCfg = layout.completionDate;
-  ctx.font = `500 ${dateCfg.fontSize}px Satoshi, sans-serif`;
+  ctx.font = `${dateCfg.fontWeight} ${dateCfg.fontSize}px Satoshi, sans-serif`;
   ctx.fillText(formatCertificateDate(fields.issuedDate), dateCfg.left, dateCfg.top);
 
   const durCfg = layout.courseDuration;
   const durationText = formatCertificateDuration(fields.durationMinutes);
   if (durationText) {
-    ctx.font = `500 ${durCfg.fontSize}px Satoshi, sans-serif`;
+    ctx.font = `${durCfg.fontWeight} ${durCfg.fontSize}px Satoshi, sans-serif`;
     ctx.fillText(durationText, durCfg.left, durCfg.top);
   }
 

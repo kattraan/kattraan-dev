@@ -15,9 +15,28 @@ exports.getUsers = async (req, res) => {
 
     const users = await User
       .find(filter)
-      .select('-password -refreshToken -resetPasswordToken -resetPasswordExpires')
-      .sort({ createdAt: -1 }); // Newest first
-    return res.json({ success: true, data: users });
+      .select('-password -refreshToken -resetPasswordToken -resetPasswordExpires -sessions')
+      .sort({ _id: -1 });
+
+    const Role = require('../../models/Role');
+    const rolesData = await Role.find().lean();
+    const roleMap = Object.fromEntries(rolesData.map((r) => [r.roleId, r.roleName]));
+
+    const enriched = users.map((u) => {
+      const doc = u.toObject ? u.toObject() : u;
+      const roleNames = (doc.roles || []).map((id) => roleMap[id]).filter(Boolean);
+      return {
+        ...doc,
+        roleNames,
+        primaryRole: roleNames.includes('admin')
+          ? 'admin'
+          : roleNames.includes('instructor')
+            ? 'instructor'
+            : roleNames[0] || 'learner',
+      };
+    });
+
+    return res.json({ success: true, data: enriched });
   } catch (err) {
     console.error('getUsers Error:', err);
     return res.status(500).json({ success: false, message: 'Server error' });

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { ROUTES } from '@/config/routes';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import Skeleton from '@/components/ui/Skeleton';
 import apiClient from '@/api/apiClient';
 
 // ── helpers ────────────────────────────────────────────────────────────────
@@ -38,14 +39,6 @@ const statusConfig = {
   pending_approval: { label: 'Review', classes: 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400' },
   rejected: { label: 'Rejected', classes: 'bg-red-500/10 text-red-500' },
 };
-
-// ── skeleton ──────────────────────────────────────────────────────────────
-
-function Skeleton({ className }) {
-  return (
-    <div className={`animate-pulse rounded-xl bg-gray-100 dark:bg-white/[0.08] ${className}`} />
-  );
-}
 
 // ── sub-components ────────────────────────────────────────────────────────
 

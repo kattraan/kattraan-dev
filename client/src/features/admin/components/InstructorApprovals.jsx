@@ -7,6 +7,7 @@ import { logger } from '@/utils/logger';
 import { CheckCircle, XCircle, Clock, FileText, Linkedin, Globe, Search, Filter, AlertCircle } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import { CardListSkeleton } from '@/components/skeleton';
 
 const ApplicationCard = ({ user, onAction }) => {
   const { enrollmentData } = user;
@@ -188,11 +189,7 @@ const InstructorApprovals = () => {
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-1 gap-6">
-              {[1, 2].map((i) => (
-                <div key={i} className="h-64 bg-white dark:bg-white/[0.03] border border-gray-200 dark:border-white/5 rounded-[24px] animate-pulse transition-colors duration-300" />
-              ))}
-            </div>
+            <CardListSkeleton count={2} height={256} />
           ) : filteredInstructors.length === 0 ? (
             <div className="bg-white dark:bg-white/[0.03] border border-gray-200 dark:border-white/5 rounded-[32px] p-16 text-center transition-colors duration-300">
               <div className="w-16 h-16 rounded-full bg-gray-50 dark:bg-white/5 flex items-center justify-center mx-auto mb-4 text-gray-400 dark:text-white/20 transition-colors duration-300">

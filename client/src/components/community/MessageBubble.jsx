@@ -1,25 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { clsx } from 'clsx';
-import { Reply, SmilePlus, Pencil, Trash2, Pin, PinOff, FileText } from 'lucide-react';
+import { Reply, SmilePlus, Pencil, Trash2, Pin, PinOff, FileText, CheckCheck } from 'lucide-react';
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
 
-/** Wraps @token / @everyone substrings in a highlighted span — purely presentational, independent of the resolved mentions array. */
 const renderBodyWithMentions = (body) => {
     const parts = body.split(/(@[a-zA-Z0-9_]+)/g);
     return parts.map((part, i) => {
         if (!part.startsWith('@')) return part;
-        const isEveryone = part.toLowerCase() === '@everyone';
         return (
-            <span
-                key={i}
-                className={clsx(
-                    'font-semibold rounded px-1',
-                    isEveryone
-                        ? 'bg-blue-500/15 text-blue-700 dark:text-blue-300'
-                        : 'bg-blue-500/15 text-blue-600 dark:text-blue-400'
-                )}
-            >
+            <span key={i} className="font-semibold text-primary-purple dark:text-primary-pink">
                 {part}
             </span>
         );
@@ -32,12 +22,16 @@ const formatBytes = (bytes) => {
     return kb < 1024 ? `${kb.toFixed(0)} KB` : `${(kb / 1024).toFixed(1)} MB`;
 };
 
+const MessageMeta = ({ time, edited, isOwn }) => (
+    <span className="inline-flex items-center gap-0.5 float-right ml-3 mt-0.5 shrink-0 select-none leading-none">
+        {edited && <span className="text-[10px] text-gray-500 dark:text-white/40">edited</span>}
+        <span className="text-[10px] text-gray-500 dark:text-white/40 tabular-nums">{time}</span>
+        {isOwn && <CheckCheck size={13} className="text-primary-purple dark:text-primary-pink opacity-90" strokeWidth={2} />}
+    </span>
+);
+
 /**
- * @param {{
- *   message: object, isOwn: boolean, currentUserId: string, canModerate: boolean,
- *   onReact: (emoji: string) => void, onReply: () => void, onEdit: () => void,
- *   onDelete: () => void, onTogglePin: () => void,
- * }} props
+ * Kattraan-branded message bubble with inline timestamp (no overlap).
  */
 const MessageBubble = ({ message, isOwn, currentUserId, canModerate, onReact, onReply, onEdit, onDelete, onTogglePin }) => {
     const senderName = message.sender?.userName || 'Member';
@@ -64,40 +58,48 @@ const MessageBubble = ({ message, isOwn, currentUserId, canModerate, onReact, on
     };
 
     return (
-        <div className={clsx('group flex flex-col gap-1 max-w-[75%] w-fit', isOwn ? 'self-end items-end' : 'self-start items-start')}>
-            {!isOwn && <span className="text-[11px] font-semibold text-gray-500 dark:text-white/40 px-1">{senderName}</span>}
-
-            <div className={clsx('flex items-end gap-1.5', isOwn ? 'flex-row-reverse' : 'flex-row')}>
-                <div className="flex flex-col gap-1.5 max-w-full">
-                    {message.replyTo && (
-                        <div className="px-3 py-1.5 rounded-xl text-xs border-l-2 border-gray-400 dark:border-white/30 bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-white/40">
-                            <span className="font-semibold">{message.replyTo.senderName}</span>{' '}
-                            {message.replyTo.body}
-                        </div>
+        <div className={clsx('group flex w-fit max-w-[82%] sm:max-w-[68%] mb-1', isOwn ? 'ml-auto' : 'mr-auto')}>
+            <div className={clsx('flex items-end gap-1 max-w-full', isOwn ? 'flex-row-reverse' : 'flex-row')}>
+                <div className="flex flex-col gap-0.5 max-w-full min-w-[72px]">
+                    {!isOwn && (
+                        <span className="text-[12px] font-semibold text-primary-pink px-1 mb-0.5">
+                            {senderName}
+                        </span>
                     )}
 
                     <div
                         className={clsx(
-                            'px-4 py-2.5 rounded-2xl text-sm leading-relaxed break-words',
+                            'px-2.5 pt-1.5 pb-1.5 text-[14px] leading-[19px] shadow-sm',
                             isOwn
-                                ? 'bg-blue-600 text-white rounded-br-md'
-                                : 'bg-gray-100 dark:bg-white/[0.06] text-gray-900 dark:text-white/85 border border-gray-200 dark:border-white/5 rounded-bl-md'
+                                ? 'bg-primary-pink/10 dark:bg-[#2a1f3d] text-gray-900 dark:text-white/90 rounded-2xl rounded-tr-sm border border-primary-pink/15 dark:border-primary-purple/20'
+                                : 'bg-white dark:bg-[#1a1625]/95 text-gray-900 dark:text-white/90 rounded-2xl rounded-tl-sm border border-gray-200/80 dark:border-white/10'
                         )}
                     >
-                        {message.body && <p>{renderBodyWithMentions(message.body)}</p>}
-                        {message.editedAt && (
-                            <span className="text-[10px] opacity-60 ml-1">(edited)</span>
+                        {message.replyTo && (
+                            <div className="mb-1.5 px-2 py-1 rounded-lg text-xs border-l-[3px] bg-gray-50 dark:bg-white/5 border-primary-purple dark:border-primary-pink">
+                                <span className="font-semibold text-primary-purple dark:text-primary-pink block text-[11px]">
+                                    {message.replyTo.senderName}
+                                </span>
+                                <span className="text-gray-500 dark:text-white/45 line-clamp-2">{message.replyTo.body}</span>
+                            </div>
+                        )}
+
+                        {message.body && (
+                            <p className="whitespace-pre-wrap break-words">
+                                {renderBodyWithMentions(message.body)}
+                                <MessageMeta time={time} edited={message.editedAt} isOwn={isOwn} />
+                            </p>
                         )}
 
                         {message.attachments?.length > 0 && (
-                            <div className="mt-2 flex flex-col gap-2">
+                            <div className={clsx('flex flex-col gap-1.5', message.body ? 'mt-1' : '')}>
                                 {message.attachments.map((att, i) =>
                                     att.mimeType?.startsWith('image/') ? (
                                         <a key={i} href={att.url} target="_blank" rel="noopener noreferrer">
                                             <img
                                                 src={att.url}
                                                 alt={att.filename}
-                                                className="max-w-[240px] max-h-[240px] rounded-xl object-cover border border-white/10"
+                                                className="max-w-[240px] max-h-[240px] rounded-lg object-cover"
                                             />
                                         </a>
                                     ) : (
@@ -106,35 +108,45 @@ const MessageBubble = ({ message, isOwn, currentUserId, canModerate, onReact, on
                                             href={att.url}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-black/10 dark:bg-black/20 hover:bg-black/20 dark:hover:bg-black/30 transition-colors"
+                                            className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-black/5 dark:bg-black/20"
                                         >
-                                            <FileText size={16} />
-                                            <span className="text-xs truncate max-w-[160px]">{att.filename}</span>
+                                            <FileText size={14} />
+                                            <span className="text-xs truncate max-w-[140px]">{att.filename}</span>
                                             <span className="text-[10px] opacity-60">{formatBytes(att.size)}</span>
                                         </a>
                                     )
                                 )}
+                                {!message.body && (
+                                    <div className="flex justify-end">
+                                        <MessageMeta time={time} edited={message.editedAt} isOwn={isOwn} />
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {!message.body && !message.attachments?.length && (
+                            <div className="flex justify-end">
+                                <MessageMeta time={time} edited={message.editedAt} isOwn={isOwn} />
                             </div>
                         )}
                     </div>
 
                     {message.reactions?.length > 0 && (
-                        <div className={clsx('flex flex-wrap gap-1', isOwn ? 'justify-end' : 'justify-start')}>
+                        <div className={clsx('flex flex-wrap gap-1 px-1 -mt-1', isOwn ? 'justify-end' : 'justify-start')}>
                             {message.reactions.map((r) => {
                                 const reacted = r.users.some((u) => String(u) === String(currentUserId));
                                 return (
                                     <button
                                         key={r.emoji}
+                                        type="button"
                                         onClick={() => onReact(r.emoji)}
                                         className={clsx(
-                                            'flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border transition-colors',
-                                            reacted
-                                                ? 'bg-blue-500/15 border-blue-500/40 text-blue-600 dark:text-blue-400'
-                                                : 'bg-gray-100 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-600 dark:text-white/60'
+                                            'flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs bg-white dark:bg-[#1a1625] border shadow-sm transition-colors',
+                                            reacted ? 'border-primary-purple dark:border-primary-pink' : 'border-gray-200 dark:border-white/10'
                                         )}
                                     >
                                         <span>{r.emoji}</span>
-                                        <span>{r.users.length}</span>
+                                        <span className="text-gray-500 dark:text-white/45">{r.users.length}</span>
                                     </button>
                                 );
                             })}
@@ -142,61 +154,38 @@ const MessageBubble = ({ message, isOwn, currentUserId, canModerate, onReact, on
                     )}
                 </div>
 
-                {/* Hover toolbar */}
-                <div className="relative opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 bg-white dark:bg-[#1a1625] border border-gray-200 dark:border-white/10 rounded-full p-0.5 shadow-sm flex-shrink-0">
+                <div className="relative opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 bg-white dark:bg-[#1a1625] border border-gray-200 dark:border-white/10 rounded-xl p-0.5 flex-shrink-0 shadow-md mb-1">
                     <button
+                        type="button"
                         onClick={() => setPickerOpen((o) => !o)}
-                        className="p-1.5 rounded-full text-gray-500 dark:text-white/50 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white"
+                        className="p-1 rounded-lg text-gray-500 dark:text-white/50 hover:bg-gray-100 dark:hover:bg-white/5"
                         aria-label="Add reaction"
                     >
                         <SmilePlus size={14} />
                     </button>
-                    <button
-                        onClick={onReply}
-                        className="p-1.5 rounded-full text-gray-500 dark:text-white/50 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white"
-                        aria-label="Reply"
-                    >
+                    <button type="button" onClick={onReply} className="p-1 rounded-lg text-gray-500 dark:text-white/50 hover:bg-gray-100 dark:hover:bg-white/5" aria-label="Reply">
                         <Reply size={14} />
                     </button>
                     {isOwn && (
-                        <button
-                            onClick={onEdit}
-                            className="p-1.5 rounded-full text-gray-500 dark:text-white/50 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white"
-                            aria-label="Edit"
-                        >
+                        <button type="button" onClick={onEdit} className="p-1 rounded-lg text-gray-500 dark:text-white/50 hover:bg-gray-100 dark:hover:bg-white/5" aria-label="Edit">
                             <Pencil size={14} />
                         </button>
                     )}
                     {canModerate && (
-                        <button
-                            onClick={onTogglePin}
-                            className="p-1.5 rounded-full text-gray-500 dark:text-white/50 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white"
-                            aria-label={message.isPinned ? 'Unpin' : 'Pin'}
-                        >
+                        <button type="button" onClick={onTogglePin} className="p-1 rounded-lg text-gray-500 dark:text-white/50 hover:bg-gray-100 dark:hover:bg-white/5" aria-label={message.isPinned ? 'Unpin' : 'Pin'}>
                             {message.isPinned ? <PinOff size={14} /> : <Pin size={14} />}
                         </button>
                     )}
                     {(isOwn || canModerate) && (
-                        <button
-                            onClick={onDelete}
-                            className="p-1.5 rounded-full text-gray-500 dark:text-white/50 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500"
-                            aria-label="Delete"
-                        >
+                        <button type="button" onClick={onDelete} className="p-1 rounded-lg text-gray-500 dark:text-white/50 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500" aria-label="Delete">
                             <Trash2 size={14} />
                         </button>
                     )}
 
                     {pickerOpen && (
-                        <div
-                            ref={pickerRef}
-                            className="absolute bottom-full mb-2 right-0 flex items-center gap-1 bg-white dark:bg-[#1a1625] border border-gray-200 dark:border-white/10 rounded-full px-2 py-1.5 shadow-xl z-50"
-                        >
+                        <div ref={pickerRef} className="absolute bottom-full mb-1 right-0 flex items-center gap-1 bg-white dark:bg-[#1a1625] border border-gray-200 dark:border-white/10 rounded-full px-2 py-1 shadow-xl z-50">
                             {QUICK_REACTIONS.map((emoji) => (
-                                <button
-                                    key={emoji}
-                                    onClick={() => react(emoji)}
-                                    className="text-base hover:scale-125 transition-transform"
-                                >
+                                <button key={emoji} type="button" onClick={() => react(emoji)} className="text-base hover:scale-125 transition-transform">
                                     {emoji}
                                 </button>
                             ))}
@@ -204,8 +193,6 @@ const MessageBubble = ({ message, isOwn, currentUserId, canModerate, onReact, on
                     )}
                 </div>
             </div>
-
-            <span className="text-[10px] text-gray-400 dark:text-white/25 px-1">{time}</span>
         </div>
     );
 };

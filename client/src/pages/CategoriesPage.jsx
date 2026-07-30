@@ -73,7 +73,7 @@ const CategoriesPage = () => {
 
       {/* Main Content Area */}
       <div className="relative z-10 flex flex-col flex-grow pb-10">
-        <main className="max-w-[1440px] mx-auto w-full px-6 md:px-16 pt-32 pb-64">
+        <main className="max-w-[1440px] mx-auto w-full px-4 sm:px-6 md:px-16 pt-24 sm:pt-32 pb-32 sm:pb-64">
           
           {/* Breadcrumbs matching image */}
           <nav className="flex items-center gap-2 mb-8 text-[13px]">
@@ -86,7 +86,7 @@ const CategoriesPage = () => {
 
           {/* Hero Header */}
           <header className="mb-10">
-            <h1 className="text-[40px] font-bold mb-3 tracking-tight">
+            <h1 className="text-2xl sm:text-3xl md:text-[40px] font-bold mb-3 tracking-tight">
               {PAGE_CONTENT.title}
             </h1>
             <p className="text-[15px] text-white/70 max-w-2xl font-normal">

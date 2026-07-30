@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Star, Users } from 'lucide-react';
+import Skeleton from '@/components/ui/Skeleton';
 import { useGetPublicCoursesQuery } from '@/features/courses/api/coursesApi';
 import { buildRecommendedCourses } from '@/features/learner/utils/buildRecommendedCourses';
 import { ROUTES } from '@/config/routes';
@@ -26,11 +27,11 @@ const RecommendedCoursesSidebar = ({ enrolledCourseIds = [], loading: parentLoad
     return (
       <div className="space-y-4 rounded-[32px] border border-gray-200 bg-white/95 p-6 shadow-sm backdrop-blur-sm dark:border-white/[0.12] dark:bg-white/[0.06]">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="flex animate-pulse items-center gap-4">
-            <div className="h-12 w-12 rounded-xl bg-gray-200 dark:bg-white/10" />
+          <div key={i} className="flex items-center gap-4">
+            <Skeleton className="h-12 w-12 rounded-xl shrink-0" />
             <div className="flex-1 space-y-2">
-              <div className="h-3 w-3/4 rounded bg-gray-200 dark:bg-white/10" />
-              <div className="h-2 w-1/3 rounded bg-gray-200 dark:bg-white/10" />
+              <Skeleton className="h-3 w-3/4" />
+              <Skeleton className="h-2 w-1/3" />
             </div>
           </div>
         ))}

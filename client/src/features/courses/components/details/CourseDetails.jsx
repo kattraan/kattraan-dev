@@ -60,7 +60,7 @@ const CourseDetails = ({
 
             {/* Title Section */}
             <div className="space-y-6">
-                <h1 className="font-satoshi font-bold text-[32px] leading-[1.1] tracking-[-0.02em] text-white">
+                <h1 className="font-satoshi font-bold text-2xl sm:text-3xl lg:text-[32px] leading-[1.1] tracking-[-0.02em] text-white">
                     {courseData.title}
                 </h1>
                 {courseData.subtitle && (
@@ -111,7 +111,7 @@ const CourseDetails = ({
                 <div className="mt-10 relative group w-full">
                     <div className="absolute inset-x-0 -top-20 h-64 bg-brand-glow-soft blur-[100px] opacity-50 pointer-events-none -z-10" />
                     <div
-                        className="relative overflow-hidden border border-white/10 backdrop-blur-3xl p-8 lg:p-10 w-full min-h-[200px] rounded-2xl surface-glass-brand"
+                        className="relative overflow-hidden border border-white/10 backdrop-blur-3xl p-5 sm:p-8 lg:p-10 w-full min-h-[200px] rounded-2xl surface-glass-brand"
                         style={{ borderWidth: '0.67px' }}
                     >
                         <h2 className="text-[22px] lg:text-[24px] mb-6 text-white font-bold">What You'll Learn</h2>

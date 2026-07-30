@@ -74,7 +74,11 @@ const CourseViewPreviewSidebar = forwardRef(function CourseViewPreviewSidebar(
 
   return (
     <aside
-      className={`${isSidebarCollapsed ? "w-0" : "w-[420px]"} bg-white dark:bg-[#161616] border-l border-gray-200 dark:border-white/10 flex flex-col h-full sticky top-0 transition-all duration-500 relative overflow-hidden`}
+      className={`${
+        isSidebarCollapsed
+          ? "w-0"
+          : "fixed inset-y-0 right-0 z-50 w-[min(calc(100vw-2rem),420px)] shadow-2xl sm:relative sm:inset-auto sm:z-auto sm:w-full md:w-[420px] sm:shadow-none"
+      } bg-white dark:bg-[#161616] border-l border-gray-200 dark:border-white/10 flex flex-col h-full sm:sticky sm:top-0 transition-all duration-500 relative overflow-hidden min-w-0`}
       aria-label="Course content"
     >
       <button
@@ -87,8 +91,8 @@ const CourseViewPreviewSidebar = forwardRef(function CourseViewPreviewSidebar(
         <ChevronRight size={18} />
       </button>
 
-      <div className="p-5 border-b border-gray-200 dark:border-white/10 flex items-center justify-between min-w-[420px] bg-white dark:bg-[#141414]">
-        <h3 className="text-[22px] font-black tracking-tight text-gray-900 dark:text-white">
+      <div className="p-4 sm:p-5 border-b border-gray-200 dark:border-white/10 flex items-center justify-between min-w-0 bg-white dark:bg-[#141414]">
+        <h3 className="text-lg sm:text-[22px] font-black tracking-tight text-gray-900 dark:text-white truncate">
           Content
         </h3>
         <span className="inline-flex items-center rounded-md px-2 py-1 bg-gradient-to-r from-[#FF8C42]/12 to-[#FF3FB4]/12 ring-1 ring-inset ring-[#FF8C42]/25 dark:ring-[#FF3FB4]/30">
@@ -98,7 +102,7 @@ const CourseViewPreviewSidebar = forwardRef(function CourseViewPreviewSidebar(
         </span>
       </div>
 
-      <div className="flex-1 overflow-y-auto scrollbar-hide min-w-[420px] bg-white dark:bg-[#161616]">
+      <div className="flex-1 overflow-y-auto scrollbar-hide min-w-0 bg-white dark:bg-[#161616]">
         {courseData?.sections?.map((section, sIdx) => {
           const sectionId = section._id || section.id;
           const isExpanded = expandedSections[sectionId];
@@ -164,12 +168,30 @@ const CourseViewPreviewSidebar = forwardRef(function CourseViewPreviewSidebar(
                       orderIdx > 0 ? orderedChapterIds[orderIdx - 1] : null;
                     const isActive =
                       activeChapter?._id === chId || activeChapter?.id === chId;
-                    const isCompleted = progressByChapter[chKey]?.completed;
+                    const isCompleted = !!progressByChapter[chKey]?.completed;
+                    const chapterProgress = progressByChapter[chKey];
+                    const hasWatchProgress =
+                      isCompleted ||
+                      Number(chapterProgress?.maxWatchedTime) > 0 ||
+                      Number(chapterProgress?.watchedPercentage) > 0 ||
+                      Number(chapterProgress?.currentTime) > 0;
+                    const activeKey = String(
+                      activeChapter?._id || activeChapter?.id || "",
+                    );
+                    const activeOrderIdx = orderedChapterIds.indexOf(activeKey);
+                    // Allow replay of any lesson at/before the current one, or any already watched
+                    const isReachedOrEarlier =
+                      activeOrderIdx >= 0 &&
+                      orderIdx >= 0 &&
+                      orderIdx <= activeOrderIdx;
+                    const prevCompleted =
+                      prevChKey == null ||
+                      !!progressByChapter[prevChKey]?.completed;
                     const isLocked =
-                      !isCompleted &&
                       !isActive &&
-                      prevChKey != null &&
-                      !progressByChapter[prevChKey]?.completed;
+                      !hasWatchProgress &&
+                      !isReachedOrEarlier &&
+                      !prevCompleted;
                     const durationSec = getChapterDuration(
                       chapter,
                       progressByChapter,
@@ -321,7 +343,7 @@ const CourseViewPreviewSidebar = forwardRef(function CourseViewPreviewSidebar(
       </div>
 
       {enableCertificatePanel && (
-        <div className="p-5 border-t border-gray-200 dark:border-white/10 bg-gray-50/90 dark:bg-[#141414] min-w-[420px] shrink-0">
+        <div className="p-4 sm:p-5 border-t border-gray-200 dark:border-white/10 bg-gray-50/90 dark:bg-[#141414] min-w-0 shrink-0">
           <div className="flex items-center gap-2 mb-3">
             <Award
               size={18}

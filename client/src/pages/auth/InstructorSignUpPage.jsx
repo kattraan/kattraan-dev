@@ -11,6 +11,7 @@ import BrandLogo from '@/components/common/BrandLogo';
 import { Briefcase, ArrowRight, Lock, Check } from 'lucide-react';
 import heroBackground from "@/assets/hero-background.webp";
 import { validatePasswordStrength } from '@/utils/passwordValidation';
+import { getEmailValidationError } from '@/utils/emailValidation';
 import { ROUTES } from '@/config/routes';
 
 /**
@@ -54,11 +55,7 @@ const InstructorSignUpPage = () => {
     setFormData({ ...formData, [name]: value });
 
     if (name === 'email') {
-        if (value && !value.toLowerCase().endsWith('@gmail.com')) {
-            setEmailError('Only @gmail.com addresses are allowed');
-        } else {
-            setEmailError('');
-        }
+        setEmailError(getEmailValidationError(value));
     }
 
     if (name === 'password') {
@@ -71,8 +68,9 @@ const InstructorSignUpPage = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!formData.email.toLowerCase().endsWith('@gmail.com')) {
-        setEmailError('Only @gmail.com addresses are allowed');
+    const emailErr = getEmailValidationError(formData.email);
+    if (emailErr) {
+        setEmailError(emailErr);
         return;
     }
 
@@ -131,7 +129,7 @@ const InstructorSignUpPage = () => {
       <div className="absolute top-0 left-0 right-0 z-30 pt-6 lg:pt-8">
         <div className="max-w-[1440px] mx-auto px-6 lg:px-12 flex justify-between items-center">
           <BrandLogo showThemeToggle={false} />
-          <Link to="/" className="text-white/50 hover:text-white text-sm font-medium transition-colors hidden sm:block">Back to Website</Link>
+          <Link to="/" className="text-white/50 hover:text-white text-xs sm:text-sm font-medium transition-colors">Back to Website</Link>
         </div>
       </div>
 
@@ -202,7 +200,7 @@ const InstructorSignUpPage = () => {
             ) : (
                 <form onSubmit={handleSubmit} className="space-y-6 text-white">
                   <Input label="Full Name" name="name" placeholder="John Doe" value={formData.name} onChange={handleChange} required className="h-12 bg-white/5 border-white/10 focus:border-primary-pink/50 rounded-xl" />
-                  <Input label="Email" name="email" type="email" placeholder="name@gmail.com" value={formData.email} onChange={handleChange} error={emailError} required className="h-12 bg-white/5 border-white/10 focus:border-primary-pink/50 rounded-xl" />
+                  <Input label="Email" name="email" type="email" placeholder="you@example.com" value={formData.email} onChange={handleChange} error={emailError} required className="h-12 bg-white/5 border-white/10 focus:border-primary-pink/50 rounded-xl" />
                   <div className="relative">
                       <Input 
                           label="Password" 

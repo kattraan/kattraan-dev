@@ -2,6 +2,7 @@ const { createOrder, getPaymentMode } = require('../controllers/payment-controll
 
 jest.mock('../helpers/cashfree', () => ({
   createOrder: jest.fn(),
+  isMockMode: jest.fn(() => false),
 }));
 
 jest.mock('../models/Course', () => ({
@@ -43,6 +44,7 @@ describe('Cashfree create-order controller', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     delete process.env.CASHFREE_RETURN_URL;
+    delete process.env.CASHFREE_MOCK;
     delete process.env.CLIENT_URL;
     delete process.env.FRONTEND_URL;
     User.findById.mockReturnValue({
@@ -241,13 +243,92 @@ describe('Cashfree create-order controller', () => {
 
     getPaymentMode({}, res);
 
-    expect(res.json).toHaveBeenCalledWith({ success: true, testMode: false });
+    expect(res.json).toHaveBeenCalledWith({
+      success: true,
+      testMode: false,
+      mock: false,
+      productionMode: true,
+      blockLocalhostProduction: true,
+    });
   });
 
-  it('builds a frontend return URL that preserves the checkout route', async () => {
+  it('uses the request origin for return URL when provided', async () => {
     const originalNow = Date.now;
     Date.now = jest.fn(() => 1234567890);
-    process.env.CLIENT_URL = 'http://localhost:5173';
+    process.env.CLIENT_URL = 'https://www.kattraan.com,https://kattraan.com/';
+    mockPublishedCourse();
+    cashfreeHelper.createOrder.mockResolvedValue({
+      order_id: 'kattraan-course-1-user-6-1234567890',
+      payment_session_id: 'session-222',
+      payment_link: 'https://pay.cashfree.com/checkout/session-222',
+      cf_order_id: 'cf-order-6',
+    });
+
+    const req = {
+      user: {
+        _id: { toString: () => 'user-6' },
+        phoneNumber: '9876543210',
+        userEmail: 'test@example.com',
+        userName: 'Test User',
+      },
+      body: { courseId: 'course-1', returnOrigin: 'https://kattraan.com' },
+    };
+    const res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+
+    try {
+      await createOrder(req, res);
+    } finally {
+      Date.now = originalNow;
+    }
+
+    const generatedOrderId = PendingPayment.findOneAndUpdate.mock.calls[0][0].orderId;
+    expect(cashfreeHelper.createOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        returnUrl: `https://kattraan.com/checkout/course-1?payment=success&orderId=${generatedOrderId}`,
+      }),
+    );
+  });
+
+  it('blocks production Cashfree checkout from localhost', async () => {
+    process.env.CASHFREE_ENV = 'PRODUCTION';
+    process.env.CASHFREE_APP_ID = '1322230d8063a5f44ed9e2114a90322231';
+    process.env.CASHFREE_SECRET_KEY = 'cfsk_ma_prod_example';
+    mockPublishedCourse();
+
+    const req = {
+      user: {
+        _id: { toString: () => 'user-7' },
+        phoneNumber: '9876543210',
+        userEmail: 'test@example.com',
+        userName: 'Test User',
+      },
+      headers: { origin: 'http://localhost:5173' },
+      body: { courseId: 'course-1', returnOrigin: 'http://localhost:5173' },
+    };
+    const res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+
+    await createOrder(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        success: false,
+        message: expect.stringMatching(/localhost/i),
+      }),
+    );
+    expect(cashfreeHelper.createOrder).not.toHaveBeenCalled();
+  });
+
+  it('builds a return URL from the first origin in a comma-separated CLIENT_URL', async () => {
+    const originalNow = Date.now;
+    Date.now = jest.fn(() => 1234567890);
+    process.env.CLIENT_URL = 'https://www.kattraan.com,https://kattraan.com/';
     mockPublishedCourse();
     cashfreeHelper.createOrder.mockResolvedValue({
       order_id: 'kattraan-course-1-user-5-1234567890',
@@ -279,7 +360,7 @@ describe('Cashfree create-order controller', () => {
     const generatedOrderId = PendingPayment.findOneAndUpdate.mock.calls[0][0].orderId;
     expect(cashfreeHelper.createOrder).toHaveBeenCalledWith(
       expect.objectContaining({
-        returnUrl: `http://localhost:5173/checkout/course-1?payment=success&orderId=${generatedOrderId}`,
+        returnUrl: `https://www.kattraan.com/checkout/course-1?payment=success&orderId=${generatedOrderId}`,
       }),
     );
   });

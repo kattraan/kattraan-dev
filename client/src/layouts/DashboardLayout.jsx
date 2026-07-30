@@ -74,6 +74,7 @@ const DashboardLayout = ({ role = DASHBOARD_ROLES.LEARNER }) => {
         setIsCollapsed={setIsSidebarCollapsed}
         isMobileOpen={isMobileSidebarOpen}
         onMobileClose={closeMobileSidebar}
+        showLogout={role === DASHBOARD_ROLES.ADMIN}
       />
 
       {/* Right column */}

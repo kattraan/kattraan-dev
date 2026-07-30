@@ -11,7 +11,68 @@ const FRIENDLY_MESSAGES = {
   422: 'Please check your input and try again.',
   429: 'Too many attempts. Please wait a moment and try again.',
   500: 'Something went wrong. Please try again later.',
+  502: 'Cannot reach the API. Make sure the server is running, then try again.',
+  503: 'The API is temporarily unavailable. Wait a moment and try again.',
+  504: 'The API took too long to respond. Please try again.',
 };
+
+const API_UNREACHABLE =
+  'Cannot reach the API. Make sure the server is running (default port 5000), then refresh and try again.';
+
+function looksLikeHtmlBody(data) {
+  if (typeof data === 'string') {
+    return /^\s*</.test(data) || /<!DOCTYPE|ECONNREFUSED|Error: connect/i.test(data);
+  }
+  return false;
+}
+
+function extractServerMessage(data) {
+  if (!data) return null;
+  if (typeof data === 'string') {
+    // Vite proxy / Express often returns HTML for dead upstreams — not useful to show.
+    if (looksLikeHtmlBody(data)) return null;
+    const trimmed = data.trim();
+    return trimmed.length > 0 && trimmed.length < 500 ? trimmed : null;
+  }
+  if (typeof data.message === 'string' && data.message.length > 0 && data.message.length < 500) {
+    return data.message;
+  }
+  return null;
+}
+
+/**
+ * Axios "Network Error" usually means the browser never got a readable response
+ * (API down, CORS blocked, proxy offline). Map to an actionable message.
+ */
+export function getAuthErrorMessage(error) {
+  const status = error?.response?.status;
+  const data = error?.response?.data;
+  const serverMessage = extractServerMessage(data);
+
+  if (serverMessage) return serverMessage;
+
+  // Dead / restarting API via Vite proxy → HTML 5xx with no JSON message
+  if (looksLikeHtmlBody(data) || status === 502 || status === 503 || status === 504) {
+    return FRIENDLY_MESSAGES[status] || API_UNREACHABLE;
+  }
+
+  if (!error?.response) {
+    const raw = error?.message || '';
+    if (/network error/i.test(raw) || error?.code === 'ERR_NETWORK') {
+      return API_UNREACHABLE;
+    }
+    if (error?.code === 'ECONNABORTED') {
+      return 'The server took too long to respond. Please try again.';
+    }
+  }
+
+  return rawMessageOrFallback(error);
+}
+
+function rawMessageOrFallback(error) {
+  const status = error?.response?.status;
+  return FRIENDLY_MESSAGES[status] || error?.message || FRIENDLY_MESSAGES[500];
+}
 
 /**
  * @param {import('axios').AxiosError} error - Axios error from API call
@@ -30,12 +91,7 @@ export function getApiErrorForToast(error) {
     return { title, message };
   }
 
-  const serverMessage = data?.message;
-  const message = typeof serverMessage === 'string' && serverMessage.length > 0 && serverMessage.length < 500
-    ? serverMessage
-    : (FRIENDLY_MESSAGES[status] || FRIENDLY_MESSAGES[500]);
-
-  return { title, message };
+  return { title, message: getAuthErrorMessage(error) };
 }
 
 /**

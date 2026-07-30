@@ -105,6 +105,8 @@ export default function CourseWatchPage() {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [engagementPrompt, setEngagementPrompt] = useState(null);
   const [isSubmittingEngagement, setIsSubmittingEngagement] = useState(false);
+  /** Auto-start playback when advancing from Up Next. */
+  const [autoPlayLesson, setAutoPlayLesson] = useState(false);
   const profileRef = useRef(null);
   const activeChapterNodeRef = useRef(null);
   const promptedFeedbackRef = useRef(new Set());
@@ -169,7 +171,7 @@ export default function CourseWatchPage() {
   );
 
   const chapterId = activeChapter?._id || activeChapter?.id;
-  const { initialTime, maxWatchedTime, isCompleted, progressByChapter, saveProgress } =
+  const { initialTime, maxWatchedTime, isCompleted, progressByChapter, saveProgress, markChapterCompleted } =
     useVideoProgress(courseId, chapterId, playback, playback.isPlaying, {
       courseProgressSnapshot: progressSnapshot,
       waitForSnapshot: true,
@@ -485,7 +487,8 @@ export default function CourseWatchPage() {
   }, [navigate, returnToUrl, courseDetailsUrl]);
 
   const handleChapterSelect = useCallback(
-    (chapter) => {
+    (chapter, { autoPlay = false } = {}) => {
+      setAutoPlayLesson(!!autoPlay);
       setActiveChapter(chapter);
       setNextOverlay(null);
       const id = chapter?._id || chapter?.id;
@@ -516,14 +519,22 @@ export default function CourseWatchPage() {
   }, [courseData, activeChapter]);
 
   const handleVideoEnded = useCallback(() => {
-    if (chapterId && playback.duration > 0) {
-      saveProgress({
-        chapterId,
-        currentTime: playback.duration,
-        duration: playback.duration,
-        watchedPercentage: 100,
-        force: true,
-      });
+    const dur =
+      (Number.isFinite(playback.duration) && playback.duration > 0
+        ? playback.duration
+        : 0) || 0;
+
+    if (chapterId) {
+      markChapterCompleted(chapterId, dur);
+      if (dur > 0) {
+        saveProgress({
+          chapterId,
+          currentTime: dur,
+          duration: dur,
+          watchedPercentage: 100,
+          force: true,
+        });
+      }
     }
 
     const activeVideo = (chapterPayload?.contents || []).find(
@@ -562,6 +573,7 @@ export default function CourseWatchPage() {
     chapterId,
     playback.duration,
     saveProgress,
+    markChapterCompleted,
     chapterPayload?.contents,
     courseId,
     shouldUseLearnerProgressApis,
@@ -580,6 +592,10 @@ export default function CourseWatchPage() {
           templateId: engagementPrompt.templateId,
           rating,
         });
+        toast.success(
+          "Feedback saved",
+          "Thanks! Your feedback helps improve this course.",
+        );
       } catch (err) {
         toast.error(
           "Feedback not saved",
@@ -599,22 +615,39 @@ export default function CourseWatchPage() {
     showUpNextOverlay();
   }, [showUpNextOverlay]);
 
+  const handleCancelUpNext = useCallback((e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+    setAutoPlayLesson(false);
+    // Mark dismissed so a countdown race cannot auto-advance
+    setNextOverlay(null);
+    setPlayback((prev) => ({ ...prev, isPlaying: false }));
+  }, []);
+
   useEffect(() => {
-    if (!nextOverlay?.nextChapter || nextOverlay.completed) return;
+    if (!nextOverlay?.nextChapter || nextOverlay.completed) return undefined;
+    if (typeof nextOverlay.countdown !== "number") return undefined;
     const t = setInterval(() => {
       setNextOverlay((prev) => {
-        if (!prev || prev.completed) return prev;
+        if (!prev || prev.completed || !prev.nextChapter) return prev;
+        if (typeof prev.countdown !== "number") return prev;
         const n = prev.countdown - 1;
-        return n < 0 ? prev : { ...prev, countdown: n };
+        if (n < 0) return prev;
+        return { ...prev, countdown: n };
       });
     }, 1000);
     return () => clearInterval(t);
   }, [nextOverlay?.nextChapter, nextOverlay?.completed]);
 
   useEffect(() => {
-    if (nextOverlay?.countdown === 0 && nextOverlay?.nextChapter) {
-      handleChapterSelect(nextOverlay.nextChapter);
+    if (
+      nextOverlay &&
+      nextOverlay.countdown === 0 &&
+      nextOverlay.nextChapter
+    ) {
+      const next = nextOverlay.nextChapter;
       setNextOverlay(null);
+      handleChapterSelect(next, { autoPlay: true });
     }
   }, [nextOverlay, handleChapterSelect]);
 
@@ -686,7 +719,7 @@ export default function CourseWatchPage() {
         showProfileMenu={showProfileMenu}
         setShowProfileMenu={setShowProfileMenu}
       />
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
         <main
           className={`flex-1 min-h-0 flex flex-col scrollbar-hide min-w-0 transition-all duration-300 bg-white dark:bg-[#0d0d0d] ${
             showQuizPanel
@@ -783,10 +816,10 @@ export default function CourseWatchPage() {
                 <LMSVideoPlayer
                   activeChapter={chapterPayload}
                   posterUrl={courseData.image || courseData.thumbnail}
-                  autoPlay={false}
+                  autoPlay={autoPlayLesson}
                   initialTime={initialTime}
                   maxSeekTime={maxWatchedTime}
-                  restrictSeeking={shouldUseLearnerProgressApis && !isCompleted}
+                  restrictSeeking={false}
                   isCompleted={isCompleted}
                   onPlaybackStateChange={setPlayback}
                   onEnded={handleVideoEnded}
@@ -796,8 +829,18 @@ export default function CourseWatchPage() {
                 />
               )}
               {nextOverlay?.nextChapter && (
-                <div className="absolute inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-30 p-6">
-                  <div className="bg-white/10 border border-white/20 rounded-2xl p-6 max-w-sm w-full shadow-2xl flex flex-col gap-4">
+                <div
+                  className="absolute inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-30 p-6"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
+                  role="dialog"
+                  aria-label="Up next lesson"
+                >
+                  <div
+                    className="bg-white/10 border border-white/20 rounded-2xl p-6 max-w-sm w-full shadow-2xl flex flex-col gap-4"
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     {/* Label */}
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50">
@@ -867,15 +910,19 @@ export default function CourseWatchPage() {
                       <div className="flex items-center gap-2 flex-1 justify-end">
                         <button
                           type="button"
-                          onClick={() => setNextOverlay(null)}
+                          onClick={handleCancelUpNext}
                           className="px-3 py-1.5 rounded-lg text-white/60 hover:text-white text-xs font-semibold hover:bg-white/10 transition-all"
                         >
                           Cancel
                         </button>
                         <button
                           type="button"
-                          onClick={() => {
-                            handleChapterSelect(nextOverlay.nextChapter);
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleChapterSelect(nextOverlay.nextChapter, {
+                              autoPlay: true,
+                            });
                             setNextOverlay(null);
                           }}
                           className="px-4 py-1.5 rounded-lg bg-primary-pink text-white text-xs font-bold hover:opacity-90 transition-all shadow-lg shadow-pink-500/30"

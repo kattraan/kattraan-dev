@@ -79,6 +79,13 @@ const communityService = {
         const response = await apiClient.post(`/community/${id}/attachments`, formData);
         return response.data;
     },
+
+    uploadCommunityAvatar: async (id, file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await apiClient.post(`/community/${id}/avatar`, formData);
+        return response.data;
+    },
 };
 
 export default communityService;

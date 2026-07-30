@@ -17,11 +17,14 @@ const SYNC_GRACE_SECONDS = 5;
  * @returns {Promise<boolean>}
  */
 async function isEnrolled(userId, courseId) {
-  const doc = await LearnerCourses.findOne({
-    userId: userId.toString(),
-    'courses.courseId': courseId.toString(),
-  }).lean();
-  return !!doc;
+  if (!userId || !courseId) return false;
+  const doc = await LearnerCourses.findOne({ userId: userId.toString() })
+    .select('courses.courseId')
+    .lean();
+  const target = courseId.toString();
+  return !!(doc?.courses || []).some(
+    (c) => c?.courseId != null && String(c.courseId) === target,
+  );
 }
 
 /**
@@ -49,6 +52,27 @@ async function isChapterInCourse(courseId, chapterId) {
     isDeleted: { $ne: true },
   });
   return !!chapter;
+}
+
+/**
+ * Seconds counted toward "hours learned" for one chapter row.
+ * Prefers anti-cheat maxWatchedTime; falls back for legacy rows and completed lessons.
+ */
+function getChapterWatchedSeconds(ch) {
+  if (!ch || typeof ch !== 'object') return 0;
+
+  const max = Number(ch.maxWatchedTime);
+  if (Number.isFinite(max) && max > 0) return max;
+
+  const current = Number(ch.currentTime);
+  if (Number.isFinite(current) && current > 0) return current;
+
+  if (ch.completed) {
+    const dur = Number(ch.duration);
+    if (Number.isFinite(dur) && dur > 0) return dur;
+  }
+
+  return 0;
 }
 
 /**
@@ -156,7 +180,8 @@ async function saveProgress(userId, { courseId, chapterId, currentTime, duration
     progress = new CourseProgress({ userId, courseId, chapterProgress: [] });
   }
 
-  const idx = progress.chapterProgress.findIndex((c) => c.chapterId === chapterId);
+  const chapterKey = String(chapterId);
+  const idx = progress.chapterProgress.findIndex((c) => String(c.chapterId) === chapterKey);
   const prev = idx >= 0 ? progress.chapterProgress[idx] : null;
   const wasCompleted = !!(prev && prev.completed);
 
@@ -177,7 +202,7 @@ async function saveProgress(userId, { courseId, chapterId, currentTime, duration
     : percentage;
 
   const entry = {
-    chapterId,
+    chapterId: chapterKey,
     currentTime: safeCurrentTime,
     maxWatchedTime: mergedMaxWatchedTime,
     duration: safeDuration > 0 ? safeDuration : Math.max(0, Number(prev?.duration) || 0),
@@ -217,6 +242,7 @@ module.exports = {
   saveProgress,
   countCurriculumChapters,
   isChapterInCourse,
+  getChapterWatchedSeconds,
   deriveWatchedPercentage,
   mergeMaxWatchedTime,
   computeAllowedMaxTime,

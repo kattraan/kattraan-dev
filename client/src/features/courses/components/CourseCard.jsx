@@ -47,13 +47,13 @@ const CourseCard = ({ course }) => {
   return (
     <Link
       to={detailsUrl}
-      className="group relative flex flex-col w-full h-full min-h-[360px] border border-black/10 dark:border-white/10 rounded-[40px] p-4 transition-all duration-300 hover:scale-[1.02] backdrop-blur-[4px] shadow-2xl transform-gpu will-change-transform text-left bg-white/60 dark:bg-white/[0.03]"
+      className="group relative flex flex-col w-full h-full min-h-[400px] sm:min-h-[360px] border border-white/10 rounded-3xl sm:rounded-[40px] p-5 sm:p-4 transition-all duration-300 hover:scale-[1.02] backdrop-blur-[4px] shadow-2xl transform-gpu will-change-transform text-left bg-white/[0.03]"
       style={{
-        background: 'linear-gradient(91.43deg, rgba(217, 217, 217, 0.224) 1.92%, rgba(217, 217, 217, 0.048) 102.33%)',
+        background: 'linear-gradient(91.43deg, rgba(217, 217, 217, 0.048) 1.92%, rgba(217, 217, 217, 0.024) 102.33%)',
       }}
     >
       {/* Course Image */}
-      <div className="relative w-full h-[155px] rounded-[22px] overflow-hidden mb-4 flex-shrink-0">
+      <div className="relative w-full h-[190px] sm:h-[155px] rounded-[22px] overflow-hidden mb-4 flex-shrink-0">
         {thumbnail ? (
           <img
             src={thumbnail}
@@ -62,7 +62,7 @@ const CourseCard = ({ course }) => {
             loading="lazy"
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-primary-pink/20 to-primary-purple/20 dark:from-primary-pink/20 dark:to-primary-purple/20" />
+          <div className="w-full h-full bg-gradient-to-br from-primary-pink/20 to-primary-purple/20" />
         )}
         <div className="absolute top-3 left-3 z-10">
           <span className="text-[10px] font-medium text-white/90 bg-black/40 backdrop-blur-sm px-3 py-1 rounded-full border border-white/10 uppercase tracking-wider">
@@ -105,41 +105,41 @@ const CourseCard = ({ course }) => {
       </div>
 
       {/* Content */}
-      <div className="flex-1 px-1 text-left min-h-0">
-        <h3 className="text-gray-900 dark:text-white text-[15px] font-bold leading-tight mb-2 line-clamp-2" title={title}>
+      <div className="flex-1 px-0.5 sm:px-1 text-left min-h-0">
+        <h3 className="text-white text-base sm:text-[15px] font-bold leading-snug mb-2 line-clamp-2" title={title}>
           {title}
         </h3>
-        <p className="text-gray-600/80 dark:text-white/50 text-[11px] leading-relaxed line-clamp-2 mb-4">
+        <p className="text-white/50 text-xs sm:text-[11px] leading-relaxed line-clamp-3 sm:line-clamp-2 mb-4">
           {courseDescriptionPreviewText(description) || 'No description.'}
         </p>
       </div>
 
       {/* Footer: Metadata & CTA */}
-      <div className="mt-auto px-1 flex-shrink-0">
-        <div className="w-full h-[1px] bg-black/10 dark:bg-white/10 mb-4" />
-        <div className="flex items-center justify-between gap-2 pb-1">
-          <div className="flex items-center gap-3 text-gray-600 dark:text-white/50 flex-wrap" aria-label="Course stats">
-            <div className="flex items-center gap-1" title="Sections">
-              <BookOpen className="w-3.5 h-3.5 shrink-0" aria-hidden />
-              <span className="text-[10px] font-medium">{sectionsCount}</span>
+      <div className="mt-auto px-0.5 sm:px-1 flex-shrink-0">
+        <div className="w-full h-[1px] bg-white/10 mb-4" />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-1">
+          <div className="flex items-center gap-4 sm:gap-3 text-white/50 flex-wrap" aria-label="Course stats">
+            <div className="flex items-center gap-1.5" title="Sections">
+              <BookOpen className="w-4 h-4 sm:w-3.5 sm:h-3.5 shrink-0" aria-hidden />
+              <span className="text-xs sm:text-[10px] font-medium">{sectionsCount}</span>
             </div>
-            <div className="flex items-center gap-1" title="Duration">
-              <Clock className="w-3.5 h-3.5 shrink-0" aria-hidden />
-              <span className="text-[10px] font-medium">{duration}</span>
+            <div className="flex items-center gap-1.5" title="Duration">
+              <Clock className="w-4 h-4 sm:w-3.5 sm:h-3.5 shrink-0" aria-hidden />
+              <span className="text-xs sm:text-[10px] font-medium">{duration}</span>
             </div>
-            <div className="flex items-center gap-1" title="Enrolled">
-              <Users className="w-3.5 h-3.5 shrink-0" aria-hidden />
-              <span className="text-[10px] font-medium">{enrolledDisplay}</span>
+            <div className="flex items-center gap-1.5" title="Enrolled">
+              <Users className="w-4 h-4 sm:w-3.5 sm:h-3.5 shrink-0" aria-hidden />
+              <span className="text-xs sm:text-[10px] font-medium">{enrolledDisplay}</span>
             </div>
           </div>
-          <span className="bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] hover:opacity-90 text-white text-[11px] font-bold px-4 py-2 rounded-full transition-all flex-shrink-0 shadow-lg shadow-pink-500/10">
+          <span className="bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] hover:opacity-90 text-white text-xs sm:text-[11px] font-bold px-5 py-2.5 sm:px-4 sm:py-2 rounded-full transition-all self-start sm:self-auto shadow-lg shadow-pink-500/10">
             View details
           </span>
         </div>
         <div className="mt-2 flex items-center justify-between">
           <div className="flex flex-col">
-            <span className="text-gray-500 dark:text-white/40 text-[10px] uppercase tracking-tighter">Price</span>
-            <span className="text-gray-900 dark:text-white font-bold text-sm leading-none mt-0.5">
+            <span className="text-white/40 text-[10px] uppercase tracking-tighter">Price</span>
+            <span className="text-white font-bold text-sm leading-none mt-0.5">
               {formatPrice(price)}
             </span>
           </div>

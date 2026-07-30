@@ -125,9 +125,9 @@ const MyCoursesFeature = () => {
             headerRight={
                 <Button 
                     onClick={() => setIsModalOpen(true)} 
-                    className="bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] hover:opacity-90 text-white rounded-xl px-6 shadow-lg transition-all"
+                    className="bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] hover:opacity-90 text-white rounded-xl px-4 sm:px-6 shadow-lg transition-all text-sm sm:text-base"
                 >
-                    <Plus size={20} /> Create Course
+                    <Plus size={18} className="sm:w-5 sm:h-5" /> <span className="hidden xs:inline">Create </span>Course
                 </Button>
             }
         >

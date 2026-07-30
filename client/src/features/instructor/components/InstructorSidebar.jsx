@@ -1,6 +1,4 @@
-import { NavLink, useNavigate, Link } from "react-router-dom";
-import { useDispatch } from "react-redux";
-import { logout } from "@/features/auth/store/authSlice";
+import { NavLink, Link } from "react-router-dom";
 import logo from "@/assets/logo.png";
 import BrandLogo from "@/components/common/BrandLogo";
 import {
@@ -11,14 +9,10 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  LogOut,
 } from "lucide-react";
 import { ROUTES } from "@/config/routes";
 
 const InstructorSidebar = ({ isCollapsed, setIsCollapsed }) => {
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
-
   const navItems = [
     {
       label: "Overview",
@@ -31,11 +25,6 @@ const InstructorSidebar = ({ isCollapsed, setIsCollapsed }) => {
     { label: "Analytics", icon: BarChart3, path: ROUTES.INSTRUCTOR_ANALYTICS },
     { label: "Settings", icon: Settings, path: ROUTES.INSTRUCTOR_SETTINGS },
   ];
-
-  const handleLogout = () => {
-    dispatch(logout());
-    navigate(ROUTES.LOGIN);
-  };
 
   return (
     <aside
@@ -90,19 +79,6 @@ const InstructorSidebar = ({ isCollapsed, setIsCollapsed }) => {
           </NavLink>
         ))}
       </nav>
-
-      {/* Logout */}
-      <div className="p-4 border-t border-gray-200 dark:border-white/5 transition-colors duration-300">
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-red-500 hover:bg-red-500/10 transition-all"
-        >
-          <LogOut size={20} className={`${isCollapsed ? "mx-auto" : ""}`} />
-          {!isCollapsed && (
-            <span className="text-[15px] font-bold">Logout</span>
-          )}
-        </button>
-      </div>
     </aside>
   );
 };

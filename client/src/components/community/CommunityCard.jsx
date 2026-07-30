@@ -1,9 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { MoreVertical, Users, Pencil, LogOut, Camera } from 'lucide-react';
+import { MoreVertical, Users, LogOut, Camera } from 'lucide-react';
+import { getCommunityAvatar } from '@/components/community/CommunityChatPanels';
 import { Button } from '@/components/ui';
-
-const PLACEHOLDER_IMAGE =
-    'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&q=80';
 
 function formatChatTime(value) {
     if (!value) return '';
@@ -57,13 +55,11 @@ function buildPreview(community, isMember) {
 }
 
 /**
- * WhatsApp-style chat row for a single course community.
+ * Chat row for a single course community.
  */
-const CommunityCard = ({ community, onOpen, onJoin, onViewMembers, onEdit, onLeave, joining = false }) => {
+const CommunityCard = ({ community, onOpen, onJoin, onViewMembers, onLeave, joining = false }) => {
     const isMember = ['owner', 'admin', 'approved'].includes(community.membershipStatus);
-    const isOwnerOrAdmin = ['owner', 'admin'].includes(community.membershipStatus);
-    const courseThumbnail =
-        community.course?.thumbnail || community.course?.image || PLACEHOLDER_IMAGE;
+    const courseThumbnail = getCommunityAvatar(community);
     const courseTitle = community.course?.title || community.name || 'Community';
     const preview = buildPreview(community, isMember);
     const timeLabel = formatChatTime(community.lastMessage?.createdAt);
@@ -103,18 +99,11 @@ const CommunityCard = ({ community, onOpen, onJoin, onViewMembers, onEdit, onLea
                 }
             }}
             className={`group flex items-center gap-3 sm:gap-4 px-3 sm:px-4 py-3 rounded-2xl transition-colors duration-200 ${
-                isMember
-                    ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.06]'
-                    : ''
+                isMember ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.06]' : ''
             }`}
         >
             <div className="shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden bg-gray-200 dark:bg-white/10 border border-gray-200 dark:border-white/10">
-                <img
-                    src={courseThumbnail}
-                    alt={courseTitle}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                />
+                <img src={courseThumbnail} alt={courseTitle} className="w-full h-full object-cover" loading="lazy" />
             </div>
 
             <div className="min-w-0 flex-1">
@@ -130,9 +119,7 @@ const CommunityCard = ({ community, onOpen, onJoin, onViewMembers, onEdit, onLea
                 </div>
 
                 <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm text-gray-500 dark:text-white/45 truncate min-w-0">
-                        {preview}
-                    </p>
+                    <p className="text-sm text-gray-500 dark:text-white/45 truncate min-w-0">{preview}</p>
 
                     <div className="shrink-0 flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                         {!isMember && community.membershipStatus !== 'pending' && (
@@ -165,14 +152,6 @@ const CommunityCard = ({ community, onOpen, onJoin, onViewMembers, onEdit, onLea
                                         >
                                             <Users size={16} /> View Members
                                         </button>
-                                        {isOwnerOrAdmin && (
-                                            <button
-                                                onClick={closeAnd(onEdit)}
-                                                className="w-full text-left px-4 py-3 text-gray-700 dark:text-white/90 hover:bg-gray-50 dark:hover:bg-white/10 flex items-center gap-3 text-sm font-medium transition-colors"
-                                            >
-                                                <Pencil size={16} /> Edit Community
-                                            </button>
-                                        )}
                                         {community.membershipStatus !== 'owner' && (
                                             <button
                                                 onClick={closeAnd(onLeave)}

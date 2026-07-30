@@ -63,13 +63,36 @@ export function useVideoProgress(courseId, chapterId, playback, isPlaying, optio
         maxWatchedTime: data.maxWatchedTime ?? data.currentTime ?? 0,
         duration: data.duration,
         watchedPercentage: data.watchedPercentage,
-        completed: !!data.completed,
+        // Never regress a locally completed lesson (server anti-cheat may lag)
+        completed: !!(data.completed || prev[k]?.completed),
       },
     }));
     if (toChapterKey(payloadChapterId) === k) {
       setMaxWatchedTime(data.maxWatchedTime ?? data.currentTime ?? 0);
+      if (data.completed) setIsCompleted(true);
     }
   }, []);
+
+  const markChapterCompleted = useCallback((chId, dur = 0) => {
+    const k = toChapterKey(chId);
+    if (!k) return;
+    setProgressByChapter((prev) => ({
+      ...prev,
+      [k]: {
+        ...prev[k],
+        chapterId: chId,
+        currentTime: dur || prev[k]?.currentTime || 0,
+        maxWatchedTime: Math.max(dur || 0, prev[k]?.maxWatchedTime || 0),
+        duration: dur || prev[k]?.duration || 0,
+        watchedPercentage: 100,
+        completed: true,
+      },
+    }));
+    if (toChapterKey(chapterId) === k) {
+      setIsCompleted(true);
+      if (dur > 0) setMaxWatchedTime((prev) => Math.max(prev, dur));
+    }
+  }, [chapterId]);
 
   const shouldPersist = useCallback((chId, time, dur, { force = false, minDelta = MIN_DELTA_SEC } = {}) => {
     if (!courseId || !chId || dur <= 0) return false;
@@ -204,12 +227,16 @@ export function useVideoProgress(courseId, chapterId, playback, isPlaying, optio
     }
     const chapterProgressEntry = progressByChapter[key];
     if (chapterProgressEntry) {
-      setInitialTime(chapterProgressEntry.currentTime ?? 0);
+      // Completed lessons replay from the start; in-progress resume where left off
+      const resumeAt = chapterProgressEntry.completed
+        ? 0
+        : (chapterProgressEntry.currentTime ?? 0);
+      setInitialTime(resumeAt);
       setMaxWatchedTime(
         chapterProgressEntry.maxWatchedTime ?? chapterProgressEntry.currentTime ?? 0,
       );
       setIsCompleted(!!chapterProgressEntry.completed);
-      lastSavedTimeRef.current = chapterProgressEntry.currentTime ?? 0;
+      lastSavedTimeRef.current = resumeAt;
       lastSavedChapterRef.current = key;
     } else {
       setInitialTime(0);
@@ -281,5 +308,6 @@ export function useVideoProgress(courseId, chapterId, playback, isPlaying, optio
     error,
     isLoading,
     saveProgress,
+    markChapterCompleted,
   };
 }

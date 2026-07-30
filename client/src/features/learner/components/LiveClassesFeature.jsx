@@ -311,7 +311,7 @@ const LiveClassesFeature = () => {
           </div>
         </div>
 
-        <div className="space-y-8 max-w-4xl">
+        <div className="space-y-8">
           {loading ? (
               <div className="py-12 text-center text-gray-500 dark:text-white/50">Loading live sessions…</div>
             ) : groupedByDate.length === 0 ? (

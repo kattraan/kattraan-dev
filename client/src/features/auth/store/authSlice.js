@@ -2,17 +2,26 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import authService from '@/features/auth/services/authService';
 import { normalizeUser } from '@/features/auth/utils/roleUtils';
 import { refreshAuthSession, recheckAuthAfterRefreshFailure } from '@/api/apiClient';
+import { getAuthErrorMessage } from '@/utils/apiErrorMessages';
 
 // Async Thunks
 export const login = createAsyncThunk('auth/login', async ({ email, password }, thunkAPI) => {
     try {
         const response = await authService.login(email, password);
-        // Sequential call: Fetch profile after successful login
-        const userResponse = await authService.checkAuth();
-        return { ...response, user: userResponse.data?.user };
+        // Prefer profile from login response; fall back to /check-auth for older servers
+        let user = response?.data?.user ?? response?.user ?? null;
+        if (!user) {
+            const userResponse = await authService.checkAuth();
+            user = userResponse.data?.user ?? userResponse.user ?? null;
+        }
+        if (!user) {
+            return thunkAPI.rejectWithValue(
+                'Signed in, but your session could not be loaded. Refresh the page and try again.'
+            );
+        }
+        return { ...response, user };
     } catch (error) {
-        const message = error.response?.data?.message || error.message;
-        return thunkAPI.rejectWithValue(message);
+        return thunkAPI.rejectWithValue(getAuthErrorMessage(error));
     }
 });
 
@@ -22,8 +31,7 @@ export const register = createAsyncThunk('auth/register', async (userData, thunk
         // Keep password out of Redux action history / DevTools.
         return { ...response, email: userData.email };
     } catch (error) {
-        const message = error.response?.data?.message || error.message;
-        return thunkAPI.rejectWithValue(message);
+        return thunkAPI.rejectWithValue(getAuthErrorMessage(error));
     }
 });
 
@@ -38,8 +46,7 @@ export const verifyEmail = createAsyncThunk('auth/verifyEmail', async ({ email, 
         const userResponse = await authService.checkAuth();
         return { ...loginResponse, user: userResponse.data?.user ?? userResponse.user ?? null };
     } catch (error) {
-        const message = error.response?.data?.message || error.message;
-        return thunkAPI.rejectWithValue(message);
+        return thunkAPI.rejectWithValue(getAuthErrorMessage(error));
     }
 });
 
@@ -47,8 +54,7 @@ export const resendVerificationOtp = createAsyncThunk('auth/resendVerificationOt
     try {
         return await authService.resendVerificationOtp(email);
     } catch (error) {
-        const message = error.response?.data?.message || error.message;
-        return thunkAPI.rejectWithValue(message);
+        return thunkAPI.rejectWithValue(getAuthErrorMessage(error));
     }
 });
 
@@ -150,8 +156,7 @@ export const googleOneTapLoginAction = createAsyncThunk('auth/googleOneTapLogin'
         const userResponse = await authService.checkAuth();
         return userResponse.data?.user;
     } catch (error) {
-        const message = error.response?.data?.message || error.message;
-        return thunkAPI.rejectWithValue(message);
+        return thunkAPI.rejectWithValue(getAuthErrorMessage(error));
     }
 });
 

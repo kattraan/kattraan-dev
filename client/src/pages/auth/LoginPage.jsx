@@ -2,9 +2,8 @@ import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { clearError } from '@/features/auth/store/authSlice';
-import { hasRole } from '@/features/auth/utils/roleUtils';
+import { getPostAuthRedirectPath } from '@/features/home/utils/landingNavigation';
 import useGoogleOneTap from '@/hooks/useGoogleOneTap';
-import { ROUTES } from '@/config/routes';
 import LoginPageLayout from './LoginPageLayout';
 import LoginForm from './LoginForm';
 
@@ -18,24 +17,9 @@ const LoginPage = () => {
   useEffect(() => {
     if (!isAuthenticated || !user) return;
 
-    const params = new URLSearchParams(location.search);
-    const returnTo = params.get('returnTo');
-    const fromState = location.state?.from?.pathname;
-    const safeReturn =
-      returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//')
-        ? returnTo
-        : null;
-
-    if (hasRole(user, 'admin')) { navigate(ROUTES.ADMIN_DASHBOARD, { replace: true }); return; }
-    if (hasRole(user, 'instructor')) {
-      if (user.status === 'pending_enrollment') { navigate(ROUTES.INSTRUCTOR_ENROLLMENT, { replace: true }); return; }
-      if (user.status === 'pending_approval') { navigate(ROUTES.WAITING_APPROVAL, { replace: true }); return; }
-      navigate(ROUTES.INSTRUCTOR_DASHBOARD, { replace: true });
-      return;
-    }
-    // Learners land on the course catalog for enrollment (not the dashboard)
-    navigate(safeReturn || fromState || ROUTES.COURSES, { replace: true });
-  }, [isAuthenticated, user, navigate, location]);
+    const destination = getPostAuthRedirectPath(user);
+    if (destination) navigate(destination, { replace: true });
+  }, [isAuthenticated, user, navigate]);
 
   useEffect(() => () => dispatch(clearError()), [dispatch]);
 

@@ -221,7 +221,9 @@ const updateCommunity = async (req, res) => {
     update.updatedBy = req.user._id;
     update.updatedAt = new Date();
 
-    const community = await Community.findByIdAndUpdate(req.params.id, update, { new: true });
+    const community = await Community.findByIdAndUpdate(req.params.id, update, { new: true })
+      .populate("course", "title thumbnail")
+      .lean();
     res.json({ success: true, community });
   } catch (error) {
     console.error("Update Community Error:", error);
@@ -541,6 +543,30 @@ const getPinnedMessages = async (req, res) => {
 };
 
 // =======================
+// Upload Community Avatar (owner/admin)
+// =======================
+const uploadCommunityAvatar = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ success: false, message: "No image provided" });
+
+    const { url } = await uploadMediaToBunny(req.file.path);
+    const community = await Community.findByIdAndUpdate(
+      req.params.id,
+      { avatar: url, updatedBy: req.user._id, updatedAt: new Date() },
+      { new: true }
+    )
+      .populate("course", "title thumbnail")
+      .lean();
+
+    if (!community) return res.status(404).json({ success: false, message: "Community not found" });
+    res.json({ success: true, community });
+  } catch (error) {
+    console.error("Upload Community Avatar Error:", error);
+    res.status(500).json({ success: false, message: "Error uploading avatar: " + (error.message || "Unknown error") });
+  }
+};
+
+// =======================
 // Upload Chat Attachment (metadata only — message is created via the
 // send-message socket event so there is a single real-time creation path)
 // =======================
@@ -581,4 +607,5 @@ module.exports = {
   searchMessages,
   getPinnedMessages,
   uploadAttachment,
+  uploadCommunityAvatar,
 };

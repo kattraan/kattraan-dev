@@ -2,22 +2,14 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { MessageCircle, Search } from 'lucide-react';
-import {
-    fetchCommunities,
-    requestJoin,
-    leaveCommunity,
-    updateCommunity,
-} from '@/features/community/store/communitySlice';
+import { fetchCommunities, requestJoin, leaveCommunity } from '@/features/community/store/communitySlice';
 import CommunityCard from '@/components/community/CommunityCard';
-import ViewMembersModal from '@/components/community/ViewMembersModal';
-import EditCommunityModal from '@/components/community/EditCommunityModal';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useToast, useConfirmDialog } from '@/components/ui';
 import { ROUTES } from '@/config/routes';
 
 /**
- * Lists the communities visible to the current user (enrolled courses for
- * learners, own courses for instructors, all for admins) with join/open actions.
+ * Lists the communities visible to the current user with join/open actions.
  */
 const CommunityHubPage = () => {
     const dispatch = useDispatch();
@@ -26,9 +18,6 @@ const CommunityHubPage = () => {
     const { confirm } = useConfirmDialog();
     const { communities, loading } = useSelector((state) => state.community);
     const [joiningId, setJoiningId] = useState(null);
-    const [viewMembersId, setViewMembersId] = useState(null);
-    const [editingCommunity, setEditingCommunity] = useState(null);
-    const [savingEdit, setSavingEdit] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
@@ -51,20 +40,8 @@ const CommunityHubPage = () => {
         }
     };
 
-    const handleViewMembers = (community) => setViewMembersId(community._id);
-
-    const handleEdit = (community) => setEditingCommunity(community);
-
-    const handleSaveEdit = async (payload) => {
-        setSavingEdit(true);
-        const result = await dispatch(updateCommunity({ id: editingCommunity._id, payload }));
-        setSavingEdit(false);
-        if (updateCommunity.fulfilled.match(result)) {
-            toast.success('Community updated');
-            setEditingCommunity(null);
-        } else {
-            toast.error('Could not update community', result.payload || 'Please try again.');
-        }
+    const handleViewMembers = (community) => {
+        navigate(`${ROUTES.COMMUNITY}/${community._id}`, { state: { panel: 'members' } });
     };
 
     const handleLeave = async (community) => {
@@ -152,7 +129,6 @@ const CommunityHubPage = () => {
                                 onOpen={handleOpen}
                                 onJoin={handleJoin}
                                 onViewMembers={handleViewMembers}
-                                onEdit={handleEdit}
                                 onLeave={handleLeave}
                                 joining={joiningId === community._id}
                             />
@@ -160,20 +136,6 @@ const CommunityHubPage = () => {
                     </div>
                 )}
             </div>
-
-            <ViewMembersModal
-                isOpen={!!viewMembersId}
-                onClose={() => setViewMembersId(null)}
-                communityId={viewMembersId}
-            />
-
-            <EditCommunityModal
-                isOpen={!!editingCommunity}
-                onClose={() => setEditingCommunity(null)}
-                community={editingCommunity}
-                onSave={handleSaveEdit}
-                loading={savingEdit}
-            />
         </DashboardLayout>
     );
 };

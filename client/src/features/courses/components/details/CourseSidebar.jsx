@@ -83,7 +83,7 @@ const CourseSidebar = ({
       // Keep user in the same screen; update CTA so it doesn't show an "Enrolled" swap.
       onEnrollmentChange?.(true);
       setEnrollModalOpen(false);
-      toast.success("Enrolled", "You can find this course in My Learning.");
+      toast.success("Enrolled", "You can find this course on your Dashboard.");
     } catch (err) {
       const msg =
         err.response?.data?.message || err.message || "Enrollment failed.";
@@ -107,13 +107,11 @@ const CourseSidebar = ({
     <>
       <div className="lg:col-span-4 relative font-satoshi">
         {/* Sticky positioning wrapper */}
-        <div className="relative">
+        <div className="relative lg:sticky lg:top-24 mx-auto max-w-[382px] lg:max-w-none lg:mx-0">
           {/* Course Purchase Card - Responsive Width */}
           <div
-            className="relative overflow-hidden shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] backdrop-blur-3xl"
+            className="relative overflow-hidden shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] backdrop-blur-3xl w-full"
             style={{
-              maxWidth: "382px",
-              width: "100%",
               height: "auto",
               borderRadius: "24px",
               background:
@@ -182,9 +180,30 @@ const CourseSidebar = ({
                       )}
                     </div>
                     <h4 className="font-bold text-white text-[15px] mb-4">
-                      Review & decide
+                      Admin review
                     </h4>
-                    <div className="space-y-3 mb-8">
+                    <div className="space-y-3 mb-6">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const chapterId = findFirstPreviewChapterId(courseData);
+                          const watchUrl = buildCourseWatchPreviewUrl(courseId, chapterId);
+                          if (watchUrl) {
+                            navigate(watchUrl);
+                            return;
+                          }
+                          document
+                            .getElementById('course-curriculum')
+                            ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          toast.info('Preview', 'Open a lesson from the curriculum below.');
+                        }}
+                        className="w-full relative overflow-hidden rounded-lg btn-gradient transition-all active:scale-[0.98]"
+                      >
+                        <span className="relative z-10 flex items-center justify-center gap-2 py-3.5 text-white font-medium text-[16px]">
+                          <Play className="w-5 h-5" />
+                          Preview course
+                        </span>
+                      </button>
                       <button
                         type="button"
                         onClick={onApprove}
@@ -192,7 +211,7 @@ const CourseSidebar = ({
                         className="w-full flex items-center justify-center gap-2 rounded-lg btn-gradient font-medium py-3.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <CheckCircle2 className="w-5 h-5" />
-                        {approving ? "Approving…" : "Approve course"}
+                        {approving ? 'Approving…' : 'Approve course'}
                       </button>
                       <button
                         type="button"
@@ -201,7 +220,7 @@ const CourseSidebar = ({
                         className="w-full flex items-center justify-center gap-2 rounded-lg border border-white/30 bg-white/5 text-white font-medium py-3.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <XCircle className="w-5 h-5" />
-                        {rejecting ? "Rejecting…" : "Reject course"}
+                        {rejecting ? 'Rejecting…' : 'Reject with feedback'}
                       </button>
                     </div>
                   </>
@@ -267,10 +286,10 @@ const CourseSidebar = ({
                           </button>
                           <button
                             type="button"
-                            onClick={() => navigate(ROUTES.MY_LEARNING)}
+                            onClick={() => navigate(ROUTES.DASHBOARD)}
                             className="w-full relative overflow-hidden rounded-lg border border-white/20 bg-white/5 text-white font-medium py-3.5 transition-all active:scale-[0.98]"
                           >
-                            My Learning
+                            Dashboard
                           </button>
                         </>
                       ) : (

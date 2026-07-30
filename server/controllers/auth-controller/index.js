@@ -269,7 +269,7 @@ const loginUser = async (req, res) => {
     }
 
     // Find the user
-    const user = await User.findOne({ userEmail: userEmail.toLowerCase() });
+    let user = await User.findOne({ userEmail: userEmail.toLowerCase() });
 
     const isDev = process.env.NODE_ENV !== 'production';
 
@@ -284,8 +284,29 @@ const loginUser = async (req, res) => {
       });
     }
 
-    // Account found but wrong password
-    const isPasswordValid = await bcrypt.compare(userPassword, user.password);
+    // Google One Tap used to store a plaintext placeholder — those accounts must use Google or reset password
+    const storedPassword = user.password;
+    const isBcryptHash = typeof storedPassword === "string" && /^\$2[aby]?\$/.test(storedPassword);
+    if (!isBcryptHash) {
+      console.warn(`[Login] Non-bcrypt password hash for email: ${userEmail} (likely Google-only account)`);
+      return res.status(401).json({
+        success: false,
+        message: user.googleId
+          ? "This account uses Google sign-in. Continue with Google, or use Forgot password to set a password."
+          : "This account cannot use password login. Please use Forgot password to set a new password.",
+      });
+    }
+
+    let isPasswordValid = false;
+    try {
+      isPasswordValid = await bcrypt.compare(userPassword, storedPassword);
+    } catch (compareErr) {
+      console.error(`[Login] bcrypt.compare failed for ${userEmail}:`, compareErr.message);
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials. Please try again or reset your password.",
+      });
+    }
     if (!isPasswordValid) {
       console.warn(`[Login] Wrong password for email: ${userEmail}`);
       await logAudit(user._id, 'LOGIN_FAILED', req);
@@ -317,7 +338,7 @@ const loginUser = async (req, res) => {
 
     // --- Session Management ---
     // Remove expired sessions first
-    user.sessions = user.sessions.filter(s => s.expiresAt > Date.now());
+    user.sessions = (user.sessions || []).filter(s => s.expiresAt > Date.now());
 
     // Enforce max sessions (remove oldest if limit reached)
     if (user.sessions.length >= MAX_SESSIONS) {
@@ -354,7 +375,31 @@ const loginUser = async (req, res) => {
       lastActive: new Date()
     });
 
-    await user.save();
+    try {
+      await user.save();
+    } catch (saveErr) {
+      // Concurrent logins (two tabs / Google + form) can race on sessions — retry once
+      if (saveErr?.name === "VersionError" || saveErr?.code === 11000) {
+        const fresh = await User.findById(user._id);
+        if (!fresh) throw saveErr;
+        fresh.sessions = (fresh.sessions || []).filter((s) => s.expiresAt > Date.now());
+        if (fresh.sessions.length >= MAX_SESSIONS) {
+          fresh.sessions.sort((a, b) => a.lastActive - b.lastActive);
+          fresh.sessions.shift();
+        }
+        fresh.sessions.push({
+          refreshToken: hashedRefreshToken,
+          ip: req.ip || req.headers["x-forwarded-for"] || req.socket.remoteAddress,
+          userAgent: req.headers["user-agent"],
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          lastActive: new Date(),
+        });
+        await fresh.save();
+        user = fresh;
+      } else {
+        throw saveErr;
+      }
+    }
 
     await logAudit(user._id, 'LOGIN', req);
 
@@ -379,14 +424,22 @@ const loginUser = async (req, res) => {
       maxAge: 15 * 60 * 1000, // 15 mins
     });
 
+    // Include profile so the client does not need a fragile follow-up /check-auth
     res.status(200).json({
       success: true,
-      message: "Login successful"
+      message: "Login successful",
+      data: { user: safeProfile },
+      user: safeProfile,
     });
 
   } catch (err) {
     console.error("Login Error:", err);
-    return res.status(500).json({ success: false, message: "Server error" });
+    return res.status(500).json({
+      success: false,
+      message: process.env.NODE_ENV === "production"
+        ? "Something went wrong. Please try again later."
+        : (err.message || "Login failed due to a server error."),
+    });
   }
 };
 
@@ -960,11 +1013,14 @@ const googleOneTapLogin = async (req, res) => {
           return res.status(500).json({ success: false, message: "System configuration error" });
         }
 
+        // Store a random bcrypt hash — Google accounts should sign in with Google (or reset password)
+        const randomSecret = crypto.randomBytes(32).toString("hex");
+        const googlePasswordHash = await bcrypt.hash(randomSecret, 10);
         user = await User.create({
           userName: name,
           userEmail: email.toLowerCase(),
           googleId: googleId,
-          password: `google_${googleId}_${Date.now()}`,
+          password: googlePasswordHash,
           roles: [learnerRole.roleId], // Store UUID
           status: 'active',
           isVerified: true

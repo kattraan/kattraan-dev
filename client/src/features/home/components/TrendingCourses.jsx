@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowUpRight, ArrowRight, TrendingUp } from 'lucide-react';
 import { ROUTES } from '@/config/routes';
 import { useLandingPublicCourses } from '@/features/home/hooks/useLandingPublicCourses';
+import { CourseCardSkeleton } from '@/components/skeleton';
 
 const TrendingCourses = () => {
   const { trending, isLoading, hasApiCourses } = useLandingPublicCourses();
@@ -10,18 +11,19 @@ const TrendingCourses = () => {
   // While loading: skeletons only — never flash placeholder course images.
   if (isLoading) {
     return (
-      <div className="mt-14 w-full max-w-[1440px]">
+      <div className="mt-10 sm:mt-14 w-full max-w-[1440px] px-1">
         <div className="flex items-center gap-2 mb-4 px-1">
           <h2 className="text-2xl font-bold text-left text-white">Trending courses</h2>
           <TrendingUp className="h-6 w-6 text-white" aria-hidden />
         </div>
         <div className="border border-white/20 rounded-[40px] p-5 backdrop-blur-xl bg-white/10 overflow-hidden">
           <div className="flex gap-4 overflow-hidden px-4 py-5">
-            {[0, 1, 2, 3].map((i) => (
-              <div
+            {Array.from({ length: 4 }, (_, i) => (
+              <CourseCardSkeleton
                 key={i}
-                className="flex-shrink-0 w-full xl:w-[260px] h-[220px] rounded-[30px] border border-white/10 bg-white/5 animate-pulse"
-                aria-hidden
+                variant="landing"
+                className="flex-shrink-0 w-full xl:w-[260px] h-[220px]"
+                showFooter={false}
               />
             ))}
           </div>
@@ -32,7 +34,7 @@ const TrendingCourses = () => {
 
   if (!hasApiCourses) {
     return (
-      <div className="mt-14 w-full max-w-[1440px]">
+      <div className="mt-10 sm:mt-14 w-full max-w-[1440px] px-1">
         <div className="flex items-center gap-2 mb-4 px-1">
           <h2 className="text-2xl font-bold text-left text-white">Trending courses</h2>
           <TrendingUp className="h-6 w-6 text-white" aria-hidden />
@@ -60,14 +62,14 @@ const TrendingCourses = () => {
   }));
 
   return (
-    <div className="mt-14 w-full max-w-[1440px]">
+    <div className="mt-10 sm:mt-14 w-full max-w-[1440px] px-1">
       <div className="flex items-center gap-2 mb-4 px-1">
         <h2 className="text-2xl font-bold text-left text-white">Trending courses</h2>
         <TrendingUp className="h-6 w-6 text-white" aria-hidden />
       </div>
 
-      <div className="border border-white/20 rounded-[40px] p-5 backdrop-blur-xl bg-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.1)] overflow-hidden">
-        <div className="flex flex-col md:grid md:grid-cols-2 xl:flex xl:flex-row gap-4 overflow-hidden xl:overflow-x-auto overscroll-x-contain py-5 -my-5 px-8 -mx-8 scrollbar-hide items-stretch touch-pan-x">
+      <div className="border border-white/20 rounded-3xl sm:rounded-[40px] p-4 sm:p-5 backdrop-blur-xl bg-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.1)] overflow-hidden">
+        <div className="flex flex-col sm:grid sm:grid-cols-2 xl:flex xl:flex-row gap-4 sm:gap-4 overflow-hidden xl:overflow-x-auto overscroll-x-contain py-2 sm:py-5 -my-2 sm:-my-5 px-2 sm:px-8 -mx-2 sm:-mx-8 scrollbar-hide items-stretch touch-pan-x">
           {courses.map((course) => (
             <Link
               key={course.key}
@@ -75,7 +77,7 @@ const TrendingCourses = () => {
               className="flex-shrink-0 w-full xl:w-[260px] cursor-pointer group p-1"
               aria-label={course.title}
             >
-              <div className="relative h-[220px] border border-white/20 rounded-[30px] overflow-hidden backdrop-blur-md bg-white/10 transition-all duration-300 group-hover:scale-[1.03] group-hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] will-change-transform transform-gpu">
+              <div className="relative h-[260px] sm:h-[240px] xl:h-[220px] border border-white/20 rounded-3xl sm:rounded-[30px] overflow-hidden backdrop-blur-md bg-white/10 transition-all duration-300 group-hover:scale-[1.03] group-hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] will-change-transform transform-gpu">
                 {course.image ? (
                   <img
                     src={course.image}
@@ -92,7 +94,7 @@ const TrendingCourses = () => {
                   <ArrowUpRight className="h-3.5 w-3.5" aria-hidden />
                 </div>
                 <div className="absolute bottom-5 left-5 right-5 text-left">
-                  <h3 className="text-white font-bold text-[18px] leading-tight">{course.title}</h3>
+                  <h3 className="text-white font-bold text-lg sm:text-[18px] leading-snug line-clamp-2">{course.title}</h3>
                 </div>
               </div>
             </Link>
@@ -100,10 +102,10 @@ const TrendingCourses = () => {
 
           <Link
             to={ROUTES.COURSES}
-            className="flex-shrink-0 w-full xl:w-[150px] cursor-pointer group md:col-span-2 xl:col-span-1 p-1"
+            className="flex-shrink-0 w-full xl:w-[150px] cursor-pointer group sm:col-span-2 xl:col-span-1 p-1"
             aria-label="View all courses"
           >
-            <div className="relative h-[220px] border border-white/20 rounded-[30px] overflow-hidden backdrop-blur-md bg-white/10 transition-all duration-300 group-hover:scale-[1.03] will-change-transform transform-gpu">
+            <div className="relative h-[200px] sm:h-[220px] xl:h-[220px] border border-white/20 rounded-3xl sm:rounded-[30px] overflow-hidden backdrop-blur-md bg-white/10 transition-all duration-300 group-hover:scale-[1.03] will-change-transform transform-gpu">
               <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-black/40" />
               <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
                 <p className="font-bold text-lg mb-3">View all</p>

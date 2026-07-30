@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Mail, Lock, AlertCircle } from 'lucide-react';
@@ -6,8 +6,8 @@ import { login } from '@/features/auth/store/authSlice';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { validatePasswordStrength } from '@/utils/passwordValidation';
+import { getEmailValidationError } from '@/utils/emailValidation';
 import { ROUTES } from '@/config/routes';
-import { useToast } from '@/components/ui/Toast';
 
 export default function LoginForm({ instructorSignupSuccess }) {
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -15,24 +15,11 @@ export default function LoginForm({ instructorSignupSuccess }) {
   const [passwordWarning, setPasswordWarning] = useState('');
   const dispatch = useDispatch();
   const { loading, error } = useSelector((state) => state.auth);
-  const toast = useToast();
-  const prevErrorRef = useRef(null);
-
-  // Show toast whenever a new server error arrives
-  useEffect(() => {
-    if (error && error !== prevErrorRef.current) {
-      toast.error(error);
-      prevErrorRef.current = error;
-    }
-    if (!error) {
-      prevErrorRef.current = null;
-    }
-  }, [error, toast]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    if (name === 'email') setEmailError(value && !value.toLowerCase().endsWith('@gmail.com') ? 'Enter a valid @gmail.com address' : '');
+    if (name === 'email') setEmailError(getEmailValidationError(value));
     if (name === 'password') {
       const result = validatePasswordStrength(value);
       setPasswordWarning(value.length > 0 && !result.isValid ? 'Your password strength is ' + result.strength.toLowerCase() + '. Strong passwords are required for better security.' : '');
@@ -41,7 +28,8 @@ export default function LoginForm({ instructorSignupSuccess }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.email.toLowerCase().endsWith('@gmail.com')) { setEmailError('Enter a valid @gmail.com address'); return; }
+    const emailErr = getEmailValidationError(formData.email);
+    if (emailErr) { setEmailError(emailErr); return; }
     const result = validatePasswordStrength(formData.password);
     if (!result.isValid) { setPasswordWarning('Access denied. Your password is too weak. Please reset your password to a stronger one to continue.'); return; }
     dispatch(login(formData));
@@ -73,7 +61,7 @@ export default function LoginForm({ instructorSignupSuccess }) {
           )}
           {passwordWarning && <div id="login-password-warning" className="bg-amber-500/10 border border-amber-500/20 text-amber-500 p-3 rounded-xl text-xs text-center font-medium" role="alert">{passwordWarning}</div>}
           <div className="space-y-3">
-            <Input label="Email" name="email" type="email" placeholder="name@gmail.com" value={formData.email} onChange={handleChange} error={emailError} required className="h-[44px]" icon={Mail} />
+            <Input label="Email" name="email" type="email" placeholder="you@example.com" value={formData.email} onChange={handleChange} error={emailError} required className="h-[44px]" icon={Mail} />
             <div className="space-y-1">
               <Input label="Password" name="password" type="password" placeholder="••••••••" value={formData.password} onChange={handleChange} required className="h-[44px]" icon={Lock} />
               <div className="flex flex-wrap justify-between items-center gap-y-2 pt-1">

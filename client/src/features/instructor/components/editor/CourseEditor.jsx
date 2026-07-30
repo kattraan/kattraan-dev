@@ -53,20 +53,20 @@ function CourseEditorContent() {
         isSaving={isSaving}
       />
       {isPending && (
-        <div className="flex-shrink-0 bg-amber-500/10 border-b border-amber-500/20 px-6 py-3 text-amber-800 dark:text-amber-200 text-sm font-medium">
+        <div className="flex-shrink-0 bg-amber-500/10 border-b border-amber-500/20 px-3 sm:px-6 py-2 sm:py-3 text-amber-800 dark:text-amber-200 text-xs sm:text-sm font-medium">
           Your course is under review. You cannot edit the curriculum until admin approves or rejects it.
         </div>
       )}
       {courseDetails.status === 'rejected' && courseDetails.rejectionReason && (
-        <div className="flex-shrink-0 bg-red-500/10 border-b border-red-500/20 px-6 py-3 text-red-800 dark:text-red-200 text-sm">
+        <div className="flex-shrink-0 bg-red-500/10 border-b border-red-500/20 px-3 sm:px-6 py-2 sm:py-3 text-red-800 dark:text-red-200 text-xs sm:text-sm">
           <span className="font-medium">Course rejected. </span>
           <span>Admin feedback: {courseDetails.rejectionReason}</span>
         </div>
       )}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      <div className="flex flex-col lg:flex-row flex-1 min-h-0 overflow-hidden">
         <EditorTabs activeTab={activeTab} onTabChange={setActiveTab} />
         {/* Outer gap – gray bg peeks as top/side margin */}
-        <div className="flex-1 min-h-0 overflow-hidden px-4 pt-4 pb-0 bg-gray-50 dark:bg-black transition-colors duration-300">
+        <div className="flex-1 min-h-0 overflow-hidden px-2 sm:px-4 pt-2 sm:pt-4 pb-0 bg-gray-50 dark:bg-black transition-colors duration-300">
           {/* White scrollable container – rounded top, flush bottom, no scrollbar */}
           <div className="h-full bg-white dark:bg-[#111111] rounded-t-2xl overflow-y-auto scrollbar-hide border border-b-0 border-gray-200 dark:border-white/[0.06] shadow-sm dark:shadow-none">
             {isPending ? (

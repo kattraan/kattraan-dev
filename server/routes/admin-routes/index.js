@@ -5,11 +5,15 @@ const authorizeRoles = require('../../middleware/role-middleware');
 const { param, body } = require('express-validator');
 const validateRequest = require('../../middleware/validateRequest');
 const { getPendingCourses, approveCourse, rejectCourse } = require('../../controllers/admin-controller/courseReview.controller');
+const { getAdminStats } = require('../../controllers/admin-controller/stats.controller');
 
 router.use(authenticate);
 router.use(authorizeRoles('admin'));
 
 const validateId = [param('id').notEmpty().isMongoId().withMessage('Invalid course ID'), validateRequest];
+
+// GET /api/admin/stats — platform overview for admin dashboard
+router.get('/stats', getAdminStats);
 
 // GET /api/admin/courses/pending
 router.get('/courses/pending', getPendingCourses);

@@ -19,7 +19,16 @@ import { ROUTES } from '@/config/routes';
 import { useToast } from '@/components/ui/Toast';
 import { courseDescriptionPreviewText } from '@/utils/courseDescriptionHtml';
 import { updateProfile } from '@/features/auth/store/authSlice';
+import { notifyEnrollmentChanged } from '@/features/learner/services/learnerCoursesService';
 
+function isLocalDevHost() {
+  if (typeof window === 'undefined') return false;
+  return ['localhost', '127.0.0.1'].includes(window.location.hostname);
+}
+
+function localProductionCheckoutError() {
+  return 'Production Cashfree checkout cannot run on localhost. Test on https://www.kattraan.com, or enable CASHFREE_MOCK=true / sandbox keys for local development.';
+}
 /** Valid Indian mobiles: 10 digits starting with 6–9 (or +91 / 91 prefix). */
 function normalizeIndianPhone(phone) {
   let digits = String(phone || '').replace(/\D/g, '');
@@ -55,6 +64,7 @@ export default function CheckoutPage() {
   const [paid, setPaid] = useState(false);
   const [cashfreeTestMode, setCashfreeTestMode] = useState(false);
   const [cashfreeMockMode, setCashfreeMockMode] = useState(false);
+  const [cashfreeProductionMode, setCashfreeProductionMode] = useState(false);
   const [showPhonePopup, setShowPhonePopup] = useState(false);
   const [phoneInput, setPhoneInput] = useState('');
   const [phoneError, setPhoneError] = useState(null);
@@ -79,10 +89,12 @@ export default function CheckoutPage() {
       .then((res) => {
         setCashfreeTestMode(!!res.data?.testMode);
         setCashfreeMockMode(!!res.data?.mock);
+        setCashfreeProductionMode(!!res.data?.productionMode);
       })
       .catch(() => {
         setCashfreeTestMode(false);
         setCashfreeMockMode(false);
+        setCashfreeProductionMode(false);
       });
   }, []);
 
@@ -129,6 +141,7 @@ export default function CheckoutPage() {
       .then((verifyRes) => {
         if (verifyRes.data.success) {
           setPaid(true);
+          notifyEnrollmentChanged();
           toast?.success('Payment successful! You are now enrolled.');
           localStorage.removeItem('cashfreePendingOrder');
         }
@@ -147,6 +160,22 @@ export default function CheckoutPage() {
 
   const startCheckout = useCallback(async ({ fromPhoneModal = false } = {}) => {
     if (!course || paying) return;
+
+    const onLocalhostProduction =
+      isLocalDevHost() && cashfreeProductionMode && !cashfreeMockMode && !cashfreeTestMode;
+    if (onLocalhostProduction) {
+      const message = localProductionCheckoutError();
+      setPaying(false);
+      if (fromPhoneModal) {
+        setPhoneError(message);
+        setShowPhonePopup(true);
+        setError(null);
+      } else {
+        setError(message);
+      }
+      return;
+    }
+
     setPaying(true);
     setError(null);
     if (!fromPhoneModal) setShowPhonePopup(false);
@@ -157,6 +186,7 @@ export default function CheckoutPage() {
         courseId,
         displayCurrency: userCurrency,
         displayAmount: displayAmt,
+        returnOrigin: window.location.origin,
       });
 
       if (!data.success) throw new Error(data.message || 'Failed to create order');
@@ -181,6 +211,7 @@ export default function CheckoutPage() {
         }
         localStorage.removeItem('cashfreePendingOrder');
         setPaid(true);
+        notifyEnrollmentChanged();
         toast?.success('Payment successful! You are now enrolled.');
         setPaying(false);
         return;
@@ -205,7 +236,7 @@ export default function CheckoutPage() {
         setError(message);
       }
     }
-  }, [course, courseId, paying, userCurrency, convertFromINR, cashfreeTestMode, cashfreeMockMode, toast]);
+  }, [course, courseId, paying, userCurrency, convertFromINR, cashfreeTestMode, cashfreeMockMode, cashfreeProductionMode, toast]);
 
   const handlePayment = useCallback(() => {
     if (!course || paying || savingPhone) return;
@@ -264,10 +295,10 @@ export default function CheckoutPage() {
             Start Learning
           </button>
           <button
-            onClick={() => navigate(ROUTES.MY_LEARNING)}
+            onClick={() => navigate(ROUTES.DASHBOARD)}
             className="w-full py-3 rounded-xl border border-white/20 text-white/70 hover:text-white hover:bg-white/5 transition-all text-sm"
           >
-            Go to My Learning
+            Go to Dashboard
           </button>
         </div>
       </div>
@@ -305,7 +336,7 @@ export default function CheckoutPage() {
   return (
     <div className="min-h-screen bg-[#0c091a] text-white">
       {/* Header */}
-      <div className="border-b border-white/10 px-6 py-4 flex items-center gap-4">
+      <div className="border-b border-white/10 px-4 sm:px-6 py-3 sm:py-4 flex items-center gap-3 sm:gap-4">
         <button
           onClick={() => navigate(-1)}
           className="p-2 rounded-lg hover:bg-white/10 transition-colors"
@@ -317,7 +348,7 @@ export default function CheckoutPage() {
         <Lock className="w-4 h-4 text-white/40 ml-auto" />
       </div>
 
-      <div className="max-w-2xl mx-auto px-6 py-10">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
         {/* Course info */}
         <div className="flex gap-4 mb-8 p-4 bg-white/5 rounded-2xl border border-white/10">
           {course?.thumbnail && (
@@ -363,17 +394,23 @@ export default function CheckoutPage() {
           </div>
         )}
 
-        {(cashfreeMockMode || cashfreeTestMode) && (
+        {(cashfreeMockMode || cashfreeTestMode || (isLocalDevHost() && cashfreeProductionMode)) && (
           <div className="mb-6 flex gap-3 items-start p-4 bg-amber-500/10 border border-amber-500/35 rounded-xl text-amber-100/95 text-sm">
             <Info className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-400" />
             <div className="space-y-3 min-w-0">
               <p className="font-semibold text-amber-200">
-                {cashfreeMockMode ? 'Local mock payments' : 'Cashfree test mode'}
+                {cashfreeMockMode
+                  ? 'Local mock payments'
+                  : cashfreeTestMode
+                    ? 'Cashfree test mode'
+                    : 'Localhost checkout blocked'}
               </p>
               <p className="text-white/80 text-xs leading-relaxed">
                 {cashfreeMockMode
                   ? 'Cashfree API keys are not configured. Pay will enroll you locally without opening Cashfree. Add real sandbox keys and set CASHFREE_MOCK=false for real checkout.'
-                  : "Checkout will open Cashfree's sandbox. Use their test payment methods, then return here to continue."}
+                  : cashfreeTestMode
+                    ? "Checkout will open Cashfree's sandbox. Use their test payment methods, then return here to continue."
+                    : localProductionCheckoutError()}
               </p>
             </div>
           </div>
@@ -399,8 +436,8 @@ export default function CheckoutPage() {
         </button>
 
         {/* Trust badges */}
-        <div className="mt-6 flex items-center justify-center gap-2 text-white/30 text-xs">
-          <ShieldCheck className="w-4 h-4" />
+        <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-2 text-white/30 text-xs text-center px-2">
+          <ShieldCheck className="w-4 h-4 flex-shrink-0" />
           <span>Secured by Cashfree · 30-day money-back guarantee</span>
         </div>
       </div>

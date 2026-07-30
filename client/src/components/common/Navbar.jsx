@@ -16,6 +16,8 @@ import { hasRole } from "@/features/auth/utils/roleUtils";
 
 import { ROUTES } from "@/config/routes";
 
+import { useLearnerEnrollment } from "@/context/LearnerEnrollmentContext";
+
 import CurrencySelector from "@/components/ui/CurrencySelector";
 
 import { useCart } from "@/context/CartContext";
@@ -54,6 +56,8 @@ const Navbar = () => {
 
   const [isScrolled, setIsScrolled] = useState(false);
 
+  const { hasEnrolledCourses } = useLearnerEnrollment();
+
   const { isAuthenticated, user } = useSelector((state) => state.auth);
 
   const { count: cartCount } = useCart();
@@ -82,23 +86,21 @@ const Navbar = () => {
 
     location.pathname.startsWith(`${ROUTES.COURSE_DETAILS}/`);
 
+  const isCoursesPage =
+
+    location.pathname === ROUTES.COURSES ||
+
+    location.pathname.startsWith(`${ROUTES.COURSES}/`);
+
   const isDarkLandingPage = DARK_LANDING_PATHS.includes(location.pathname);
 
-  const isDarkNavChrome = isHeroNavPage || isDarkLandingPage || isCourseDetailsPage;
+  const isDarkNavChrome = isHeroNavPage || isDarkLandingPage || isCourseDetailsPage || isCoursesPage;
 
-  const showThemeToggle = !(isHeroNavPage || isCourseDetailsPage || isDarkLandingPage);
+  const showThemeToggle = !(isHeroNavPage || isCourseDetailsPage || isCoursesPage || isDarkLandingPage);
 
 
 
   useEffect(() => {
-
-    if (!isDarkNavChrome) {
-
-      setIsScrolled(false);
-
-      return;
-
-    }
 
     const onScroll = () => {
 
@@ -112,7 +114,7 @@ const Navbar = () => {
 
     return () => window.removeEventListener("scroll", onScroll);
 
-  }, [isDarkNavChrome]);
+  }, [location.pathname]);
 
 
 
@@ -165,16 +167,6 @@ const Navbar = () => {
 
         { name: "Courses", hasDecoration: true, path: ROUTES.COURSES },
 
-        {
-
-          name: "Become an Instructor",
-
-          hasDropdown: false,
-
-          path: ROUTES.INSTRUCTOR_SIGNUP,
-
-        },
-
       ];
 
     }
@@ -190,8 +182,6 @@ const Navbar = () => {
         { name: "Home", hasDropdown: false, path: ROUTES.HOME },
 
         { name: "Courses", hasDecoration: true, path: ROUTES.COURSES },
-
-        { name: "My Learning", hasDropdown: false, path: ROUTES.MY_LEARNING },
 
         {
 
@@ -235,8 +225,7 @@ const Navbar = () => {
 
 
 
-    // Learners (students): Explore + Home + Courses + My Learning
-    return [
+    const learnerItems = [
 
       { name: "Explore", hasDropdown: true, path: ROUTES.COURSES },
 
@@ -244,9 +233,27 @@ const Navbar = () => {
 
       { name: "Courses", hasDecoration: true, path: ROUTES.COURSES },
 
-      { name: "My Learning", hasDropdown: false, path: ROUTES.MY_LEARNING },
-
     ];
+
+
+
+    if (hasEnrolledCourses) {
+
+      learnerItems.push({
+
+        name: "Dashboard",
+
+        hasDropdown: false,
+
+        path: ROUTES.DASHBOARD,
+
+      });
+
+    }
+
+
+
+    return learnerItems;
 
   };
 
@@ -254,7 +261,7 @@ const Navbar = () => {
 
   const navItems = getNavItems();
 
-  const heroNavScrolled = isDarkNavChrome && isScrolled;
+  const navScrolled = isScrolled;
 
   const logoVariant = isDarkNavChrome ? "light" : "dark";
 
@@ -288,15 +295,23 @@ const Navbar = () => {
 
     <nav
 
-      className={`${isDarkNavChrome ? "fixed" : "absolute"} top-0 left-0 right-0 z-50 transition-[background-color,box-shadow,padding] duration-500 ease-out ${
+      className={`fixed top-0 left-0 right-0 z-50 transition-[background-color,box-shadow,padding,border-color,backdrop-filter] duration-500 ease-out ${
 
-        heroNavScrolled
+        navScrolled
 
-          ? "bg-[#090C03]/95 backdrop-blur-md shadow-[0_12px_40px_-4px_rgba(0,0,0,0.65)] py-2 sm:py-3"
+          ? isDarkNavChrome
 
-          : "pt-3 sm:pt-4 lg:pt-5 pb-2 sm:pb-3"
+            ? "bg-white/[0.06] backdrop-blur-2xl backdrop-saturate-150 border-b border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.2)] py-2 sm:py-3"
 
-      } ${isDarkNavChrome && !heroNavScrolled ? "bg-gradient-to-b from-black/50 to-transparent" : ""}`}
+            : "bg-white/40 dark:bg-white/[0.06] backdrop-blur-2xl backdrop-saturate-150 border-b border-gray-200/40 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.12)] py-2 sm:py-3"
+
+          : isDarkNavChrome
+
+            ? "bg-white/[0.03] backdrop-blur-xl backdrop-saturate-150 border-b border-white/[0.06] pt-3 sm:pt-4 lg:pt-5 pb-2 sm:pb-3"
+
+            : "bg-white/25 dark:bg-white/[0.03] backdrop-blur-xl backdrop-saturate-150 border-b border-gray-200/30 dark:border-white/[0.06] pt-3 sm:pt-4 lg:pt-5 pb-2 sm:pb-3"
+
+      }`}
 
     >
 

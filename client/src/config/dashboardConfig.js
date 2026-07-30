@@ -9,7 +9,7 @@
 import { ROUTES } from "./routes";
 
 /** Shared content area padding: matches header horizontal padding so navbar and content align. Reduced gap from sidebar. */
-export const DASHBOARD_CONTENT_PADDING = "px-5 pt-0 pb-6";
+export const DASHBOARD_CONTENT_PADDING = "px-3 sm:px-5 pt-0 pb-6";
 
 export const DASHBOARD_ROLES = {
   ADMIN: "admin",
@@ -94,7 +94,7 @@ const dashboardConfig = {
         icon: "LayoutDashboard",
       },
       {
-        label: "My Learning",
+        label: "My Courses",
         path: ROUTES.DASHBOARD_MY_COURSES,
         icon: "BookOpen",
       },

@@ -10,6 +10,7 @@ import BrandLogo from '@/components/common/BrandLogo';
 import heroBackground from "@/assets/hero-background.webp";
 import useGoogleOneTap from '@/hooks/useGoogleOneTap';
 import { validatePasswordStrength } from '@/utils/passwordValidation';
+import { getEmailValidationError } from '@/utils/emailValidation';
 import { hasRole } from '@/features/auth/utils/roleUtils';
 import { ROUTES } from '@/config/routes';
 
@@ -78,11 +79,7 @@ const SignUpPage = () => {
     setFormData({ ...formData, [name]: value });
     
     if (name === 'email') {
-        if (value && !value.toLowerCase().endsWith('@gmail.com')) {
-            setEmailError('Only @gmail.com addresses are allowed');
-        } else {
-            setEmailError('');
-        }
+        setEmailError(getEmailValidationError(value));
     }
 
     if (name === 'password') {
@@ -95,8 +92,9 @@ const SignUpPage = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!formData.email.toLowerCase().endsWith('@gmail.com')) {
-        setEmailError('Only @gmail.com addresses are allowed');
+    const emailErr = getEmailValidationError(formData.email);
+    if (emailErr) {
+        setEmailError(emailErr);
         return;
     }
 
@@ -145,7 +143,7 @@ const SignUpPage = () => {
           <BrandLogo showThemeToggle={false} />
           
           <div className="flex items-center gap-6">
-              <Link to="/" className="text-white/50 hover:text-white text-sm font-medium transition-colors hidden sm:block">Back to Website</Link>
+              <Link to="/" className="text-white/50 hover:text-white text-xs sm:text-sm font-medium transition-colors">Back to Website</Link>
               <Link to="/help" className="px-5 py-2 rounded-full border border-white/10 bg-white/5 text-white/70 hover:text-white hover:bg-white/10 hover:border-white/20 text-sm font-medium transition-all">
                   Help
               </Link>
@@ -176,7 +174,7 @@ const SignUpPage = () => {
                 {error && <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-3 rounded-xl text-xs text-center">{error}</div>}
                 <div className="space-y-3">
                     <Input label="Full Name" name="name" placeholder="John Doe" value={formData.name} onChange={handleChange} required className="h-[42px]" icon={User} />
-                    <Input label="Email" name="email" type="email" placeholder="name@gmail.com" value={formData.email} onChange={handleChange} error={emailError} required className="h-[42px]" icon={Mail} />
+                    <Input label="Email" name="email" type="email" placeholder="you@example.com" value={formData.email} onChange={handleChange} error={emailError} required className="h-[42px]" icon={Mail} />
                     <div className="relative">
                         <Input 
                             label="Password" 

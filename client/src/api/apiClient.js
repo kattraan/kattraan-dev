@@ -19,7 +19,8 @@ if (isProduction && (apiUrl === undefined || apiUrl === '')) {
     );
 }
 
-const baseURL = apiUrl ? normalizeApiBaseUrl(apiUrl) : 'http://localhost:5000/api';
+// Dev default: same-origin `/api` (Vite proxies to :5000). Avoids cross-origin cookie/CORS issues.
+const baseURL = apiUrl ? normalizeApiBaseUrl(apiUrl) : '/api';
 
 /**
  * Production-ready Axios instance with:
@@ -139,13 +140,17 @@ apiClient.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
+        const requestUrl = originalRequest?.url || '';
 
         // SKIP refresh logic for login, refresh, or check-auth to avoid infinite loops / pointless retries
         if (
-          originalRequest.url.includes('/auth/login') ||
-          originalRequest.url.includes('/auth/refresh') ||
-          originalRequest.url.includes('/auth/check-auth')
+          !originalRequest ||
+          requestUrl.includes('/auth/login') ||
+          requestUrl.includes('/auth/refresh') ||
+          requestUrl.includes('/auth/check-auth') ||
+          requestUrl.includes('/auth/google')
         ) {
+            attachApiMessage(error);
             return Promise.reject(error);
         }
 

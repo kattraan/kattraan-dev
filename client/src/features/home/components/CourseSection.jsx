@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Star, BookOpen, Clock, Users } from 'lucide-react';
 import { ROUTES } from '@/config/routes';
 import { courseDescriptionPlainText } from '@/utils/courseDescriptionHtml';
+import { CourseCarouselSkeleton } from '@/components/skeleton';
 
 const CourseCard = ({ course }) => {
   const courseId = course._id || course.id;
@@ -10,7 +11,7 @@ const CourseCard = ({ course }) => {
 
   const cardInner = (
     <>
-      <div className="relative w-full h-[155px] rounded-[22px] overflow-hidden mb-4">
+      <div className="relative w-full h-[190px] sm:h-[170px] lg:h-[155px] rounded-[22px] overflow-hidden mb-4 shrink-0">
         {course.image ? (
           <img
             src={course.image}
@@ -23,54 +24,54 @@ const CourseCard = ({ course }) => {
         )}
       </div>
 
-      <div className="flex items-center justify-between mb-3 px-1">
-        <span className="text-[10px] font-medium text-white/70 bg-white/5 px-3 py-1 rounded-full border border-white/10">
+      <div className="flex items-center justify-between mb-3 px-0.5 sm:px-1 gap-2">
+        <span className="text-[11px] sm:text-[10px] font-medium text-white/70 bg-white/5 px-3 py-1 rounded-full border border-white/10 truncate max-w-[60%]">
           {course.category}
         </span>
         {course.rating != null ? (
-          <div className="flex items-center gap-1">
-            <Star className="w-3 h-3 fill-[#FFB800] text-[#FFB800]" aria-hidden />
-            <span className="text-[11px] font-bold text-white/90">{course.rating}</span>
+          <div className="flex items-center gap-1 shrink-0">
+            <Star className="w-3.5 h-3.5 sm:w-3 sm:h-3 fill-[#FFB800] text-[#FFB800]" aria-hidden />
+            <span className="text-xs sm:text-[11px] font-bold text-white/90">{course.rating}</span>
           </div>
         ) : (
-          <span className="text-[10px] text-white/40">New</span>
+          <span className="text-[11px] sm:text-[10px] text-white/40 shrink-0">New</span>
         )}
       </div>
 
-      <div className="flex-1 px-1 text-left">
-        <h3 className="text-white text-[15px] font-bold leading-tight mb-2 truncate" title={course.title}>
+      <div className="flex-1 px-0.5 sm:px-1 text-left min-h-0">
+        <h3 className="text-white text-base sm:text-[15px] font-bold leading-snug mb-2 line-clamp-2" title={course.title}>
           {course.title}
         </h3>
-        <p className="text-white/40 text-[11px] leading-relaxed line-clamp-2 mb-4">
+        <p className="text-white/50 text-xs sm:text-[11px] leading-relaxed line-clamp-3 sm:line-clamp-2 mb-4">
           {courseDescriptionPlainText(course.description)}
         </p>
       </div>
 
-      <div className="mt-auto px-1">
+      <div className="mt-auto px-0.5 sm:px-1 shrink-0">
         <div className="w-full h-[1px] bg-white/5 mb-4" />
-        <div className="flex items-center justify-between pb-1">
-          <div className="flex items-center gap-3 text-white/40">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-1">
+          <div className="flex items-center gap-4 sm:gap-3 text-white/40 flex-wrap">
             {course.lessons && (
-              <div className="flex items-center gap-1" title="Sections">
-                <BookOpen className="w-3.5 h-3.5" aria-hidden />
-                <span className="text-[10px] font-medium">{course.lessons}</span>
+              <div className="flex items-center gap-1.5" title="Sections">
+                <BookOpen className="w-4 h-4 sm:w-3.5 sm:h-3.5" aria-hidden />
+                <span className="text-xs sm:text-[10px] font-medium">{course.lessons}</span>
               </div>
             )}
             {course.duration && (
-              <div className="flex items-center gap-1" title="Duration">
-                <Clock className="w-3.5 h-3.5" aria-hidden />
-                <span className="text-[10px] font-medium">{course.duration}</span>
+              <div className="flex items-center gap-1.5" title="Duration">
+                <Clock className="w-4 h-4 sm:w-3.5 sm:h-3.5" aria-hidden />
+                <span className="text-xs sm:text-[10px] font-medium">{course.duration}</span>
               </div>
             )}
             {course.learners && (
-              <div className="flex items-center gap-1" title="Learners">
-                <Users className="w-3.5 h-3.5" aria-hidden />
-                <span className="text-[10px] font-medium">{course.learners}</span>
+              <div className="flex items-center gap-1.5" title="Learners">
+                <Users className="w-4 h-4 sm:w-3.5 sm:h-3.5" aria-hidden />
+                <span className="text-xs sm:text-[10px] font-medium">{course.learners}</span>
               </div>
             )}
           </div>
 
-          <span className="bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] group-hover:opacity-90 text-white text-[11px] font-bold px-4 py-2 rounded-full transition-all flex-shrink-0 shadow-lg shadow-pink-500/10">
+          <span className="bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] group-hover:opacity-90 text-white text-xs sm:text-[11px] font-bold px-5 py-2.5 sm:px-4 sm:py-2 rounded-full transition-all self-start sm:self-auto shadow-lg shadow-pink-500/10">
             View details
           </span>
         </div>
@@ -79,7 +80,7 @@ const CourseCard = ({ course }) => {
   );
 
   const cardClassName =
-    'group relative flex flex-col w-full h-[360px] border-[1px] border-white/10 rounded-[40px] p-4 transition-all duration-300 hover:scale-[1.02] backdrop-blur-[4px] shadow-2xl flex-shrink-0 transform-gpu will-change-transform text-left';
+    'group relative flex flex-col w-full min-h-[420px] sm:min-h-[400px] lg:h-[360px] lg:min-h-0 border-[1px] border-white/10 rounded-3xl sm:rounded-[40px] p-5 sm:p-4 transition-all duration-300 hover:scale-[1.02] backdrop-blur-[4px] shadow-2xl flex-shrink-0 transform-gpu will-change-transform text-left';
   const cardStyle = {
     background:
       'linear-gradient(91.43deg, rgba(217, 217, 217, 0.224) 1.92%, rgba(217, 217, 217, 0.048) 102.33%)',
@@ -119,8 +120,20 @@ const CourseSection = ({ title, highlightWord, courses, isLoading = false }) => 
     return () => observer.disconnect();
   }, []);
 
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(max-width: 767px)').matches : false,
+  );
+
   useEffect(() => {
-    if (preferReducedMotion || isLoading || !courses?.length || !inView) return undefined;
+    const mq = window.matchMedia('(max-width: 767px)');
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener?.('change', update);
+    return () => mq.removeEventListener?.('change', update);
+  }, []);
+
+  useEffect(() => {
+    if (preferReducedMotion || isLoading || !courses?.length || !inView || isMobile) return undefined;
 
     let animationFrameId;
     const scroll = () => {
@@ -136,7 +149,7 @@ const CourseSection = ({ title, highlightWord, courses, isLoading = false }) => 
 
     animationFrameId = requestAnimationFrame(scroll);
     return () => cancelAnimationFrame(animationFrameId);
-  }, [isPaused, preferReducedMotion, isLoading, courses?.length, inView]);
+  }, [isPaused, preferReducedMotion, isLoading, courses?.length, inView, isMobile]);
 
   const handleScroll = () => {
     if (scrollRef.current) {
@@ -167,7 +180,7 @@ const CourseSection = ({ title, highlightWord, courses, isLoading = false }) => 
   return (
     <section
       ref={sectionRef}
-      className="relative w-full pt-10 pb-20 px-4 flex flex-col items-center bg-transparent overflow-hidden"
+      className="relative w-full pt-8 sm:pt-10 pb-16 sm:pb-20 px-3 sm:px-4 flex flex-col items-center bg-transparent overflow-hidden"
     >
       <div
         className="absolute inset-0 opacity-10 pointer-events-none"
@@ -179,8 +192,8 @@ const CourseSection = ({ title, highlightWord, courses, isLoading = false }) => 
       />
 
       <div className="relative z-10 w-full max-w-[1300px]">
-        <div className="text-center mb-6">
-          <h2 className="text-[32px] font-bold mb-2">
+        <div className="text-center mb-4 sm:mb-6 px-1">
+          <h2 className="text-2xl sm:text-[28px] lg:text-[32px] font-bold mb-2">
             <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] to-[#808080]">
               {title}
             </span>{' '}
@@ -218,10 +231,10 @@ const CourseSection = ({ title, highlightWord, courses, isLoading = false }) => 
           </div>
         </div>
 
-        <div className="relative w-full min-h-[440px] py-10 rounded-[45px] border-[1px] border-white/20 backdrop-blur-xl bg-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.1)] overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none rounded-[45px]" />
+        <div className="relative w-full min-h-[460px] sm:min-h-[440px] py-4 sm:py-10 rounded-2xl sm:rounded-[45px] border-[1px] border-white/20 backdrop-blur-xl bg-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.1)] overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none rounded-2xl sm:rounded-[45px]" />
 
-          <div className="relative z-10 flex overflow-hidden group/container py-6 -my-6 px-8 -mx-8">
+          <div className="relative z-10 flex overflow-hidden group/container py-2 sm:py-6 -my-2 sm:-my-6 px-2 sm:px-8 -mx-2 sm:-mx-8">
             {showEmpty ? (
               <div className="w-full flex flex-col items-center justify-center py-20 px-6 text-center">
                 <p className="text-white/70 text-sm font-medium mb-4">
@@ -237,35 +250,31 @@ const CourseSection = ({ title, highlightWord, courses, isLoading = false }) => 
             ) : (
               <div
                 ref={scrollRef}
-                className="flex gap-6 px-4 overflow-x-auto overscroll-x-contain scrollbar-hide scroll-smooth w-full py-4 -my-4 touch-pan-x"
+                className="flex gap-4 sm:gap-6 pl-4 pr-4 sm:px-4 overflow-x-auto overscroll-x-contain scrollbar-hide scroll-smooth w-full py-3 -my-3 touch-pan-x snap-x snap-mandatory"
                 onScroll={handleScroll}
                 onMouseEnter={() => setIsPaused(true)}
                 onMouseLeave={() => setIsPaused(false)}
               >
-                {isLoading
-                  ? [...Array(4)].map((_, index) => (
-                      <div
-                        key={`skeleton-${index}`}
-                        className="w-[300px] flex-shrink-0 p-1 h-[360px] rounded-[40px] border border-white/10 bg-white/5 animate-pulse"
-                        aria-hidden
-                      />
-                    ))
-                  : displayCourses.map((course, index) => (
-                      <div
-                        key={`${course._id || course.id || course.title}-${index}`}
-                        className="w-[300px] flex-shrink-0 p-1"
-                      >
-                        <CourseCard course={course} />
-                      </div>
-                    ))}
+                {isLoading ? (
+                  <CourseCarouselSkeleton count={4} />
+                ) : (
+                  displayCourses.map((course, index) => (
+                    <div
+                      key={`${course._id || course.id || course.title}-${index}`}
+                      className="w-[min(calc(100vw-3rem),360px)] sm:w-[300px] flex-shrink-0 snap-center p-1"
+                    >
+                      <CourseCard course={course} />
+                    </div>
+                  ))
+                )}
               </div>
             )}
           </div>
 
           {!showEmpty && !isLoading && courses?.length > 0 && (
-            <div className="mt-12 flex justify-center">
+            <div className="mt-8 sm:mt-12 flex justify-center px-4">
               <div
-                className="w-[400px] h-[3px] bg-white/5 rounded-full relative cursor-pointer group/bar"
+                className="w-full max-w-[400px] h-[3px] bg-white/5 rounded-full relative cursor-pointer group/bar"
                 onClick={handleBarClick}
                 role="slider"
                 aria-label="Course carousel progress"

@@ -134,20 +134,20 @@ const CTACarousel = () => {
   };
 
   return (
-    <section className="relative w-full pt-10 pb-20 px-4 flex flex-col items-center overflow-hidden">
-      <div className="relative z-10 w-full max-w-[1100px] flex items-center gap-3 lg:gap-5">
-        {/* Navigation Arrows — outside the carousel box */}
+    <section className="relative w-full pt-8 sm:pt-10 pb-16 sm:pb-20 px-3 sm:px-4 flex flex-col items-center overflow-hidden">
+      <div className="relative z-10 w-full max-w-[1100px] flex items-center gap-0 sm:gap-3 lg:gap-5">
+        {/* Navigation Arrows — hidden on small mobile, visible sm+ */}
         <button
           type="button"
           aria-label="Previous slide"
           onClick={scrollPrev}
-          className="flex-shrink-0 w-12 h-12 rounded-full bg-white/5 backdrop-blur-md border border-white/10 hidden lg:flex items-center justify-center hover:bg-white/10 transition-all group"
+          className="hidden sm:flex flex-shrink-0 w-10 sm:h-10 lg:w-12 lg:h-12 rounded-full bg-white/5 backdrop-blur-md border border-white/10 items-center justify-center hover:bg-white/10 transition-all group"
         >
-          <ChevronLeft className="w-6 h-6 text-white/70 group-hover:text-white transition-colors" aria-hidden />
+          <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white/70 group-hover:text-white transition-colors" aria-hidden />
         </button>
 
         {/* Gray Background Container */}
-        <div className="flex-1 min-w-0 backdrop-blur-xl bg-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.1)] rounded-3xl sm:rounded-[45px] p-3 sm:p-4 md:p-6 border border-white/20 relative overflow-hidden group/main">
+        <div className="flex-1 min-w-0 backdrop-blur-xl bg-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.1)] rounded-2xl sm:rounded-3xl md:rounded-[45px] p-3 sm:p-4 md:p-6 border border-white/20 relative overflow-hidden group/main">
           
           {/* Wrapper */}
           <div className="relative w-full overflow-hidden">
@@ -159,7 +159,7 @@ const CTACarousel = () => {
                 {slides.map((slide, index) => (
                   <div key={`${slide.id}-${index}`} className="w-full flex-shrink-0 snap-center p-2">
                     <div className="relative h-full bg-gradient-to-r from-[#cf4a69] to-[#de7388] rounded-[30px] p-[1px] overflow-hidden shadow-2xl">
-                      <div className="relative bg-gradient-to-r from-[#cf4a69] to-[#de7388] rounded-[28px] p-6 sm:p-8 md:p-12 flex flex-col md:flex-row items-start md:items-center justify-between overflow-hidden min-h-[320px] sm:min-h-[300px] md:h-[310px]">
+                      <div className="relative bg-gradient-to-r from-[#cf4a69] to-[#de7388] rounded-2xl sm:rounded-[28px] p-6 sm:p-8 md:p-12 flex flex-col md:flex-row items-start md:items-center justify-between overflow-hidden min-h-[320px] sm:min-h-[300px] md:h-[310px]">
                         <div className="flex-1 z-10 flex flex-col h-full min-w-0 w-full">
                           <div className="flex items-center gap-2 mb-3">
                             <Sparkles className="w-4 h-4 text-[#fea76e] fill-[#fea76e]" />
@@ -167,7 +167,7 @@ const CTACarousel = () => {
                               {slide.tag}
                             </span>
                           </div>
-                          <h3 className="text-white text-xl sm:text-[24px] md:text-[32px] font-bold mb-3 leading-tight min-h-0 md:min-h-[80px]">
+                          <h3 className="text-white text-lg sm:text-[24px] md:text-[32px] font-bold mb-3 leading-tight min-h-0 md:min-h-[80px]">
                             {slide.title}
                           </h3>
                           <p className="text-white/90 text-[14px] leading-relaxed mb-6 max-w-[500px] flex-1">
@@ -222,9 +222,9 @@ const CTACarousel = () => {
           type="button"
           aria-label="Next slide"
           onClick={scrollNext}
-          className="flex-shrink-0 w-12 h-12 rounded-full bg-white/5 backdrop-blur-md border border-white/10 hidden lg:flex items-center justify-center hover:bg-white/10 transition-all group"
+          className="hidden sm:flex flex-shrink-0 w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-white/5 backdrop-blur-md border border-white/10 items-center justify-center hover:bg-white/10 transition-all group"
         >
-          <ChevronRight className="w-6 h-6 text-white/70 group-hover:text-white transition-colors" aria-hidden />
+          <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 text-white/70 group-hover:text-white transition-colors" aria-hidden />
         </button>
       </div>
     </section>

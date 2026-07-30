@@ -25,6 +25,7 @@ const {
   searchMessages,
   getPinnedMessages,
   uploadAttachment,
+  uploadCommunityAvatar,
 } = require("../../controllers/community-controller");
 
 router.use(authenticate);
@@ -108,6 +109,15 @@ router.get("/:id/messages/search", validateId, requireCommunityMember(), searchM
 
 // GET /api/community/:id/messages/pinned — pinned messages (member/owner/admin)
 router.get("/:id/messages/pinned", validateId, requireCommunityMember(), getPinnedMessages);
+
+// POST /api/community/:id/avatar — upload community profile image (owner/admin)
+router.post(
+  "/:id/avatar",
+  validateId,
+  requireCommunityOwner(),
+  upload.single("file"),
+  uploadCommunityAvatar
+);
 
 // POST /api/community/:id/attachments — upload a chat attachment (member/owner/admin)
 router.post(

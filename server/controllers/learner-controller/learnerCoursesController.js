@@ -3,6 +3,7 @@ const LearnerCourses = require('../../models/LearnerCourses');
 const CourseProgress = require('../../models/CourseProgress');
 const Course = require('../../models/Course');
 const Chapter = require('../../models/Chapter');
+const { getChapterWatchedSeconds } = require('../../services/progress.service');
 
 /** Deduped ObjectIds from enrollment rows so Course.find($in) always matches stored courses. */
 function enrollmentCourseObjectIds(courseEntries) {
@@ -60,7 +61,10 @@ async function getMyCourses(req, res) {
 
         let lastWatchedAt = null;
         let lastWatchedChapterId = null;
+        let watchedSeconds = 0;
         for (const ch of chapterProgress) {
+          watchedSeconds += getChapterWatchedSeconds(ch);
+
           if (!ch.lastWatchedAt) continue;
           const watchedAt = new Date(ch.lastWatchedAt);
           if (Number.isNaN(watchedAt.getTime())) continue;
@@ -69,6 +73,8 @@ async function getMyCourses(req, res) {
             lastWatchedChapterId = ch.chapterId || null;
           }
         }
+        // Furthest legitimately watched seconds → hours (1 decimal) for dashboard "Hours Learned"
+        const hoursLearned = Math.round((watchedSeconds / 3600) * 10) / 10;
 
         return {
           id: entry.courseId,
@@ -82,6 +88,7 @@ async function getMyCourses(req, res) {
           completed: isCompleted,
           completionDate: progress?.completionDate || null,
           durationMinutes: durationByCourseId.get(String(entry.courseId)) ?? null,
+          hoursLearned,
           image: entry.courseImage || null,
           dateOfPurchase: entry.dateOfPurchase,
           lastWatchedAt: lastWatchedAt ? lastWatchedAt.toISOString() : null,

@@ -33,6 +33,18 @@ const adminService = {
     const response = await apiClient.patch(`/admin/courses/${courseId}/reject`, { rejectionReason });
     return response.data;
   },
+
+  /** Platform-wide stats for admin dashboard */
+  getStats: async () => {
+    const response = await apiClient.get('/admin/stats');
+    return response.data;
+  },
+
+  /** All users (admin user center) */
+  getUsers: async (params = {}) => {
+    const response = await apiClient.get('/users', { params });
+    return response.data;
+  },
 };
 
 export default adminService;

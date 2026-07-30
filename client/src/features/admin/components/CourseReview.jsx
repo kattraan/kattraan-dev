@@ -6,6 +6,7 @@ import adminService from '@/features/admin/services/adminService';
 import { useToast } from '@/components/ui/Toast';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { ROUTES } from '@/config/routes';
+import { CardListSkeleton } from '@/components/skeleton';
 
 export default function CourseReview() {
   const navigate = useNavigate();
@@ -49,11 +50,7 @@ export default function CourseReview() {
         )}
 
         {loading ? (
-          <div className="grid gap-4">
-            {[1, 2].map((i) => (
-              <div key={i} className="h-32 bg-white dark:bg-white/[0.03] border border-gray-200 dark:border-white/5 rounded-[24px] animate-pulse transition-colors duration-300" />
-            ))}
-          </div>
+          <CardListSkeleton count={2} height={128} />
         ) : courses.length === 0 ? (
           <div className="bg-white dark:bg-white/[0.03] border border-gray-200 dark:border-white/5 rounded-[32px] p-12 text-center transition-colors duration-300">
             <BookOpen className="w-12 h-12 mx-auto text-gray-400 dark:text-white/20 mb-4 transition-colors duration-300" />
@@ -84,7 +81,7 @@ export default function CourseReview() {
                   <Button
                     variant="primary"
                     size="sm"
-                    onClick={() => navigate(`${ROUTES.ADMIN_COURSE_REVIEW}/${course._id}`)}
+                    onClick={() => navigate(`${ROUTES.COURSE_DETAILS}/${course._id}?adminReview=1`)}
                     className="flex items-center gap-2"
                   >
                     <FileSearch size={16} />

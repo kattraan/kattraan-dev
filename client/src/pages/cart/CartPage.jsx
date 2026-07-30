@@ -49,24 +49,26 @@ export default function CartPage() {
               {items.map((item) => (
                 <li
                   key={item.courseId}
-                  className="flex items-center gap-4 p-4 rounded-2xl border border-gray-200/70 dark:border-white/10 bg-gray-50/70 dark:bg-white/[0.03] hover:border-gray-300 dark:hover:border-white/15 transition-colors"
+                  className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-4 rounded-2xl border border-gray-200/70 dark:border-white/10 bg-gray-50/70 dark:bg-white/[0.03] hover:border-gray-300 dark:hover:border-white/15 transition-colors"
                 >
-                  <div className="w-24 h-14 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100 dark:bg-white/5">
-                    {item.thumbnail ? (
-                      <img src={item.thumbnail} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-white/20 text-xs">No image</div>
-                    )}
+                  <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                    <div className="w-24 h-14 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100 dark:bg-white/5">
+                      {item.thumbnail ? (
+                        <img src={item.thumbnail} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-white/20 text-xs">No image</div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-gray-900 dark:text-white truncate">{item.title}</p>
+                      <p className="text-sm text-primary-pink font-semibold mt-0.5">{formatPrice(item.price)}</p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-gray-900 dark:text-white truncate">{item.title}</p>
-                    <p className="text-sm text-primary-pink font-semibold mt-0.5">{formatPrice(item.price)}</p>
-                  </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 self-end sm:self-auto">
                     <button
                       type="button"
                       onClick={() => navigate(`${ROUTES.CHECKOUT}/${item.courseId}`)}
-                      className="btn-gradient px-4 py-2 rounded-xl text-sm font-bold"
+                      className="btn-gradient px-4 py-2 rounded-xl text-sm font-bold flex-1 sm:flex-none"
                     >
                       Checkout
                     </button>

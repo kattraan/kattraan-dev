@@ -37,11 +37,14 @@ async function isEnrolledOrElevated(userId, courseId, userRole) {
   const role = String(userRole || '').toLowerCase();
   if (role === 'admin') return true;
 
-  const doc = await LearnerCourses.findOne({
-    userId: userId.toString(),
-    'courses.courseId': courseId.toString(),
-  }).lean();
-  return !!doc;
+  if (!userId || !courseId) return false;
+  const doc = await LearnerCourses.findOne({ userId: userId.toString() })
+    .select('courses.courseId')
+    .lean();
+  const target = courseId.toString();
+  return !!(doc?.courses || []).some(
+    (c) => c?.courseId != null && String(c.courseId) === target,
+  );
 }
 
 /**
