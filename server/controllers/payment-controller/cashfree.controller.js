@@ -83,21 +83,66 @@ function resolveCashfreeFrontendOrigin(req) {
   );
 }
 
-function buildCashfreeCallbackUrls(courseId, orderId, frontendOrigin) {
+function resolveApiPublicOrigin(req) {
+  const fromEnv = normalizeBaseUrl(
+    process.env.CASHFREE_NOTIFY_URL ||
+      process.env.API_URL ||
+      process.env.BASE_URL ||
+      process.env.API_PUBLIC_URL ||
+      process.env.PUBLIC_API_URL ||
+      process.env.RENDER_EXTERNAL_URL,
+    '',
+  );
+  if (fromEnv && !isLocalhostOrigin(fromEnv)) {
+    return fromEnv;
+  }
+
+  const forwardedHost = String(req?.headers?.['x-forwarded-host'] || '')
+    .split(',')[0]
+    .trim();
+  const host = forwardedHost || req?.get?.('host') || req?.headers?.host || '';
+  if (host && !/^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(host)) {
+    const forwardedProto = String(req?.headers?.['x-forwarded-proto'] || '')
+      .split(',')[0]
+      .trim()
+      .toLowerCase();
+    const proto = forwardedProto === 'http' || forwardedProto === 'https'
+      ? forwardedProto
+      : 'https';
+    return normalizeBaseUrl(`${proto}://${host}`, '');
+  }
+
+  return normalizeBaseUrl(fromEnv, 'http://localhost:5000');
+}
+
+function buildCashfreeCallbackUrls(courseId, orderId, frontendOrigin, req) {
   const frontendBase = frontendOrigin || normalizeBaseUrl(
     process.env.CASHFREE_RETURN_URL || process.env.CLIENT_URL || process.env.FRONTEND_URL,
     'http://localhost:5173',
   );
-  const apiBase = normalizeBaseUrl(
-    process.env.CASHFREE_NOTIFY_URL || process.env.API_URL || process.env.BASE_URL,
-    'http://localhost:5000',
-  );
+  const apiBase = resolveApiPublicOrigin(req);
 
   if (!frontendBase || frontendBase.includes(',')) {
     const err = new Error(
       'Invalid Cashfree return URL. Set CASHFREE_RETURN_URL to a single origin (e.g. https://www.kattraan.com).',
     );
     err.statusCode = 500;
+    throw err;
+  }
+
+  if (isCashfreeProductionMode() && isLocalhostOrigin(apiBase)) {
+    const err = new Error(
+      'Invalid Cashfree notify URL. Set CASHFREE_NOTIFY_URL or API_URL to your public HTTPS API (e.g. https://api.kattraan.com). Cashfree rejects http://localhost webhooks in production.',
+    );
+    err.statusCode = 400;
+    throw err;
+  }
+
+  if (isCashfreeProductionMode() && apiBase.startsWith('http://')) {
+    const err = new Error(
+      `Invalid Cashfree notify URL. Must be https. Got: ${apiBase}. Set CASHFREE_NOTIFY_URL=https://api.kattraan.com`,
+    );
+    err.statusCode = 400;
     throw err;
   }
 
@@ -144,7 +189,7 @@ async function createOrder(req, res) {
     const amount = Number(priceINR.toFixed(2));
     const orderId = buildMerchantOrderId(courseId, userId);
     const frontendOrigin = resolveCashfreeFrontendOrigin(req);
-    const { returnUrl, notifyUrl } = buildCashfreeCallbackUrls(courseId, orderId, frontendOrigin);
+    const { returnUrl, notifyUrl } = buildCashfreeCallbackUrls(courseId, orderId, frontendOrigin, req);
 
     if (isLocalhostOrigin(frontendOrigin) && isCashfreeProductionMode()) {
       return res.status(400).json({
@@ -269,9 +314,10 @@ async function createOrder(req, res) {
     }
 
     const status =
-      err.response?.status && err.response.status >= 400 && err.response.status < 500
+      err.statusCode ||
+      (err.response?.status && err.response.status >= 400 && err.response.status < 500
         ? err.response.status
-        : 500;
+        : 500);
     // Avoid leaking provider 401-shaped statuses; map other 4xx through as-is.
     const safeStatus = status === 401 ? 502 : status;
     res.status(safeStatus).json({
