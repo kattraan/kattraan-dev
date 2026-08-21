@@ -34,7 +34,7 @@ const InitializeCourseModal = ({ isOpen, onClose, onContinue, isCreating }) => {
             
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 text-center tracking-tight leading-tight">
                 What's the title of your{' '}
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4]">
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end">
                     next course?
                 </span>
             </h3>
@@ -64,7 +64,7 @@ const InitializeCourseModal = ({ isOpen, onClose, onContinue, isCreating }) => {
               isLoading={isCreating}
               className={`w-full h-12 rounded-xl mt-6 font-bold text-white transition-all border relative overflow-hidden ${
                 title.trim() && !isCreating 
-                  ? 'bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] border-[#FF8C42]/30 hover:opacity-90 shadow-lg shadow-[#FF8C42]/20' 
+                  ? 'bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end border-[#FF8C42]/30 hover:opacity-90 shadow-lg shadow-[#FF8C42]/20' 
                   : 'bg-gray-300 dark:bg-white/10 text-gray-500 dark:text-white/30 cursor-not-allowed border-gray-200 dark:border-white/10'
               }`}
             >

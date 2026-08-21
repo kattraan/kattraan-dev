@@ -6,12 +6,20 @@ import apiClient from '@/api/apiClient';
  */
 const adminService = {
   /**
-   * Fetch users with status=pending_approval (instructor applications).
+   * Fetch instructor applications awaiting admin action.
+   * Includes pending_approval (form submitted) and pending_enrollment (started, not yet submitted).
    * @returns {Promise<{ success: boolean, data: Array }>} response.data from API
    * @throws on network or 4xx/5xx (caller should catch and handle)
    */
   getPendingInstructorApplications: async () => {
-    const response = await apiClient.get('/users?status=pending_approval');
+    const response = await apiClient.get('/users', {
+      params: { status: 'pending_approval,pending_enrollment' },
+    });
+    return response.data;
+  },
+
+  getApprovedInstructors: async () => {
+    const response = await apiClient.get('/users?status=approved');
     return response.data;
   },
 
@@ -31,6 +39,22 @@ const adminService = {
   },
   rejectCourse: async (courseId, rejectionReason) => {
     const response = await apiClient.patch(`/admin/courses/${courseId}/reject`, { rejectionReason });
+    return response.data;
+  },
+
+  getPublishedCourses: async () => {
+    const response = await apiClient.get('/admin/courses/published');
+    return response.data;
+  },
+  getHomepageFeatured: async () => {
+    const response = await apiClient.get('/admin/courses/homepage-featured');
+    return response.data;
+  },
+  saveHomepageFeatured: async ({ trendingCourseIds, popularCourseIds }) => {
+    const response = await apiClient.put('/admin/courses/homepage-featured', {
+      trendingCourseIds,
+      popularCourseIds,
+    });
     return response.data;
   },
 

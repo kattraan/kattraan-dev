@@ -17,7 +17,7 @@ const OrderSchema = new mongoose.Schema(
     },
     paymentMethod: {
       type: String,
-      enum: ["cashfree"],
+      enum: ["cashfree", "razorpay"],
       default: "cashfree",
     },
     paymentStatus: {
@@ -35,6 +35,7 @@ const OrderSchema = new mongoose.Schema(
     courseTitle: { type: String, default: "" },
     courseId: { type: String, required: true, index: true },
     coursePricing: { type: Number, default: 0 },
+    amountINR: { type: Number, default: 0 },
     currency: { type: String, default: "INR" },
     displayAmount: { type: Number },
     displayCurrency: { type: String, default: "INR" },

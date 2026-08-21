@@ -27,13 +27,20 @@ const UserSchema = new mongoose.Schema({
     enum: ['active', 'pending_enrollment', 'pending_approval', 'approved', 'rejected'],
     default: 'active'
   },
+  instructorApprovedAt: {
+    type: Date,
+    default: null,
+  },
   enrollmentData: {
     bio: String,
     experience: String,
     expertise: String,
     linkedin: String,
     website: String,
-    resume: String, // Path to uploaded file
+    github: String,
+    languages: [String],
+    resume: String, // Path or original filename
+    idProof: String,
     submittedAt: Date,
     // Profile / account settings
     gender: String,

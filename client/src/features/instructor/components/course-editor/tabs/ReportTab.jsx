@@ -509,7 +509,7 @@ const ReportTab = ({ courseId, activeReportSubTab, setActiveReportSubTab }) => {
                                 <span>{count} responses ({width}%)</span>
                               </div>
                               <div className="h-2 rounded-full bg-gray-100 dark:bg-white/10 overflow-hidden">
-                                <div className="h-full bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4]" style={{ width: `${width}%` }} />
+                                <div className="h-full bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end" style={{ width: `${width}%` }} />
                               </div>
                             </div>
                           );

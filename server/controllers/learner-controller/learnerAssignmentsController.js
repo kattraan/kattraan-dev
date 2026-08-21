@@ -52,7 +52,8 @@ function evaluateQuizSubmission(content, submissionTextRaw) {
   });
 
   const questions = Array.isArray(content.questions) ? content.questions : [];
-  const passingPercentage = Number(content?.metadata?.passingPercentage) || 0;
+  // Product rule: < 40% Failed, >= 40% Passed.
+  const passingPercentage = 40;
   const enforcePassingGrade = !!content?.metadata?.enforcePassingGrade;
   const allowRetake = !!content?.metadata?.allowRetake;
 
@@ -324,6 +325,10 @@ async function getMyAssignments(req, res) {
           options: q.options || [],
           marks: q.marks,
           image: q.image,
+          instructions: q.instructions || "",
+          submissionFormats: q.submissionFormats || [],
+          attachments: q.attachments || [],
+          evaluationCriteria: q.evaluationCriteria || [],
           _id: q._id,
         }));
         assignments.push({
@@ -335,13 +340,13 @@ async function getMyAssignments(req, res) {
           courseTitle,
           chapterId: ch._id,
           chapterTitle: ch.title || "Chapter",
-          dueDate: cont.dueDate || null,
+          dueDate: cont.dueDate || cont.metadata?.dueDate || null,
           points: (cont.questions || []).reduce((sum, q) => sum + (q.marks || 0), 0) || 100,
           questions,
           isMcq: questions.length > 0,
           status: sub ? (sub.status === "graded" ? "Graded" : sub.status === "submitted" ? "Submitted" : "Pending") : "Pending",
           quizSettings: {
-            passingPercentage: Number(cont?.metadata?.passingPercentage) || 0,
+            passingPercentage: 40,
             enforcePassingGrade: !!cont?.metadata?.enforcePassingGrade,
             allowRetake: !!cont?.metadata?.allowRetake,
             assessmentMode:
@@ -483,9 +488,85 @@ async function submitAssignment(req, res) {
   }
 }
 
+/**
+ * POST /api/learner/assignments/:contentId/upload
+ * Multipart file upload for enrolled learners submitting assignment work.
+ */
+async function uploadAssignmentFile(req, res) {
+  try {
+    const userId = req.user._id;
+    const { contentId } = req.params;
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "No file provided" });
+    }
+
+    const content = await Content.findById(contentId).populate("chapter").lean();
+    if (!content || content.type !== "quiz" || content.isDeleted) {
+      return res.status(404).json({ success: false, message: "Assignment not found" });
+    }
+    if (content.metadata?.assessmentMode !== "assignment") {
+      return res.status(400).json({
+        success: false,
+        message: "File upload is only available for graded assignments",
+      });
+    }
+
+    const chapter = content.chapter;
+    if (!chapter) {
+      return res.status(400).json({ success: false, message: "Invalid assignment" });
+    }
+    const section = await Section.findById(chapter.section).lean();
+    if (!section) {
+      return res.status(400).json({ success: false, message: "Invalid assignment" });
+    }
+    const courseId = section.course;
+
+    const learnerDoc = await LearnerCourses.findOne({ userId: userId.toString() });
+    const enrolled = learnerDoc?.courses?.some(
+      (c) => c.courseId && c.courseId.toString() === courseId.toString()
+    );
+    if (!enrolled) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not enrolled in this course",
+      });
+    }
+
+    const { uploadMediaToBunny } = require("../../helpers/bunnyStorage");
+    const { signStorageCdnUrl } = require("../../helpers/bunnyToken");
+    const Media = require("../../models/Media");
+
+    const { key, url } = await uploadMediaToBunny(req.file.path);
+    await Media.create({
+      key,
+      url,
+      course: courseId,
+      uploadedBy: userId,
+    });
+    const clientUrl = signStorageCdnUrl(url, 60 * 60 * 24 * 7);
+
+    return res.status(201).json({
+      success: true,
+      data: {
+        key,
+        url: clientUrl,
+        fileName: req.file.originalname || "submission",
+      },
+    });
+  } catch (err) {
+    console.error("Assignment file upload error:", err);
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Failed to upload file",
+    });
+  }
+}
+
 module.exports = {
   getMyAssignments,
   submitAssignment,
+  uploadAssignmentFile,
   getAssignmentSubmissionForContent,
   getAssignmentSummariesByContentIds,
 };

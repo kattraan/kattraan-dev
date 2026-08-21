@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { hasRole } from "@/features/auth/utils/roleUtils";
+import { hasRole, isApprovedInstructor } from "@/features/auth/utils/roleUtils";
 import { ROUTES } from "@/config/routes";
 import { logout } from "@/features/auth/store/authSlice";
 import DashboardMenuButton from "@/components/common/DashboardMenuButton";
@@ -74,13 +74,13 @@ const InstructorHeader = () => {
 
       <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
         {/* Role Switcher - Professional pill toggle */}
-        {hasRole(user, "instructor") && (
+        {isApprovedInstructor(user) && (
           <div className="hidden sm:flex items-center rounded-full p-1 bg-gray-100/80 dark:bg-white/[0.06] border border-gray-200/80 dark:border-white/10 shadow-inner transition-colors duration-300">
             <Link
               to="/dashboard"
               className={`min-w-[76px] px-4 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200 ${
                 !isInstructor
-                  ? "bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] text-white shadow-md shadow-primary-pink/25"
+                  ? "bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end text-white shadow-md shadow-primary-pink/25"
                   : "text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/70"
               }`}
             >
@@ -90,7 +90,7 @@ const InstructorHeader = () => {
               to={ROUTES.INSTRUCTOR_DASHBOARD}
               className={`min-w-[76px] px-4 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200 ${
                 isInstructor
-                  ? "bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] text-white shadow-md shadow-primary-pink/25"
+                  ? "bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end text-white shadow-md shadow-primary-pink/25"
                   : "text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/70"
               }`}
             >
@@ -129,7 +129,7 @@ const InstructorHeader = () => {
                 loading="lazy"
               />
             ) : (
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FF8C42] to-[#FF3FB4] shadow-lg shadow-pink-500/20 border border-white/20 flex items-center justify-center text-white font-black text-base italic">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gradient-start via-gradient-mid to-gradient-end shadow-lg shadow-pink-500/20 border border-white/20 flex items-center justify-center text-white font-black text-base italic">
                 {(user?.name ||
                   user?.userName ||
                   user?.user_name ||

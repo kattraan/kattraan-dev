@@ -20,7 +20,7 @@ const CourseCard = ({ course }) => {
             loading="lazy"
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-[#FF8C42]/30 to-[#FF3FB4]/20" />
+          <div className="w-full h-full bg-gradient-to-br from-gradient-start/30 via-gradient-mid/30 to-gradient-end/20" />
         )}
       </div>
 
@@ -71,7 +71,7 @@ const CourseCard = ({ course }) => {
             )}
           </div>
 
-          <span className="bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] group-hover:opacity-90 text-white text-xs sm:text-[11px] font-bold px-5 py-2.5 sm:px-4 sm:py-2 rounded-full transition-all self-start sm:self-auto shadow-lg shadow-pink-500/10">
+          <span className="bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end group-hover:opacity-90 text-white text-xs sm:text-[11px] font-bold px-5 py-2.5 sm:px-4 sm:py-2 rounded-full transition-all self-start sm:self-auto shadow-lg shadow-pink-500/10">
             View details
           </span>
         </div>
@@ -93,13 +93,37 @@ const CourseCard = ({ course }) => {
   );
 };
 
+const THUMB_WIDTH_PX = 36;
+
+function scrollMetrics(el) {
+  if (!el) return { max: 0, progress: 0 };
+  const max = Math.max(0, el.scrollWidth - el.clientWidth);
+  const progress = max > 0 ? el.scrollLeft / max : 0;
+  return { max, progress };
+}
+
+function setScrollFromGrip(el, barEl, clientX, gripOffsetX = THUMB_WIDTH_PX / 2) {
+  if (!el || !barEl) return;
+  const { max } = scrollMetrics(el);
+  if (max <= 0) return;
+  const rect = barEl.getBoundingClientRect();
+  const travel = Math.max(1, rect.width - THUMB_WIDTH_PX);
+  const x = Math.min(Math.max(clientX - rect.left - gripOffsetX, 0), travel);
+  el.scrollLeft = (x / travel) * max;
+}
+
 const CourseSection = ({ title, highlightWord, courses, isLoading = false }) => {
   const sectionRef = useRef(null);
   const scrollRef = useRef(null);
+  const barRef = useRef(null);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [canScroll, setCanScroll] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [preferReducedMotion, setPreferReducedMotion] = useState(false);
   const [inView, setInView] = useState(true);
+  const scrubbingRef = useRef(false);
+  const gripOffsetRef = useRef(THUMB_WIDTH_PX / 2);
+  const rowDragRef = useRef({ active: false, startX: 0, startScroll: 0, moved: false });
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -137,7 +161,7 @@ const CourseSection = ({ title, highlightWord, courses, isLoading = false }) => 
 
     let animationFrameId;
     const scroll = () => {
-      if (scrollRef.current && !isPaused) {
+      if (scrollRef.current && !isPaused && !scrubbingRef.current) {
         const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
         scrollRef.current.scrollLeft += 1;
         if (scrollLeft + clientWidth >= scrollWidth - 1) {
@@ -151,31 +175,125 @@ const CourseSection = ({ title, highlightWord, courses, isLoading = false }) => 
     return () => cancelAnimationFrame(animationFrameId);
   }, [isPaused, preferReducedMotion, isLoading, courses?.length, inView, isMobile]);
 
+  const showEmpty = !isLoading && (!courses || courses.length === 0);
+  const displayCourses =
+    !preferReducedMotion && courses?.length > 3 ? [...courses, ...courses] : courses || [];
+
+  const syncProgress = () => {
+    const { max, progress } = scrollMetrics(scrollRef.current);
+    setCanScroll(max > 1);
+    setScrollProgress(progress * 100);
+  };
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return undefined;
+    syncProgress();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(syncProgress) : null;
+    ro?.observe(el);
+    window.addEventListener('resize', syncProgress);
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener('resize', syncProgress);
+    };
+  }, [courses, isLoading, displayCourses.length]);
+
   const handleScroll = () => {
-    if (scrollRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
-      const denom = scrollWidth - clientWidth;
-      const progress = denom > 0 ? (scrollLeft / denom) * 100 : 0;
-      setScrollProgress(progress);
+    syncProgress();
+  };
+
+  const beginGrip = (clientX, offsetX) => {
+    scrubbingRef.current = true;
+    gripOffsetRef.current = offsetX;
+    setIsPaused(true);
+    setScrollFromGrip(scrollRef.current, barRef.current, clientX, offsetX);
+  };
+
+  const handleThumbPointerDown = (e) => {
+    if (!canScroll) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    const offsetX = e.clientX - e.currentTarget.getBoundingClientRect().left;
+    beginGrip(e.clientX, offsetX);
+  };
+
+  const handleThumbPointerMove = (e) => {
+    if (!scrubbingRef.current) return;
+    setScrollFromGrip(scrollRef.current, barRef.current, e.clientX, gripOffsetRef.current);
+  };
+
+  const handleTrackPointerDown = (e) => {
+    if (!canScroll || e.target.closest('[data-course-grip]')) return;
+    e.preventDefault();
+    beginGrip(e.clientX, THUMB_WIDTH_PX / 2);
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  };
+
+  const endScrub = (e) => {
+    if (e?.currentTarget?.hasPointerCapture?.(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+    scrubbingRef.current = false;
+    rowDragRef.current.active = false;
+    setIsPaused(false);
+  };
+
+  const handleRowPointerDown = (e) => {
+    if (!canScroll || e.pointerType === 'touch' || e.button !== 0) return;
+    if (e.target.closest('a') && e.detail > 1) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    rowDragRef.current = { active: true, startX: e.clientX, startScroll: el.scrollLeft, moved: false };
+    scrubbingRef.current = true;
+    setIsPaused(true);
+    el.classList.add('cursor-grabbing');
+  };
+
+  const handleRowPointerMove = (e) => {
+    if (!rowDragRef.current.active || !scrollRef.current) return;
+    const dx = e.clientX - rowDragRef.current.startX;
+    if (Math.abs(dx) > 6) rowDragRef.current.moved = true;
+    scrollRef.current.scrollLeft = rowDragRef.current.startScroll - dx;
+  };
+
+  const handleRowPointerUp = () => {
+    scrollRef.current?.classList.remove('cursor-grabbing');
+    const moved = rowDragRef.current.moved;
+    rowDragRef.current.active = false;
+    scrubbingRef.current = false;
+    setIsPaused(false);
+    rowDragRef.current.moved = moved;
+  };
+
+  const handleRowClickCapture = (e) => {
+    if (rowDragRef.current.moved) {
+      e.preventDefault();
+      e.stopPropagation();
+      rowDragRef.current.moved = false;
     }
   };
 
-  const handleBarClick = (e) => {
-    if (!scrollRef.current) return;
-    const bar = e.currentTarget;
-    const rect = bar.getBoundingClientRect();
-    const clickPercentage = (e.clientX - rect.left) / rect.width;
-    const { scrollWidth, clientWidth } = scrollRef.current;
-    scrollRef.current.scrollTo({
-      left: clickPercentage * (scrollWidth - clientWidth),
-      behavior: preferReducedMotion ? 'auto' : 'smooth',
-    });
+  const handleBarKeyDown = (e) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const { max } = scrollMetrics(el);
+    if (max <= 0) return;
+    const step = Math.max(80, el.clientWidth * 0.35);
+    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      el.scrollLeft = Math.min(max, el.scrollLeft + step);
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      el.scrollLeft = Math.max(0, el.scrollLeft - step);
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      el.scrollLeft = 0;
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      el.scrollLeft = max;
+    }
   };
-
-  const showEmpty = !isLoading && (!courses || courses.length === 0);
-  // Duplicate only when enough cards to scroll; otherwise one set is enough.
-  const displayCourses =
-    !preferReducedMotion && courses?.length > 3 ? [...courses, ...courses] : courses || [];
 
   return (
     <section
@@ -197,7 +315,7 @@ const CourseSection = ({ title, highlightWord, courses, isLoading = false }) => 
             <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] to-[#808080]">
               {title}
             </span>{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4]">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end">
               {highlightWord}
             </span>
           </h2>
@@ -242,7 +360,7 @@ const CourseSection = ({ title, highlightWord, courses, isLoading = false }) => 
                 </p>
                 <Link
                   to={ROUTES.COURSES}
-                  className="text-white text-[13px] font-bold px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] hover:opacity-90 transition-opacity"
+                  className="text-white text-[13px] font-bold px-6 py-2.5 rounded-xl bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end hover:opacity-90 transition-opacity"
                 >
                   Browse courses
                 </Link>
@@ -250,8 +368,15 @@ const CourseSection = ({ title, highlightWord, courses, isLoading = false }) => 
             ) : (
               <div
                 ref={scrollRef}
-                className="flex gap-4 sm:gap-6 pl-4 pr-4 sm:px-4 overflow-x-auto overscroll-x-contain scrollbar-hide scroll-smooth w-full py-3 -my-3 touch-pan-x snap-x snap-mandatory"
+                className={`flex gap-4 sm:gap-6 pl-4 pr-4 sm:px-4 overflow-x-auto overscroll-x-contain scrollbar-hide w-full py-3 -my-3 snap-x snap-mandatory select-none ${
+                  canScroll ? 'cursor-grab' : ''
+                }`}
                 onScroll={handleScroll}
+                onPointerDown={handleRowPointerDown}
+                onPointerMove={handleRowPointerMove}
+                onPointerUp={handleRowPointerUp}
+                onPointerCancel={handleRowPointerUp}
+                onClickCapture={handleRowClickCapture}
                 onMouseEnter={() => setIsPaused(true)}
                 onMouseLeave={() => setIsPaused(false)}
               >
@@ -274,22 +399,41 @@ const CourseSection = ({ title, highlightWord, courses, isLoading = false }) => 
           {!showEmpty && !isLoading && courses?.length > 0 && (
             <div className="mt-8 sm:mt-12 flex justify-center px-4">
               <div
-                className="w-full max-w-[400px] h-[3px] bg-white/5 rounded-full relative cursor-pointer group/bar"
-                onClick={handleBarClick}
+                ref={barRef}
+                className={`relative w-full max-w-[400px] h-4 touch-none select-none ${
+                  canScroll ? '' : 'opacity-40'
+                }`}
+                onPointerDown={handleTrackPointerDown}
+                onPointerMove={handleThumbPointerMove}
+                onPointerUp={endScrub}
+                onPointerCancel={endScrub}
+                onMouseEnter={() => setIsPaused(true)}
+                onMouseLeave={() => {
+                  if (!scrubbingRef.current) setIsPaused(false);
+                }}
+                onKeyDown={handleBarKeyDown}
                 role="slider"
-                aria-label="Course carousel progress"
+                aria-label="Scroll popular courses"
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={Math.round(scrollProgress)}
-                tabIndex={0}
+                aria-disabled={!canScroll}
+                tabIndex={canScroll ? 0 : -1}
               >
-                <div className="absolute inset-y-[-10px] inset-x-0 bg-transparent z-10" />
+                <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[2px] rounded-full bg-white/10 pointer-events-none" />
                 <div
-                  className="h-full bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] rounded-full absolute top-0 transition-all duration-100"
+                  data-course-grip
+                  className={`absolute top-1/2 -translate-y-1/2 h-[2px] rounded-full bg-gradient-to-r from-gradient-start/70 via-gradient-mid/70 to-gradient-end/70 ${
+                    canScroll ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
+                  }`}
                   style={{
-                    width: '100px',
-                    left: `${Math.min(Math.max(scrollProgress, 0), 100) * (1 - 100 / 400)}%`,
+                    width: `${THUMB_WIDTH_PX}px`,
+                    left: `calc((100% - ${THUMB_WIDTH_PX}px) * ${Math.min(Math.max(scrollProgress, 0), 100) / 100})`,
                   }}
+                  onPointerDown={handleThumbPointerDown}
+                  onPointerMove={handleThumbPointerMove}
+                  onPointerUp={endScrub}
+                  onPointerCancel={endScrub}
                 />
               </div>
             </div>

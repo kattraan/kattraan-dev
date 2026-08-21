@@ -64,6 +64,14 @@ const InstructorRoutes = () => {
             }
           />
           <Route
+            path="courses"
+            element={
+              <Suspense fallback={null}>
+                <MyCourses />
+              </Suspense>
+            }
+          />
+          <Route
             path="learners"
             element={
               <Suspense fallback={null}>

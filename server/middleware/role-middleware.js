@@ -1,4 +1,5 @@
 
+const { effectiveRoleNames } = require("../helpers/instructorAccess");
 
 function authorizeRoles(...allowedRoles) {
   return (req, res, next) => {
@@ -8,10 +9,11 @@ function authorizeRoles(...allowedRoles) {
     }
     // user.roleNames is an array of strings (e.g., ["learner", "instructor"])
     const userRoleNames = Array.isArray(req.user.roleNames) ? req.user.roleNames : [req.user.roleNames];
-    
+
     // Convert both to strings and lowercase for safe comparison
     const allowedRolesLower = allowedRoles.map(r => String(r).toLowerCase());
-    const userRolesLower = userRoleNames.map(r => String(r).toLowerCase());
+    const userRolesLower = effectiveRoleNames(userRoleNames, req.user.status)
+      .map(role => String(role).toLowerCase());
 
     if (process.env.NODE_ENV !== "production") console.log(`RBAC Debug: Checking userRoles [${userRolesLower}] against allowed [${allowedRolesLower}]`);
 

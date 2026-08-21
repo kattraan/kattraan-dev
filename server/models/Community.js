@@ -3,7 +3,8 @@ const AuditFields = require("./shared/AuditFields");
 const SoftDelete = require("./shared/SoftDelete");
 
 const CommunitySchema = new mongoose.Schema({
-  course: { type: mongoose.Schema.Types.ObjectId, ref: "Course", required: true, unique: true },
+  // Uniqueness for active communities only — archived (soft-deleted) rows must not block recreate.
+  course: { type: mongoose.Schema.Types.ObjectId, ref: "Course", required: true },
   name: { type: String, required: true, trim: true, maxlength: 100 },
   description: { type: String, trim: true, default: "" },
   avatar: { type: String, trim: true, default: "" },
@@ -11,5 +12,10 @@ const CommunitySchema = new mongoose.Schema({
   ...AuditFields,
   ...SoftDelete,
 });
+
+CommunitySchema.index(
+  { course: 1 },
+  { unique: true, partialFilterExpression: { isDeleted: false }, name: "course_active_unique" },
+);
 
 module.exports = mongoose.model("Community", CommunitySchema);

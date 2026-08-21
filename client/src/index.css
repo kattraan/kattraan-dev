@@ -46,6 +46,7 @@
   --color-primary-pink: #ff3fb4;
   /* Brand gradient: orange → pink (for primary buttons, CTAs) */
   --color-gradient-start: #ff8c42;
+  --color-gradient-mid: #ff3fb4;
   --color-gradient-end: #ff3fb4;
   --color-obsidian: #0c091a;
   --color-muted-white: rgba(255, 255, 255, 0.7);
@@ -60,21 +61,19 @@
 
 /* Base styles */
 @layer base {
-  html,
-  body {
-    overflow-x: hidden;
+  /* overflow-x only on body — applying it to both html+body can lock vertical scroll on iOS */
+  html {
     max-width: 100%;
-    overscroll-behavior-x: none;
+    scroll-behavior: smooth;
   }
 
   body {
     @apply bg-gray-50 text-gray-900 dark:bg-primary-dark dark:text-white font-sans antialiased transition-colors duration-300;
+    overflow-x: hidden;
+    max-width: 100%;
+    overscroll-behavior-x: none;
     padding-left: env(safe-area-inset-left, 0);
     padding-right: env(safe-area-inset-right, 0);
-  }
-
-  html {
-    scroll-behavior: smooth;
   }
 
   /* Theme-aware scrollbars */
@@ -123,6 +122,7 @@
     background: linear-gradient(to right, var(--color-gradient-start), var(--color-gradient-end));
     -webkit-background-clip: text;
     background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
 
   /* Orange → purple (softer than orange → pink; profiles, secondary headlines) */
@@ -184,6 +184,127 @@
       0 4px 16px rgba(255, 63, 180, 0.12);
   }
 
+  /* Submit-format chips: B&W at rest; brand gradient on hover / selected (no glow) */
+  .chip-submit {
+    border: 1.5px solid #e5e7eb;
+    background: #f9fafb;
+    color: #4b5563;
+  }
+  .dark .chip-submit {
+    border-color: rgb(255 255 255 / 0.2);
+    background: #141414;
+    color: rgb(255 255 255 / 0.8);
+  }
+  .chip-submit:hover,
+  .chip-submit.is-active {
+    border: 1.5px solid transparent;
+    background:
+      linear-gradient(#f9fafb, #f9fafb) padding-box,
+      linear-gradient(to right, var(--color-gradient-start), var(--color-gradient-end)) border-box;
+    box-shadow: none;
+  }
+  .dark .chip-submit:hover,
+  .dark .chip-submit.is-active {
+    background:
+      linear-gradient(#141414, #141414) padding-box,
+      linear-gradient(to right, var(--color-gradient-start), var(--color-gradient-end)) border-box;
+  }
+  .chip-submit:hover .chip-submit-label,
+  .chip-submit.is-active .chip-submit-label {
+    color: transparent;
+    background: linear-gradient(to right, var(--color-gradient-start), var(--color-gradient-end));
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+  .chip-submit:hover svg,
+  .chip-submit.is-active svg {
+    stroke: url(#kattraan-brand-grad);
+  }
+
+  .field-brand-rest {
+    border: 1.5px solid #e5e7eb;
+    background: #f9fafb;
+  }
+  .dark .field-brand-rest {
+    border-color: rgb(255 255 255 / 0.2);
+    background: #141414;
+  }
+  .field-brand-rest:hover,
+  .field-brand-rest:focus-within {
+    border: 1.5px solid transparent;
+    background:
+      linear-gradient(#f9fafb, #f9fafb) padding-box,
+      linear-gradient(to right, var(--color-gradient-start), var(--color-gradient-end)) border-box;
+  }
+  .dark .field-brand-rest:hover,
+  .dark .field-brand-rest:focus-within {
+    background:
+      linear-gradient(#141414, #141414) padding-box,
+      linear-gradient(to right, var(--color-gradient-start), var(--color-gradient-end)) border-box;
+  }
+  .field-brand-rest .field-brand-value {
+    color: #111827;
+  }
+  .dark .field-brand-rest .field-brand-value {
+    color: #fff;
+  }
+  .field-brand-rest:hover .field-brand-value,
+  .field-brand-rest:focus-within .field-brand-value {
+    color: transparent;
+    background: linear-gradient(to right, var(--color-gradient-start), var(--color-gradient-end));
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+
+  /* Orange → pink border (pills / chips). Fill stays light or dark. */
+  .border-gradient-brand {
+    border: 1.5px solid transparent;
+    background:
+      linear-gradient(#f9fafb, #f9fafb) padding-box,
+      linear-gradient(to right, var(--color-gradient-start), var(--color-gradient-end)) border-box;
+  }
+  .dark .border-gradient-brand {
+    background:
+      linear-gradient(#141414, #141414) padding-box,
+      linear-gradient(to right, var(--color-gradient-start), var(--color-gradient-end)) border-box;
+  }
+
+  /* Lucide / SVG stroke using #kattraan-brand-grad (injected in App) */
+  .stroke-gradient-brand,
+  .stroke-gradient-brand * {
+    stroke: url(#kattraan-brand-grad);
+  }
+
+  /* Brand stroke only while hovering (notification bell, inactive nav icons). */
+  .group:hover .stroke-gradient-brand-hover,
+  .group:hover .stroke-gradient-brand-hover *,
+  .icon-brand-hover:hover .stroke-gradient-brand-hover,
+  .icon-brand-hover:hover .stroke-gradient-brand-hover * {
+    stroke: url(#kattraan-brand-grad);
+  }
+
+  /* Circular icon button: muted at rest, brand gradient border on hover. */
+  .icon-brand-hover {
+    border: 1.5px solid rgba(156, 163, 175, 0.5);
+    background: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .dark .icon-brand-hover {
+    border-color: rgba(255, 255, 255, 0.22);
+  }
+  .icon-brand-hover:hover {
+    border: 1.5px solid transparent;
+    background:
+      linear-gradient(#f9fafb, #f9fafb) padding-box,
+      linear-gradient(to right, var(--color-gradient-start), var(--color-gradient-end)) border-box;
+  }
+  .dark .icon-brand-hover:hover {
+    background:
+      linear-gradient(#141414, #141414) padding-box,
+      linear-gradient(to right, var(--color-gradient-start), var(--color-gradient-end)) border-box;
+  }
+
   /* Primary CTA button: orange-to-pink gradient (brand style) */
   .btn-gradient {
     background: linear-gradient(to right, var(--color-gradient-start), var(--color-gradient-end));
@@ -199,11 +320,48 @@
     transform: scale(0.98);
   }
 
-  /* Sidebar active link: same brand gradient (centralized) */
-  .sidebar-link-active {
+  /* Sidebar nav links: never animate the background.
+     CSS cannot interpolate between a solid colour and a linear-gradient,
+     so any transition on `background` causes a visible blink when switching
+     tabs. Keep a transparent border always so active↔inactive never flashes
+     a white border edge. */
+  .sidebar-nav-link,
+  .inner-nav-active {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .sidebar-nav-link {
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition-property: color, box-shadow, transform;
+    transition-duration: 150ms;
+    transition-timing-function: ease;
+  }
+
+  /* Inactive: soft grey hover (not brand gradient). */
+  .sidebar-nav-link:not(.sidebar-link-active):not(.inner-nav-active):hover {
+    background: rgba(0, 0, 0, 0.06);
+    color: #111827;
+  }
+  .dark .sidebar-nav-link:not(.sidebar-link-active):not(.inner-nav-active):hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+  .sidebar-nav-link:not(.sidebar-link-active):not(.inner-nav-active):hover svg,
+  .sidebar-nav-link:not(.sidebar-link-active):not(.inner-nav-active):hover svg * {
+    stroke: currentColor;
+  }
+
+  /* Active: filled orange → pink gradient. Keep transparent border width. */
+  .sidebar-link-active,
+  .sidebar-link-active:hover,
+  .inner-nav-active,
+  .inner-nav-active:hover {
+    border: 1px solid transparent;
     background: linear-gradient(to right, var(--color-gradient-start), var(--color-gradient-end));
-    color: white;
-    border: 0;
+    color: #fff;
+    box-shadow: none;
   }
 
   @keyframes float {
@@ -239,6 +397,20 @@
     }
   }
 
+  @keyframes kattraan-logo-idle {
+    0%,
+    100% {
+      transform: scale(1) rotate(0deg);
+    }
+    50% {
+      transform: scale(1.08) rotate(-4deg);
+    }
+  }
+
+  .animate-kattraan-logo {
+    animation: kattraan-logo-idle 2.4s ease-in-out infinite;
+  }
+
   .animate-float {
     animation: float 6s ease-in-out infinite;
   }
@@ -252,7 +424,7 @@
     animation-delay: 2s;
   }
 
-  /* Keep horizontal drags inside carousels (landing page course rows, CTA, etc.) */
+  /* Keep horizontal drags inside carousels without blocking vertical page scroll */
   .overscroll-x-contain {
     overscroll-behavior-x: contain;
     -webkit-overflow-scrolling: touch;

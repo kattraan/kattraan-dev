@@ -1,4 +1,4 @@
-import { NavLink, Link } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import logo from "@/assets/logo.png";
 import BrandLogo from "@/components/common/BrandLogo";
 import {
@@ -8,7 +8,6 @@ import {
   BarChart3,
   Settings,
   ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import { ROUTES } from "@/config/routes";
 
@@ -37,16 +36,24 @@ const InstructorSidebar = ({ isCollapsed, setIsCollapsed }) => {
         {!isCollapsed ? (
           <BrandLogo />
         ) : (
-          <Link to={ROUTES.HOME}>
-            <img src={logo} alt="Logo" className="h-8 w-auto" loading="lazy" />
-          </Link>
+          <button
+            type="button"
+            onClick={() => setIsCollapsed(false)}
+            className="flex items-center justify-center bg-transparent p-0"
+            aria-label="Expand sidebar"
+          >
+            <img src={logo} alt="Kattraan Logo" className="h-8 w-8 object-contain hover:scale-105 transition-transform duration-300" loading="lazy" />
+          </button>
         )}
+        {!isCollapsed && (
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="p-2 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-white/40 hover:text-gray-900 dark:hover:text-white transition-all"
+          aria-label="Collapse sidebar"
         >
-          {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+          <ChevronLeft size={18} />
         </button>
+        )}
       </div>
 
       {/* Navigation */}
@@ -57,11 +64,11 @@ const InstructorSidebar = ({ isCollapsed, setIsCollapsed }) => {
             to={item.path}
             end={item.exact}
             className={({ isActive }) => `
-                            flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all group
+                            sidebar-nav-link flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all group select-none
                             ${
                               isActive
-                                ? "bg-gradient-to-r from-[#FF8C42]/20 to-[#FF3FB4]/20 text-gray-900 dark:text-white border border-primary-pink/30 shadow-lg shadow-pink-500/10"
-                                : "text-gray-500 dark:text-white/50 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white/90 border border-transparent"
+                                ? "sidebar-link-active text-white"
+                                : "text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white"
                             }
                         `}
           >
@@ -69,7 +76,7 @@ const InstructorSidebar = ({ isCollapsed, setIsCollapsed }) => {
               <>
                 <item.icon
                   size={20}
-                  className={`${isCollapsed ? "mx-auto" : ""} ${isActive ? "text-gray-900 dark:text-white" : "group-hover:text-primary-pink"} transition-colors duration-300`}
+                  className={`${isCollapsed ? "mx-auto" : ""} ${isActive ? "text-white" : ""} transition-colors duration-300`}
                 />
                 {!isCollapsed && (
                   <span className="text-sm font-semibold">{item.label}</span>

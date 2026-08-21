@@ -1,3 +1,5 @@
+import { ROUTES } from '@/config/routes';
+
 /**
  * Unified role model: all role checks go through hasRole(user, role).
  * User objects are normalized in authSlice to always have roles: string[].
@@ -27,6 +29,36 @@ export function hasRole(user, role) {
   const roles = user.roles;
   if (!Array.isArray(roles)) return false;
   return roles.includes(role);
+}
+
+/**
+ * Instructor dashboard and teaching tools require admin approval.
+ * Having the instructor role in stale storage is not enough.
+ */
+export function isApprovedInstructor(user) {
+  return hasRole(user, ROLES.INSTRUCTOR) && user?.status === 'approved';
+}
+
+/**
+ * Role checks for access control. Instructor is only effective after approval.
+ */
+export function hasEffectiveRole(user, role) {
+  if (role === ROLES.INSTRUCTOR) return isApprovedInstructor(user);
+  return hasRole(user, role);
+}
+
+/**
+ * Where an unapproved instructor applicant should go instead of the dashboard.
+ */
+export function getInstructorOnboardingPath(user) {
+  const status = user?.status;
+  if (status === 'pending_enrollment' || status === 'rejected') {
+    return ROUTES.INSTRUCTOR_ENROLLMENT;
+  }
+  if (status === 'pending_approval') {
+    return ROUTES.WAITING_APPROVAL;
+  }
+  return null;
 }
 
 /**

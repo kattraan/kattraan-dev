@@ -68,12 +68,12 @@ export default function NotificationBell() {
         ref={buttonRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="relative w-10 h-10 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500 hover:text-gray-800 dark:text-white/40 dark:hover:text-white transition-all group"
+        className="relative w-10 h-10 rounded-full icon-brand-hover flex items-center justify-center text-gray-500 dark:text-white/55 hover:text-gray-900 dark:hover:text-white transition-all group select-none"
         aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
         aria-expanded={open}
         aria-haspopup="true"
       >
-        <Bell size={20} className="group-hover:text-primary-pink transition-colors" />
+        <Bell size={20} className="stroke-gradient-brand-hover" />
         {unreadCount > 0 && (
           <span className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-primary-pink text-white text-[10px] font-black border-2 border-white dark:border-[#0c091a]">
             {unreadCount > 99 ? '99+' : unreadCount}

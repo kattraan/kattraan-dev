@@ -215,17 +215,36 @@ const LearnerDashboardContent = () => {
       : null;
 
     return [
-      { label: 'Courses Enrolled', value: String(enrolledCourses.length), icon: BookOpen, color: 'text-primary-pink' },
-      { label: 'Hours Learned', value: hoursLearnedDisplay, icon: Clock, color: 'text-primary-purple' },
-      { label: 'Certificates', value: String(completedCourses.length), icon: Trophy, color: 'text-amber-400' },
+      {
+        label: 'Courses Enrolled',
+        value: String(enrolledCourses.length),
+        icon: BookOpen,
+        color: 'text-primary-pink',
+        onClick: () => navigate(ROUTES.DASHBOARD_MY_COURSES),
+      },
+      {
+        label: 'Hours Learned',
+        value: hoursLearnedDisplay,
+        icon: Clock,
+        color: 'text-primary-purple',
+        onClick: () => navigate(ROUTES.DASHBOARD_MY_COURSES),
+      },
+      {
+        label: 'Certificates',
+        value: String(certificates.length || completedCourses.length),
+        icon: Trophy,
+        color: 'text-amber-400',
+        onClick: () => navigate(ROUTES.DASHBOARD_CERTIFICATES),
+      },
       {
         label: 'Overall Progress',
         value: averageProgress != null ? `${averageProgress}%` : '—',
         icon: TrendingUp,
         color: 'text-green-400',
+        onClick: () => navigate(ROUTES.DASHBOARD_MY_COURSES),
       },
     ];
-  }, [completedCourses.length, enrolledCourses]);
+  }, [certificates.length, completedCourses.length, enrolledCourses, navigate]);
 
   return (
     <DashboardLayout
@@ -233,8 +252,8 @@ const LearnerDashboardContent = () => {
       subtitle="Pick up right where you left off and keep building your future."
       headerRight={
         <>
-          {streak.currentStreak > 0 && (
-            <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 transition-colors duration-300">
+          {(streak.currentStreak > 0 || streak.activeToday) && (
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 transition-colors duration-300">
               <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500" />
               <span className="text-orange-500 dark:text-orange-400 text-xs font-bold uppercase tracking-wider transition-colors duration-300">
                 {streak.currentStreak} Day Streak
@@ -276,7 +295,11 @@ const LearnerDashboardContent = () => {
           : stats.map((stat, i) => (
           <div
             key={i}
-            className="group rounded-[24px] border border-gray-200 bg-white/95 p-6 shadow-sm backdrop-blur-sm transition-all hover:border-gray-300 dark:border-white/[0.14] dark:bg-white/[0.07] dark:shadow-[0_8px_32px_rgba(0,0,0,0.45)] dark:backdrop-blur-xl dark:hover:border-white/[0.22] dark:hover:bg-white/[0.09]"
+            role={stat.onClick ? 'button' : undefined}
+            tabIndex={stat.onClick ? 0 : undefined}
+            onClick={stat.onClick}
+            onKeyDown={stat.onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); stat.onClick(); } } : undefined}
+            className={`group rounded-[24px] border border-gray-200 bg-white/95 p-6 shadow-sm backdrop-blur-sm transition-all hover:border-gray-300 dark:border-white/[0.14] dark:bg-white/[0.07] dark:shadow-[0_8px_32px_rgba(0,0,0,0.45)] dark:backdrop-blur-xl dark:hover:border-white/[0.22] dark:hover:bg-white/[0.09] ${stat.onClick ? 'cursor-pointer' : ''}`}
           >
             <div
               className={`mb-4 w-fit rounded-xl bg-gray-50 p-3 ring-1 ring-gray-100 transition-transform group-hover:scale-110 dark:bg-white/[0.1] dark:ring-white/[0.08] ${stat.color}`}

@@ -14,6 +14,7 @@ require("./config/passport-setup"); // Load passport config
 const authRoutes = require("./routes/auth-routes/index");
 const courseRoutes = require("./routes/course-routes");
 const adminRoutes = require("./routes/admin-routes");
+const siteRoutes = require("./routes/site-routes");
 
 // const studentViewOrderRoutes = require("./routes/student-routes/order-routes");
 // const studentCoursesRoutes = require("./routes/student-routes/student-courses-routes");
@@ -212,6 +213,8 @@ app.clientOrigins = configuredOrigins;
 app.use("/api/auth", authRoutes);
 app.use("/api", courseRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/site", siteRoutes);
+app.use("/uploads/site", express.static(path.join(__dirname, "uploads/site")));
 
 app.use("/api/learner/course-progress", learnerCourseProgressRoutes);
 app.use("/api/learner/courses", learnerCoursesRoutes);

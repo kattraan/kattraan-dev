@@ -43,8 +43,12 @@ export const verifyEmail = createAsyncThunk('auth/verifyEmail', async ({ email, 
         }
 
         const loginResponse = await authService.login(email, password);
-        const userResponse = await authService.checkAuth();
-        return { ...loginResponse, user: userResponse.data?.user ?? userResponse.user ?? null };
+        let user = loginResponse?.data?.user ?? loginResponse?.user ?? null;
+        if (!user) {
+            const userResponse = await authService.checkAuth();
+            user = userResponse.data?.user ?? userResponse.user ?? null;
+        }
+        return { ...loginResponse, user };
     } catch (error) {
         return thunkAPI.rejectWithValue(getAuthErrorMessage(error));
     }
@@ -76,7 +80,11 @@ export const submitEnrollment = createAsyncThunk('auth/submitEnrollment', async 
         const response = await authService.submitEnrollment(data);
         return response.user; // Expecting updated user object
     } catch (error) {
-        return thunkAPI.rejectWithValue(error.response?.data?.message || error.message);
+        const payload = error.response?.data;
+        const fieldErrors = Array.isArray(payload?.errors)
+            ? payload.errors.map((item) => item.message).filter(Boolean).join('. ')
+            : '';
+        return thunkAPI.rejectWithValue(fieldErrors || getAuthErrorMessage(error));
     }
 });
 
@@ -152,9 +160,17 @@ export const updateProfile = createAsyncThunk('auth/updateProfile', async ({ use
 export const googleOneTapLoginAction = createAsyncThunk('auth/googleOneTapLogin', async (idToken, thunkAPI) => {
     try {
         const response = await authService.googleOneTapLogin(idToken);
-        // Sequential call: Fetch profile
-        const userResponse = await authService.checkAuth();
-        return userResponse.data?.user;
+        let user = response?.data?.user ?? response?.user ?? null;
+        if (!user) {
+            const userResponse = await authService.checkAuth();
+            user = userResponse.data?.user ?? userResponse.user ?? null;
+        }
+        if (!user) {
+            return thunkAPI.rejectWithValue(
+                'Signed in, but your session could not be loaded. Refresh the page and try again.'
+            );
+        }
+        return user;
     } catch (error) {
         return thunkAPI.rejectWithValue(getAuthErrorMessage(error));
     }
@@ -260,11 +276,18 @@ const authSlice = createSlice({
                 state.loading = false;
                 state.error = action.payload;
             })
-            // Submit Enrollment
+            // Submit Enrollment — do not toggle global auth.loading (check-auth 502s would leave the CTA spinning)
+            .addCase(submitEnrollment.pending, (state) => {
+                state.error = null;
+            })
             .addCase(submitEnrollment.fulfilled, (state, action) => {
-                state.loading = false;
-                state.user = normalizeUser(action.payload);
-                localStorage.setItem('user', JSON.stringify(state.user));
+                if (action.payload) {
+                    state.user = normalizeUser(action.payload);
+                    localStorage.setItem('user', JSON.stringify(state.user));
+                }
+            })
+            .addCase(submitEnrollment.rejected, (state, action) => {
+                state.error = action.payload;
             })
             // Approve Instructor
             .addCase(approveInstructor.fulfilled, (state, action) => {

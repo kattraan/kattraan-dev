@@ -9,7 +9,7 @@ const Shipping = () => {
 
       <section className="relative pt-32 pb-16 md:pt-40 md:pb-24 lg:pt-48 lg:pb-28 flex flex-col items-center justify-center text-center px-6">
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-tight max-w-4xl">
-          Shipping & <span className="text-gradient-brand bg-clip-text text-transparent bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4]">Delivery</span>
+          Shipping & <span className="text-gradient-brand bg-clip-text text-transparent bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end">Delivery</span>
         </h1>
         <p className="mt-6 text-lg md:text-xl text-white/80 max-w-2xl font-light leading-relaxed">
           Our policy regarding delivery of courses and digital products.

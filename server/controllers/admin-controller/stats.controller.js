@@ -6,6 +6,7 @@ const Order = require('../../models/Order');
 const LearnerCourses = require('../../models/LearnerCourses');
 const Community = require('../../models/Community');
 const AuditLog = require('../../models/AuditLog');
+const { paidOrderMatch, paidAmountExpr } = require('../../helpers/coursePrice');
 
 const ACTION_LABELS = {
   SIGNUP: 'New account registered',
@@ -70,22 +71,33 @@ async function getAdminStats(req, res) {
       recentLogs,
       recentCourses,
     ] = await Promise.all([
-      User.countDocuments(),
+      User.countDocuments({ status: { $ne: 'rejected' } }),
       instructorRoleId
-        ? User.countDocuments({ roles: instructorRoleId, status: 'approved' })
+        ? User.countDocuments({
+            roles: instructorRoleId,
+            status: { $in: ['approved', 'active'] },
+          })
         : 0,
       Course.countDocuments({ isDeleted: { $ne: true } }),
       Course.countDocuments({ status: 'published', isDeleted: { $ne: true } }),
       Course.countDocuments({ status: 'draft', isDeleted: { $ne: true } }),
-      User.countDocuments({ status: 'pending_approval' }),
+      User.countDocuments({ status: { $in: ['pending_approval', 'pending_enrollment'] } }),
       Course.countDocuments({ status: 'pending_approval', isDeleted: { $ne: true } }),
       LearnerCourses.aggregate([
         { $project: { count: { $size: { $ifNull: ['$courses', []] } } } },
         { $group: { _id: null, total: { $sum: '$count' } } },
       ]),
       Order.aggregate([
-        { $match: { paymentStatus: 'paid' } },
-        { $group: { _id: null, total: { $sum: '$coursePricing' } } },
+        { $match: paidOrderMatch() },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: paidAmountExpr() },
+            paidCheckouts: {
+              $sum: { $cond: [{ $gt: [paidAmountExpr(), 0] }, 1, 0] },
+            },
+          },
+        },
       ]),
       Community.countDocuments({ isDeleted: { $ne: true } }),
       AuditLog.countDocuments({ action: 'LOGIN_FAILED', createdAt: { $gte: last24h } }),
@@ -109,6 +121,7 @@ async function getAdminStats(req, res) {
 
     const totalEnrollments = enrollmentAgg[0]?.total || 0;
     const totalRevenue = Math.round(revenueAgg[0]?.total || 0);
+    const paidCheckouts = revenueAgg[0]?.paidCheckouts || 0;
     const pendingActions = pendingInstructorApps + pendingCourseReviews;
 
     const recentActivity = recentLogs.map((log) => ({
@@ -153,6 +166,7 @@ async function getAdminStats(req, res) {
         pendingCourseReviews,
         pendingActions,
         totalEnrollments,
+        paidCheckouts,
         totalRevenue,
         totalCommunities,
         failedLogins24h,

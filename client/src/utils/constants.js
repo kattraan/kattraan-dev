@@ -23,7 +23,6 @@ export const LOADING = {
 
 // Navigation items
 export const NAV_ITEMS = [
-  { name: 'Explore', hasDropdown: true },
   { name: 'Home', hasDropdown: false },
   { name: 'Courses', hasIcon: true },
   { name: 'My learnings', hasDropdown: false },

@@ -11,10 +11,8 @@ import adminService from '@/features/admin/services/adminService';
 import { ROUTES } from '@/config/routes';
 
 function formatCurrency(n) {
-  if (!n) return '₹0';
-  if (n >= 1_000_000) return `₹${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `₹${(n / 1_000).toFixed(1)}K`;
-  return `₹${n.toLocaleString('en-IN')}`;
+  const amount = Math.round(Number(n) || 0);
+  return `₹${amount.toLocaleString('en-IN')}`;
 }
 
 function formatRelative(date) {
@@ -56,7 +54,13 @@ const AdminDashboard = () => {
     let cancelled = false;
     adminService
       .getStats()
-      .then((res) => { if (!cancelled) setStats(res.data || null); })
+      .then((res) => {
+        if (cancelled) return;
+        const payload = res?.data && typeof res.data === 'object' && 'totalUsers' in res.data
+          ? res.data
+          : (res?.data?.data || res?.data || null);
+        setStats(payload);
+      })
       .catch((err) => {
         if (!cancelled) setError(err.response?.data?.message || 'Failed to load dashboard');
       })
@@ -67,31 +71,37 @@ const AdminDashboard = () => {
   const statCards = [
     {
       label: 'Total Users',
-      value: stats ? stats.totalUsers.toLocaleString() : '—',
+      value: stats ? Number(stats.totalUsers || 0).toLocaleString() : '—',
       icon: Users,
       color: 'text-blue-400',
       sub: stats?.newUsers30d ? `+${stats.newUsers30d} this month` : null,
+      path: ROUTES.ADMIN_USERS,
     },
     {
       label: 'Active Instructors',
-      value: stats ? stats.activeInstructors.toLocaleString() : '—',
+      value: stats ? Number(stats.activeInstructors || 0).toLocaleString() : '—',
       icon: UserCheck,
       color: 'text-primary-purple',
-      sub: stats?.pendingInstructorApps ? `${stats.pendingInstructorApps} pending` : null,
+      sub: stats?.pendingInstructorApps
+        ? `${stats.pendingInstructorApps} pending`
+        : 'Approved',
+      path: `${ROUTES.ADMIN_USERS}?role=instructor`,
     },
     {
       label: 'Published Courses',
-      value: stats ? stats.publishedCourses.toLocaleString() : '—',
+      value: stats ? Number(stats.publishedCourses || 0).toLocaleString() : '—',
       icon: BookOpen,
       color: 'text-primary-pink',
-      sub: stats ? `${stats.totalCourses} total` : null,
+      sub: stats ? `${stats.totalCourses || 0} total` : null,
+      path: `${ROUTES.ADMIN_COURSES}?status=published`,
     },
     {
       label: 'Total Revenue',
       value: stats ? formatCurrency(stats.totalRevenue) : '—',
       icon: DollarSign,
       color: 'text-green-400',
-      sub: stats ? `${stats.totalEnrollments} enrollments` : null,
+      sub: stats ? `${stats.paidCheckouts || 0} paid` : null,
+      path: `${ROUTES.ADMIN_SETTINGS}?tab=payouts`,
     },
   ];
 
@@ -111,9 +121,11 @@ const AdminDashboard = () => {
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {statCards.map((stat) => (
-            <div
+            <button
               key={stat.label}
-              className="bg-white dark:bg-white/[0.03] border border-gray-200 dark:border-white/5 p-6 rounded-[28px] shadow-sm dark:shadow-none backdrop-blur-sm hover:border-gray-300 dark:hover:border-white/10 transition-all group relative overflow-hidden"
+              type="button"
+              onClick={() => navigate(stat.path)}
+              className="text-left bg-white dark:bg-white/[0.03] border border-gray-200 dark:border-white/5 p-6 rounded-[28px] shadow-sm dark:shadow-none backdrop-blur-sm hover:border-primary-pink/40 dark:hover:border-primary-pink/30 transition-all group relative overflow-hidden cursor-pointer"
             >
               <div className="flex justify-between items-start mb-4">
                 <div className={`p-3 rounded-2xl bg-gray-50 dark:bg-white/5 transition-colors duration-300 ${stat.color}`}>
@@ -131,7 +143,7 @@ const AdminDashboard = () => {
               ) : (
                 <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2 leading-none">{stat.value}</p>
               )}
-            </div>
+            </button>
           ))}
         </div>
 
@@ -247,7 +259,12 @@ const AdminDashboard = () => {
               ) : stats?.recentCourses?.length > 0 ? (
                 <div className="space-y-3">
                   {stats.recentCourses.map((course) => (
-                    <div key={course.courseId} className="flex items-center gap-3 p-3 rounded-2xl bg-gray-50 dark:bg-white/[0.03] border border-gray-100 dark:border-white/5">
+                    <button
+                      key={course.courseId}
+                      type="button"
+                      onClick={() => navigate(`${ROUTES.COURSE_DETAILS}/${course.courseId}?adminReview=1`)}
+                      className="w-full flex items-center gap-3 p-3 rounded-2xl bg-gray-50 dark:bg-white/[0.03] border border-gray-100 dark:border-white/5 hover:border-primary-pink/30 text-left"
+                    >
                       <div className="w-9 h-9 rounded-xl bg-primary-pink/10 flex items-center justify-center text-primary-pink shrink-0">
                         <FileEdit size={16} />
                       </div>
@@ -258,7 +275,7 @@ const AdminDashboard = () => {
                       <span className={`text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${courseStatusStyle[course.status] || courseStatusStyle.draft}`}>
                         {course.status?.replace('_', ' ')}
                       </span>
-                    </div>
+                    </button>
                   ))}
                 </div>
               ) : (
@@ -272,9 +289,9 @@ const AdminDashboard = () => {
         {!loading && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
-              { label: 'Instructor Approvals', path: ROUTES.ADMIN_INSTRUCTORS, icon: UserCheck, count: stats?.pendingInstructorApps },
-              { label: 'Course Reviews', path: ROUTES.ADMIN_COURSES, icon: BookOpen, count: stats?.pendingCourseReviews },
-              { label: 'User Center', path: ROUTES.ADMIN_USERS, icon: GraduationCap, count: stats?.totalUsers },
+              { label: 'Instructor Approvals', path: ROUTES.ADMIN_INSTRUCTORS, icon: UserCheck, count: Number(stats?.pendingInstructorApps || 0) },
+              { label: 'Course Reviews', path: ROUTES.ADMIN_COURSES, icon: BookOpen, count: Number(stats?.pendingCourseReviews || 0) },
+              { label: 'User Center', path: ROUTES.ADMIN_USERS, icon: GraduationCap, count: Number(stats?.totalUsers || 0) },
             ].map((link) => (
               <button
                 key={link.path}
@@ -286,9 +303,9 @@ const AdminDashboard = () => {
                   <link.icon size={20} className="text-primary-purple" />
                   <span className="font-bold text-gray-900 dark:text-white text-sm">{link.label}</span>
                 </div>
-                {link.count != null && (
-                  <span className="text-lg font-bold text-primary-pink">{link.count}</span>
-                )}
+                <span className="text-lg font-bold text-primary-pink">
+                  {Number(link.count || 0).toLocaleString('en-IN')}
+                </span>
               </button>
             ))}
           </div>

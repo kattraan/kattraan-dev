@@ -145,7 +145,7 @@ const FAQ = () => {
 
         <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight leading-tight max-w-4xl">
           Frequently Asked{" "}
-          <span className="text-gradient-brand bg-clip-text text-transparent bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4]">
+          <span className="text-gradient-brand bg-clip-text text-transparent bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end">
             Questions
           </span>
         </h1>
@@ -183,7 +183,7 @@ const FAQ = () => {
           </p>
           <a
             href="mailto:support@kattraan.com"
-            className="inline-flex items-center gap-2 px-7 py-3 rounded-full text-sm font-bold bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] hover:opacity-95 shadow-lg shadow-pink-500/20 transition-all"
+            className="inline-flex items-center gap-2 px-7 py-3 rounded-full text-sm font-bold bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end hover:opacity-95 shadow-lg shadow-pink-500/20 transition-all"
           >
             <Headphones className="w-4 h-4" />
             Contact Support

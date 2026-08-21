@@ -38,7 +38,7 @@ export default function CourseViewPreviewHeader({ courseTitle, onClose, profileR
           <ArrowLeft size={18} className="text-gray-600 dark:text-white/60 group-hover:text-gray-900 dark:group-hover:text-white group-hover:-translate-x-0.5 transition-all sm:w-5 sm:h-5" />
         </button>
         <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-          <BrandLogo className="scale-[0.75] sm:scale-[0.85] origin-left hidden xs:block flex-shrink-0" />
+          <BrandLogo className="scale-[0.75] sm:scale-[0.85] origin-left hidden xs:flex flex-shrink-0" />
           <div className="hidden sm:block h-6 w-px bg-gray-200 dark:bg-white/10 mx-1 flex-shrink-0" aria-hidden />
           <h1 className="text-sm sm:text-[17px] font-bold tracking-tight text-gray-900 dark:text-white/90 truncate min-w-0">
             {courseTitle || 'Course Preview'}

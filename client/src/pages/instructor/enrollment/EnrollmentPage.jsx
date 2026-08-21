@@ -22,6 +22,9 @@ const EnrollmentPage = () => {
                 loading="lazy"
             />
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0c091a]/80 to-[#0c091a] pointer-events-none" />
+            <div className="absolute top-0 right-0 w-[480px] h-[480px] rounded-full bg-gradient-mid/15 blur-[140px] pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-[420px] h-[420px] rounded-full bg-gradient-start/10 blur-[140px] pointer-events-none" />
+            <div className="absolute top-1/3 left-1/4 w-[360px] h-[360px] rounded-full bg-gradient-end/10 blur-[160px] pointer-events-none" />
             
             {/* Header with Logo */}
             <div className="relative z-20 pt-6 lg:pt-8 w-full">

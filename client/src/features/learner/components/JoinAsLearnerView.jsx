@@ -47,7 +47,7 @@ const JoinAsLearnerView = () => {
                     {/* Text Content */}
                     <div className="space-y-4">
                         <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight">
-                            Explore as a <span className="bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] bg-clip-text text-transparent">Learner</span>
+                            Explore as a <span className="bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end bg-clip-text text-transparent">Learner</span>
                         </h1>
                         <p className="text-white/60 text-base md:text-lg leading-relaxed font-medium">
                             You're currently viewing Kattraan as an Instructor. Join as a learner to explore courses, track your progress, and earn certificates.
@@ -75,7 +75,7 @@ const JoinAsLearnerView = () => {
                         <Button 
                             onClick={handleJoin}
                             isLoading={loading}
-                            className="w-full h-[64px] text-lg font-black rounded-2xl bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] hover:opacity-90 shadow-[0_20px_40px_rgba(255,63,180,0.3)] transition-all active:scale-95"
+                            className="w-full h-[64px] text-lg font-black rounded-2xl bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end hover:opacity-90 shadow-[0_20px_40px_rgba(255,63,180,0.3)] transition-all active:scale-95"
                         >
                             Become a Learner
                         </Button>

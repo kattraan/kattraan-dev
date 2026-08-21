@@ -1,28 +1,54 @@
-import React from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Clock } from 'lucide-react';
-import { articles } from '@/data/blogData';
+import { resolveBlogImage } from '@/data/blogData';
+import siteContentService from '@/features/admin/services/siteContentService';
 
 const BlogArticlePage = () => {
   const { id } = useParams();
-  const location = useLocation();
   const navigate = useNavigate();
-  
-  // Get article from state first, fallback to finding it by ID
-  const article = location.state?.article || articles.find(a => a.id === parseInt(id));
+  const [article, setArticle] = useState(null);
+  const [notFound, setNotFound] = useState(false);
 
-  if (!article) {
+  useEffect(() => {
+    let cancelled = false;
+    setNotFound(false);
+    siteContentService
+      .getPublicBlog(id)
+      .then((res) => {
+        if (!cancelled && res.data) setArticle(res.data);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setArticle(null);
+          setNotFound(true);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  if (notFound) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#090c03] text-white">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-4">Article Not Found</h2>
           <button 
             onClick={() => navigate('/')}
-            className="bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] text-white px-6 py-2 rounded-lg font-bold"
+            className="bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end text-white px-6 py-2 rounded-lg font-bold"
           >
             Back to Home
           </button>
         </div>
+      </div>
+    );
+  }
+
+  if (!article) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#090c03] text-white/50">
+        Loading article…
       </div>
     );
   }
@@ -53,7 +79,7 @@ const BlogArticlePage = () => {
 
         <div className="w-full h-[400px] md:h-[500px] rounded-3xl overflow-hidden mb-12 shadow-2xl shadow-pink-500/10">
           <img 
-            src={article.image} 
+            src={resolveBlogImage(article)} 
             alt={article.title} 
             className="w-full h-full object-cover"
           />

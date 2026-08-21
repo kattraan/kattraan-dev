@@ -158,7 +158,7 @@ const CertificatesFeature = () => {
                                         <Button
                                             type="button"
                                             onClick={() => handleView(cert)}
-                                            className="w-full bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] text-white border-0 flex items-center justify-center gap-1.5 text-xs transition-all duration-300"
+                                            className="w-full bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end text-white border-0 flex items-center justify-center gap-1.5 text-xs transition-all duration-300"
                                             title="View certificate"
                                         >
                                             View

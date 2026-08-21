@@ -89,7 +89,7 @@ export default function SocialAccountsPage() {
                 <input type="url" placeholder={platform.placeholder} value={links[platform.id] || ''} onChange={(e) => handleLinkChange(platform.id, e.target.value)} className="flex-1 min-w-0 px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary-pink/50" />
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="text-xs font-medium text-gray-500 dark:text-white/50">Display on your profile</span>
-                  <button type="button" role="switch" aria-checked={!!displayOnProfile[platform.id]} onClick={() => toggleDisplay(platform.id)} className={`relative w-11 h-6 rounded-full transition-colors ${displayOnProfile[platform.id] ? 'bg-primary-pink' : 'bg-gray-200 dark:bg-white/20'}`}>
+                  <button type="button" role="switch" aria-checked={!!displayOnProfile[platform.id]} onClick={() => toggleDisplay(platform.id)} className={`relative w-11 h-6 rounded-full transition-colors ${displayOnProfile[platform.id] ? 'bg-zinc-600 dark:bg-zinc-400' : 'bg-zinc-200 dark:bg-zinc-700'}`}>
                     <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${displayOnProfile[platform.id] ? 'translate-x-5' : 'translate-x-0'}`} />
                   </button>
                 </div>

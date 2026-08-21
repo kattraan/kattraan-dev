@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Modal, Input, Button } from '@/components/ui';
 
 /**
@@ -11,9 +11,20 @@ const CreateCommunityModal = ({ isOpen, onClose, courses, onCreate, loading = fa
 
     const trimmedName = name.trim();
 
+    useEffect(() => {
+        if (!isOpen) {
+            setCourseId('');
+            setName('');
+            setDescription('');
+            return;
+        }
+        // Drop a stale selection if that course is no longer available
+        setCourseId((prev) => (prev && courses.some((c) => String(c._id || c.id) === String(prev)) ? prev : ''));
+    }, [isOpen, courses]);
+
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (!courseId || !trimmedName) return;
+        if (loading || !courseId || !trimmedName) return;
         onCreate({ course: courseId, name: trimmedName, description });
     };
 
@@ -32,11 +43,20 @@ const CreateCommunityModal = ({ isOpen, onClose, courses, onCreate, loading = fa
                             Select a course…
                         </option>
                         {courses.map((c) => (
-                            <option key={c._id} value={c._id} className="bg-white dark:bg-[#1a1625] text-gray-900 dark:text-white">
+                            <option
+                                key={c._id || c.id}
+                                value={c._id || c.id}
+                                className="bg-white dark:bg-[#1a1625] text-gray-900 dark:text-white"
+                            >
                                 {c.title}
                             </option>
                         ))}
                     </select>
+                    {courses.length === 0 && (
+                        <p className="text-xs text-gray-500 dark:text-white/40 ml-1">
+                            Every course already has a community. Create a new course first.
+                        </p>
+                    )}
                 </div>
 
                 <Input

@@ -14,7 +14,7 @@ const connectDB = require("./config/db");
 const seedAdmin = require("./helpers/seedAdmin");
 const { initSocket, getIO } = require("./socket");
 
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5000;
 
 /** Kill any other process currently listening on `port` (not this process). */
 function freePort(port) {
@@ -76,9 +76,9 @@ initSocket(httpServer);
 
 function startListening() {
   freePort(PORT);
-  httpServer.listen(PORT, () => {
+  httpServer.listen(PORT, "0.0.0.0", () => {
     console.log("Kattraan Live!");
-    console.log(`Server running at ${useHttps ? "https" : "http"}://localhost:${PORT}`);
+    console.log(`Server running at ${useHttps ? "https" : "http"}://127.0.0.1:${PORT}`);
   });
 }
 

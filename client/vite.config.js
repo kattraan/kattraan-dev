@@ -17,12 +17,15 @@ export default defineConfig({
   server: {
     https: useHttps,
     // Proxy API in local/dev so the browser talks same-origin and avoids CORS/CORP issues.
+    // Use 127.0.0.1 (not localhost) so Windows does not try IPv6 ::1 first and get ECONNREFUSED.
     // Override with VITE_API_PROXY_TARGET if the API runs on a non-default port.
     proxy: {
       "/api": {
-        target: process.env.VITE_API_PROXY_TARGET || "http://localhost:5000",
+        target: process.env.VITE_API_PROXY_TARGET || "http://127.0.0.1:5000",
         changeOrigin: true,
         secure: false,
+        timeout: 120000,
+        proxyTimeout: 120000,
         configure: (proxy) => {
           proxy.on("error", (err, _req, res) => {
             console.error("[vite proxy /api]", err.message);
@@ -40,8 +43,13 @@ export default defineConfig({
         },
       },
       // Socket.IO must be same-origin in dev so auth cookies reach the handshake.
+      "/uploads": {
+        target: process.env.VITE_API_PROXY_TARGET || "http://127.0.0.1:5000",
+        changeOrigin: true,
+        secure: false,
+      },
       "/socket.io": {
-        target: process.env.VITE_API_PROXY_TARGET || "http://localhost:5000",
+        target: process.env.VITE_API_PROXY_TARGET || "http://127.0.0.1:5000",
         changeOrigin: true,
         ws: true,
       },

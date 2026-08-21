@@ -1,9 +1,7 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { DashboardLayoutContext } from "@/layouts/DashboardLayoutContext";
-import { Outlet, useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { Outlet } from "react-router-dom";
 import { getDashboardConfig, DASHBOARD_ROLES } from "@/config/dashboardConfig";
-import { ROUTES } from "@/config/routes";
 import DashboardSidebar from "@/layouts/components/DashboardSidebar";
 import InstructorHeader from "@/features/instructor/components/InstructorHeader";
 import LearnerHeader from "@/features/learner/components/LearnerHeader";
@@ -16,27 +14,13 @@ import heroBackground from "@/assets/hero-background.webp";
  * Use: <Route element={<DashboardLayout role="learner" />}> ... nested routes with <Outlet />
  */
 const DashboardLayout = ({ role = DASHBOARD_ROLES.LEARNER }) => {
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  const { user } = useSelector((state) => state.auth);
-  const navigate = useNavigate();
 
   const openMobileSidebar = useCallback(() => setIsMobileSidebarOpen(true), []);
   const closeMobileSidebar = useCallback(() => setIsMobileSidebarOpen(false), []);
 
   const config = getDashboardConfig(role);
-
-  // Instructor-only: redirect when status is pending
-  useEffect(() => {
-    if (role !== DASHBOARD_ROLES.INSTRUCTOR || !user) return;
-    if (user.status === "pending_enrollment") {
-      navigate(ROUTES.INSTRUCTOR_ENROLLMENT);
-    } else if (user.status === "pending_approval") {
-      navigate(ROUTES.WAITING_APPROVAL);
-    } else if (user.status === "rejected") {
-      navigate(ROUTES.WAITING_APPROVAL, { state: { rejected: true } });
-    }
-  }, [role, user, navigate]);
 
   const renderHeader = () => {
     if (role === DASHBOARD_ROLES.ADMIN) return <AdminHeader />;
@@ -74,7 +58,6 @@ const DashboardLayout = ({ role = DASHBOARD_ROLES.LEARNER }) => {
         setIsCollapsed={setIsSidebarCollapsed}
         isMobileOpen={isMobileSidebarOpen}
         onMobileClose={closeMobileSidebar}
-        showLogout={role === DASHBOARD_ROLES.ADMIN}
       />
 
       {/* Right column */}

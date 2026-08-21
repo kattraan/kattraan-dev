@@ -69,7 +69,7 @@ export default function DatePopoverField({
         )}
       >
         <span className="flex items-center gap-2.5 min-w-0">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#FF8C42]/15 to-[#FF3FB4]/15 text-primary-pink dark:from-[#FF8C42]/20 dark:to-[#FF3FB4]/20">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-gradient-start/15 via-gradient-mid/15 to-gradient-end/15 text-primary-pink dark:from-gradient-start/20 dark:via-gradient-mid/20 dark:to-gradient-end/20">
             <Calendar className="w-4 h-4" aria-hidden />
           </span>
           <span className={cn('truncate', !value && 'text-gray-400 dark:text-white/40 font-medium')}>

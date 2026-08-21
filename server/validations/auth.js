@@ -24,18 +24,30 @@ const validateResetPassword = [
   validateRequest,
 ];
 
+const optionalLink = (field) =>
+  body(field)
+    .optional({ values: 'falsy' })
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage(`${field} is too long`);
+
 const validateSubmitEnrollment = [
-  body('bio').optional().trim().isLength({ max: 2000 }).withMessage('Bio too long'),
-  body('experience').optional().trim().isLength({ max: 2000 }).withMessage('Experience too long'),
-  body('expertise').optional().trim().isLength({ max: 500 }).withMessage('Expertise too long'),
-  body('linkedin').optional().trim().isURL().withMessage('Invalid LinkedIn URL'),
-  body('website').optional().trim().isURL().withMessage('Invalid website URL'),
+  body('bio').optional({ values: 'falsy' }).trim().isLength({ max: 2000 }).withMessage('Bio too long'),
+  body('experience').optional({ values: 'falsy' }).trim().isLength({ max: 2000 }).withMessage('Experience too long'),
+  body('expertise').optional({ values: 'falsy' }).trim().isLength({ max: 500 }).withMessage('Expertise too long'),
+  optionalLink('linkedin'),
+  optionalLink('website'),
+  optionalLink('github'),
+  body('languages').optional({ values: 'falsy' }).isArray().withMessage('Languages must be an array'),
+  body('languages.*').optional().trim().isLength({ max: 80 }).withMessage('Language name too long'),
+  body('resumeName').optional({ values: 'falsy' }).trim().isLength({ max: 255 }),
+  body('idProofName').optional({ values: 'falsy' }).trim().isLength({ max: 255 }),
   validateRequest,
 ];
 
 const validateAdminApprove = [
   body('userId').notEmpty().withMessage('User ID is required').isMongoId().withMessage('Invalid user ID'),
-  body('action').notEmpty().withMessage('Action is required').isIn(['approve', 'reject']).withMessage('Action must be approve or reject'),
+  body('action').notEmpty().withMessage('Action is required').isIn(['approve', 'reject', 'disapprove']).withMessage('Action must be approve, reject, or disapprove'),
   validateRequest,
 ];
 

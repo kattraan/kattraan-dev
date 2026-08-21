@@ -5,6 +5,20 @@ import designsImg from '@/assets/blog/Designs.png';
 import workImg from '@/assets/blog/Work.png';
 import analyticsImg from '@/assets/blog/Analystics.png';
 
+export const BLOG_CATEGORY_IMAGES = {
+  Mindset: communicateImg,
+  Career: careerImg,
+  Development: developmentImg,
+  Design: designsImg,
+  'Future Of Work': workImg,
+  Analytics: analyticsImg,
+};
+
+export function resolveBlogImage(article) {
+  if (article?.image) return article.image;
+  return BLOG_CATEGORY_IMAGES[article?.category] || communicateImg;
+}
+
 export const articles = [
   {
     id: 1,

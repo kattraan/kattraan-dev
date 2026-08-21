@@ -44,9 +44,16 @@ describe('Cashfree create-order controller', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     delete process.env.CASHFREE_RETURN_URL;
+    delete process.env.CASHFREE_NOTIFY_URL;
     delete process.env.CASHFREE_MOCK;
+    delete process.env.CASHFREE_ENV;
     delete process.env.CLIENT_URL;
     delete process.env.FRONTEND_URL;
+    delete process.env.API_URL;
+    delete process.env.BASE_URL;
+    delete process.env.API_PUBLIC_URL;
+    delete process.env.PUBLIC_API_URL;
+    delete process.env.RENDER_EXTERNAL_URL;
     User.findById.mockReturnValue({
       select: jest.fn().mockReturnThis(),
       lean: jest.fn().mockResolvedValue(null),
@@ -296,6 +303,7 @@ describe('Cashfree create-order controller', () => {
     process.env.CASHFREE_ENV = 'PRODUCTION';
     process.env.CASHFREE_APP_ID = '1322230d8063a5f44ed9e2114a90322231';
     process.env.CASHFREE_SECRET_KEY = 'cfsk_ma_prod_example';
+    process.env.CASHFREE_NOTIFY_URL = 'https://api.kattraan.com';
     mockPublishedCourse();
 
     const req = {

@@ -11,6 +11,10 @@ const createQuiz = [
   body('questions.*.options').optional().isArray().withMessage('Options must be an array'),
   body('questions.*.correctAnswer').optional().isInt({ min: 0 }).withMessage('Correct answer index must be non-negative'),
   body('questions.*.marks').optional().isInt({ min: 0 }).withMessage('Marks must be non-negative'),
+  body('questions.*.instructions').optional().trim().isLength({ max: 10000 }).withMessage('Instructions too long'),
+  body('questions.*.submissionFormats').optional().isArray().withMessage('Submission formats must be an array'),
+  body('questions.*.attachments').optional().isArray().withMessage('Attachments must be an array'),
+  body('questions.*.evaluationCriteria').optional().isArray().withMessage('Evaluation criteria must be an array'),
   body('metadata').optional().isObject().withMessage('Metadata must be an object'),
   validateRequest,
 ];
@@ -26,6 +30,10 @@ const updateQuiz = [
   body('questions.*.options').optional().isArray().withMessage('Options must be an array'),
   body('questions.*.correctAnswer').optional().isInt({ min: 0 }).withMessage('Correct answer index must be non-negative'),
   body('questions.*.marks').optional().isInt({ min: 0 }).withMessage('Marks must be non-negative'),
+  body('questions.*.instructions').optional().trim().isLength({ max: 10000 }).withMessage('Instructions too long'),
+  body('questions.*.submissionFormats').optional().isArray().withMessage('Submission formats must be an array'),
+  body('questions.*.attachments').optional().isArray().withMessage('Attachments must be an array'),
+  body('questions.*.evaluationCriteria').optional().isArray().withMessage('Evaluation criteria must be an array'),
   body('metadata').optional().isObject().withMessage('Metadata must be an object'),
   validateRequest,
 ];

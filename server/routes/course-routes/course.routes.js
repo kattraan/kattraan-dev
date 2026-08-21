@@ -2,6 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const courseController = require('../../controllers/course-controller/course.controller');
+const { getPublicHomepageFeatured } = require('../../controllers/course-controller/homepageFeaturedPublic.controller');
 const courseLiveSessionsController = require('../../controllers/course-controller/courseLiveSessions.controller');
 const courseLearnerReviewsController = require('../../controllers/course-controller/courseLearnerReviews.controller');
 const courseWatchController = require('../../controllers/course-controller/courseWatch.controller');
@@ -24,6 +25,7 @@ const validateId = [param('id').notEmpty().isMongoId().withMessage('Invalid cour
 
 // Public listing (published only) – no auth required so navbar "Courses" shows approved courses
 router.get('/public', courseController.getPublic);
+router.get('/homepage-featured', getPublicHomepageFeatured);
 
 // Learner reviews (published courses): list is public; write requires auth + enrollment
 router.get('/:id/reviews/mine', authenticate, validateId, courseLearnerReviewsController.getMyReview);

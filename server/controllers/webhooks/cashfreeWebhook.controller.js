@@ -6,6 +6,7 @@ const {
   resolvePurchaseContext,
   markPendingFulfilled,
 } = require('../../services/cashfreeOrderContext.service');
+const { salePriceINR } = require('../../helpers/coursePrice');
 
 const WEBHOOK_TIMESTAMP_TOLERANCE_MS = 5 * 60 * 1000;
 
@@ -127,13 +128,13 @@ async function handleCashfreeWebhook(req, res) {
       return res.status(400).json({ success: false, message: 'Could not resolve course/user for payment' });
     }
 
-    const course = await Course.findById(context.courseId).select('price status isDeleted').lean();
+    const course = await Course.findById(context.courseId).select('price discount status isDeleted').lean();
     if (!course || course.isDeleted || course.status !== 'published') {
       console.error('[Cashfree webhook] invalid course', { orderId, courseId: context.courseId });
       return res.status(400).json({ success: false, message: 'Course not available for purchase' });
     }
 
-    const priceINR = Number(course.price) || 0;
+    const priceINR = salePriceINR(course);
     const expectedAmount = context.amountINR != null ? Number(context.amountINR) : priceINR;
     if (priceINR <= 0 || !amountsMatch(expectedAmount, priceINR)) {
       console.error('[Cashfree webhook] amount/course mismatch', {
@@ -157,6 +158,7 @@ async function handleCashfreeWebhook(req, res) {
       providerOrderId: orderId,
       displayCurrency: context.displayCurrency || 'INR',
       displayAmount: context.displayAmount != null ? context.displayAmount : expectedAmount,
+      amountINR: expectedAmount,
     });
 
     await markPendingFulfilled(context.orderId || orderId);

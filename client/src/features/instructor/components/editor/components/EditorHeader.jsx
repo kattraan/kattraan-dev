@@ -52,7 +52,7 @@ const EditorHeader = React.memo(
             <ArrowLeft size={18} className="text-gray-600 dark:text-white/60 sm:w-5 sm:h-5" />
           </button>
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <BrandLogo className="hover:opacity-80 transition-opacity hidden sm:block flex-shrink-0" />
+            <BrandLogo className="hover:opacity-80 transition-opacity hidden sm:flex flex-shrink-0" />
             <div className="hidden sm:block w-px h-6 bg-gray-200 dark:bg-white/10 flex-shrink-0" />
             <h1 className="text-[14px] sm:text-[17px] font-bold text-gray-900 dark:text-white/90 transition-colors duration-300 truncate max-w-[120px] xs:max-w-[180px] sm:max-w-[240px] md:max-w-none">
               {courseTitle || "Untitled Course"}
@@ -91,7 +91,7 @@ const EditorHeader = React.memo(
               type="button"
               onClick={onSubmitForReview}
               disabled={isSubmitting}
-              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] text-white text-xs sm:text-sm font-semibold hover:opacity-95 disabled:opacity-60 transition-opacity shadow-lg shadow-primary-pink/20 border-0"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end text-white text-xs sm:text-sm font-semibold hover:opacity-95 disabled:opacity-60 transition-opacity shadow-lg shadow-primary-pink/20 border-0"
             >
               {isSubmitting ? (
                 <Loader2 size={16} className="animate-spin sm:w-[18px] sm:h-[18px]" />

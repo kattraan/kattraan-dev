@@ -64,7 +64,7 @@ const LinkModal = ({ isOpen, onClose, onSave, isSaving, existingContent }) => {
                         className={`w-full py-3.5 rounded-xl font-black text-[12px] uppercase tracking-widest shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2.5
                             ${(!title.trim() || !url.trim() || isSaving) 
                                 ? 'bg-white/5 text-white/20 cursor-not-allowed' 
-                                : 'bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] text-white shadow-[#FF3FB4]/10 hover:shadow-[#FF3FB4]/20 hover:brightness-105'}`}
+                                : 'bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end text-white shadow-[#FF3FB4]/10 hover:shadow-[#FF3FB4]/20 hover:brightness-105'}`}
                     >
                         {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                         {isSaving ? 'Saving...' : existingContent ? 'Update Link' : 'Add Link'}

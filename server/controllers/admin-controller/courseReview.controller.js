@@ -1,4 +1,12 @@
 const Course = require('../../models/Course');
+const { signStorageCdnUrl } = require('../../helpers/bunnyToken');
+
+const STORAGE_THUMB_TTL_SEC = 60 * 60 * 24 * 7;
+
+function withSignedThumbnail(course) {
+  if (!course?.thumbnail) return course;
+  return { ...course, thumbnail: signStorageCdnUrl(course.thumbnail, STORAGE_THUMB_TTL_SEC) };
+}
 
 /**
  * GET /api/admin/courses/pending
@@ -16,7 +24,7 @@ async function getPendingCourses(req, res) {
     return res.json({
       success: true,
       message: 'Pending courses retrieved.',
-      data: courses,
+      data: courses.map(withSignedThumbnail),
     });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });

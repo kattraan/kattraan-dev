@@ -162,7 +162,7 @@ const DripTab = ({
                         variant="primary"
                         onClick={handleSaveDrip}
                         isLoading={isSaving}
-                        className="px-8 py-2 text-xs uppercase tracking-widest font-black h-auto bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] text-white hover:opacity-90 transition-all shadow-lg shadow-[0_0_18px_rgba(255,63,180,0.25)]"
+                        className="px-8 py-2 text-xs uppercase tracking-widest font-black h-auto bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end text-white hover:opacity-90 transition-all shadow-lg shadow-[0_0_18px_rgba(255,63,180,0.25)]"
                     >
                         Save
                     </Button>
@@ -187,7 +187,7 @@ const DripTab = ({
                             onClick={() => setActiveDripType(type)}
                             className={`flex flex-col gap-4 p-4 rounded-xl border transition-all duration-300 ${
                                 activeDripType === type 
-                                    ? 'bg-gradient-to-r from-[#FF8C42]/10 to-[#FF3FB4]/10 border-transparent text-gray-900 dark:text-white shadow-[0_0_0_1px_rgba(255,63,180,0.45)]'
+                                    ? 'bg-gradient-to-r from-gradient-start/10 via-gradient-mid/10 to-gradient-end/10 border-transparent text-gray-900 dark:text-white shadow-[0_0_0_1px_rgba(255,63,180,0.45)]'
                                     : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/5 text-gray-500 dark:text-white/40 hover:border-gray-300 dark:hover:border-white/10 shadow-sm dark:shadow-none'
                             }`}
                         >
@@ -196,7 +196,7 @@ const DripTab = ({
                                     <div
                                         className={`w-4 h-4 rounded-full p-[3px] flex items-center justify-center transition-colors duration-300 ${
                                             activeDripType === type
-                                                ? 'bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4]'
+                                                ? 'bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end'
                                                 : 'bg-gray-300 dark:bg-white/10'
                                         }`}
                                     >
@@ -206,7 +206,7 @@ const DripTab = ({
                                             }`}
                                         >
                                             {activeDripType === type && (
-                                                <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4]" />
+                                                <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end" />
                                             )}
                                         </div>
                                     </div>
@@ -281,7 +281,7 @@ const DripTab = ({
                                         </span>
                                     ) : (
                                         <>
-                                            <div className="w-5 h-5 rounded-full bg-gradient-to-r from-[#FF8C42]/10 to-[#FF3FB4]/10 flex items-center justify-center transition-colors duration-300">
+                                            <div className="w-5 h-5 rounded-full bg-gradient-to-r from-gradient-start/10 via-gradient-mid/10 to-gradient-end/10 flex items-center justify-center transition-colors duration-300">
                                                 <HelpCircleGradient id={`${helpGradId}-${idx}`} size={12} />
                                             </div>
                                             <span className="text-xs font-bold text-gray-500 dark:text-white/40 transition-colors duration-300">

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { 
     X, Check, ChevronLeft, ChevronRight, RotateCcw, Award
 } from 'lucide-react';
+import ThemeToggle from '@/components/ThemeToggle';
 
 const QuizLearnerPreview = ({ quizData, onClose }) => {
     const [currentIdx, setCurrentIdx] = useState(0);
@@ -39,21 +40,21 @@ const QuizLearnerPreview = ({ quizData, onClose }) => {
     const progress = ((currentIdx) / questions.length) * 100;
 
     return (
-        <div className="fixed inset-0 z-[300] bg-[#121212] text-white flex flex-col font-satoshi animate-in fade-in duration-500 overflow-hidden">
+        <div className="fixed inset-0 z-[300] bg-gray-50 dark:bg-[#121212] text-gray-900 dark:text-white flex flex-col font-satoshi animate-in fade-in duration-500 overflow-hidden">
             {/* Immersive Background Accents */}
             <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-primary-pink/10 rounded-full blur-[150px] pointer-events-none opacity-40 animate-pulse" />
             <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[150px] pointer-events-none opacity-30" />
 
             {/* Header */}
-            <header className="h-14 border-b border-white/[0.05] flex items-center justify-between px-6 sm:px-8 bg-black/40 backdrop-blur-xl relative z-20">
+            <header className="h-14 border-b border-gray-200 dark:border-white/[0.05] flex items-center justify-between px-6 sm:px-8 bg-white/80 dark:bg-black/40 backdrop-blur-xl relative z-20">
                 <div className="flex items-center gap-4">
                     <span className="text-[9px] font-bold text-primary-pink uppercase tracking-widest opacity-90">Assessment Session</span>
-                    <span className="text-white/40">·</span>
-                    <h2 className="text-sm font-bold text-white tracking-tight">
+                    <span className="text-gray-400 dark:text-white/40">·</span>
+                    <h2 className="text-sm font-bold text-gray-900 dark:text-white tracking-tight">
                         {isFinished ? 'Submitting...' : `Question ${currentIdx + 1}/${questions.length}`}
                     </h2>
                     {!isFinished && (
-                        <span className="px-2 py-0.5 rounded-md bg-white/[0.06] border border-white/10 text-[10px] font-bold text-white/50 uppercase">
+                        <span className="px-2 py-0.5 rounded-md bg-gray-100 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 text-[10px] font-bold text-gray-500 dark:text-white/50 uppercase">
                             {currentQuestion?.type}
                         </span>
                     )}
@@ -61,19 +62,20 @@ const QuizLearnerPreview = ({ quizData, onClose }) => {
 
                 <div className="flex items-center gap-4">
                     {!isFinished && (
-                        <div className="flex items-center gap-3 bg-white/[0.03] border border-white/5 py-1.5 px-4 rounded-xl">
-                            <div className="w-24 h-1 bg-white/5 rounded-full overflow-hidden">
+                        <div className="flex items-center gap-3 bg-gray-100 dark:bg-white/[0.03] border border-gray-200 dark:border-white/5 py-1.5 px-4 rounded-xl">
+                            <div className="w-24 h-1 bg-gray-200 dark:bg-white/5 rounded-full overflow-hidden">
                                 <div 
                                     className="h-full bg-gradient-to-r from-primary-pink to-[#FF8C42] transition-all duration-500" 
                                     style={{ width: `${progress}%` }}
                                 />
                             </div>
-                            <span className="text-[10px] font-bold text-white/40">{Math.round(progress)}%</span>
+                            <span className="text-[10px] font-bold text-gray-400 dark:text-white/40">{Math.round(progress)}%</span>
                         </div>
                     )}
+                    <ThemeToggle />
                     <button 
                         onClick={onClose}
-                        className="w-9 h-9 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-all"
+                        className="w-9 h-9 rounded-xl bg-gray-100 dark:bg-white/[0.03] border border-gray-200 dark:border-white/10 flex items-center justify-center text-gray-400 dark:text-white/40 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
                     >
                         <X size={18} />
                     </button>
@@ -86,16 +88,16 @@ const QuizLearnerPreview = ({ quizData, onClose }) => {
                     {!isFinished ? (
                         <div className="animate-in fade-in duration-300">
                             {/* Question Card */}
-                            <div className="bg-[#1E1E1E] border border-white/10 rounded-2xl p-6 sm:p-8 shadow-xl relative overflow-hidden">
+                            <div className="bg-white dark:bg-[#1E1E1E] border border-gray-200 dark:border-white/10 rounded-2xl p-6 sm:p-8 shadow-sm dark:shadow-xl relative overflow-hidden">
                                 {/* Toolbar */}
-                                <div className="flex items-center justify-between mb-5 pb-4 border-b border-white/5">
+                                <div className="flex items-center justify-between mb-5 pb-4 border-b border-gray-200 dark:border-white/5">
                                     <div className="flex items-center gap-2">
-                                        <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Marks</span>
+                                        <span className="text-[10px] font-bold text-gray-400 dark:text-white/40 uppercase tracking-wider">Marks</span>
                                         <span className="text-base font-bold text-primary-pink">{currentQuestion?.marks || 1}</span>
                                     </div>
                                     <button 
                                         onClick={clearAnswer}
-                                        className="flex items-center gap-2 text-[10px] font-bold text-white/40 hover:text-white transition-colors uppercase tracking-wide px-3 py-2 hover:bg-white/5 rounded-lg"
+                                        className="flex items-center gap-2 text-[10px] font-bold text-gray-400 dark:text-white/40 hover:text-gray-900 dark:hover:text-white transition-colors uppercase tracking-wide px-3 py-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg"
                                     >
                                         <RotateCcw size={12} /> Clear
                                     </button>
@@ -107,11 +109,11 @@ const QuizLearnerPreview = ({ quizData, onClose }) => {
                                         {currentIdx + 1}
                                     </div>
                                     <div className="min-w-0 flex-1">
-                                        <h1 className="text-xl sm:text-2xl font-bold text-white leading-snug">
+                                        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white leading-snug">
                                             {currentQuestion?.question}
                                         </h1>
                                         {currentQuestion?.description && (
-                                            <p className="text-white/50 text-sm sm:text-base mt-1.5 leading-relaxed">
+                                            <p className="text-gray-500 dark:text-white/50 text-sm sm:text-base mt-1.5 leading-relaxed">
                                                 {currentQuestion.description}
                                             </p>
                                         )}
@@ -127,13 +129,13 @@ const QuizLearnerPreview = ({ quizData, onClose }) => {
                                             className={`group relative flex items-center gap-4 p-4 sm:p-5 rounded-xl border transition-all text-left overflow-hidden ${
                                                 isSelected(idx) 
                                                     ? 'bg-primary-pink/10 border-primary-pink/50' 
-                                                    : 'bg-white/[0.03] border-white/10 hover:border-white/20 hover:bg-white/[0.06]'
+                                                    : 'bg-gray-50 dark:bg-white/[0.03] border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20 hover:bg-gray-100 dark:hover:bg-white/[0.06]'
                                             }`}
                                         >
                                             <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 ${
                                                 isSelected(idx)
                                                     ? 'bg-primary-pink border-primary-pink'
-                                                    : 'border-white/20 group-hover:border-white/40'
+                                                    : 'border-gray-300 dark:border-white/20 group-hover:border-gray-400 dark:group-hover:border-white/40'
                                             }`}>
                                                 {isSelected(idx) && (
                                                     <Check size={14} className="text-white" strokeWidth={3} />
@@ -144,7 +146,7 @@ const QuizLearnerPreview = ({ quizData, onClose }) => {
                                                 {opt.type === 'Image' ? (
                                                     <div className="space-y-2">
                                                         {opt.image && (
-                                                            <div className="relative rounded-lg overflow-hidden border border-white/5">
+                                                            <div className="relative rounded-lg overflow-hidden border border-gray-200 dark:border-white/5">
                                                                 <img 
                                                                     src={opt.image} 
                                                                     alt={`Option ${idx + 1}`} 
@@ -153,12 +155,12 @@ const QuizLearnerPreview = ({ quizData, onClose }) => {
                                                                 />
                                                             </div>
                                                         )}
-                                                        <span className={`text-base font-medium block ${isSelected(idx) ? 'text-white' : 'text-white/70'}`}>
+                                                        <span className={`text-base font-medium block ${isSelected(idx) ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-white/70'}`}>
                                                             {opt.content}
                                                         </span>
                                                     </div>
                                                 ) : (
-                                                    <span className={`text-base font-medium ${isSelected(idx) ? 'text-white' : 'text-white/70 group-hover:text-white'}`}>
+                                                    <span className={`text-base font-medium ${isSelected(idx) ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-white/70 group-hover:text-gray-900 dark:group-hover:text-white'}`}>
                                                         {typeof opt === 'string' ? opt : (opt.content || '')}
                                                     </span>
                                                 )}
@@ -169,18 +171,18 @@ const QuizLearnerPreview = ({ quizData, onClose }) => {
                             </div>
                         </div>
                     ) : (
-                        <div className="max-w-md mx-auto text-center space-y-6 animate-in zoom-in-95 fade-in duration-300 bg-[#1E1E1E] border border-white/10 rounded-2xl p-10 shadow-xl mt-6">
+                        <div className="max-w-md mx-auto text-center space-y-6 animate-in zoom-in-95 fade-in duration-300 bg-white dark:bg-[#1E1E1E] border border-gray-200 dark:border-white/10 rounded-2xl p-10 shadow-sm dark:shadow-xl mt-6">
                             <div className="w-20 h-20 mx-auto bg-gradient-to-br from-primary-pink to-[#FF8C42] rounded-2xl flex items-center justify-center text-white">
                                 <Award size={40} strokeWidth={1.5} />
                             </div>
                             <div>
-                                <h1 className="text-3xl font-bold text-white">Victory!</h1>
-                                <p className="text-white/50 text-base mt-1.5">You've completed all questions. Ready to submit?</p>
+                                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Victory!</h1>
+                                <p className="text-gray-500 dark:text-white/50 text-base mt-1.5">You've completed all questions. Ready to submit?</p>
                             </div>
                             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
                                 <button 
                                     onClick={() => { setCurrentIdx(0); setAnswers({}); }}
-                                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-white/[0.05] border border-white/10 text-xs font-bold uppercase tracking-wide hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+                                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gray-100 dark:bg-white/[0.05] border border-gray-200 dark:border-white/10 text-xs font-bold uppercase tracking-wide hover:bg-gray-200 dark:hover:bg-white/10 transition-all flex items-center justify-center gap-2"
                                 >
                                     <RotateCcw size={14} /> Retake
                                 </button>
@@ -198,14 +200,14 @@ const QuizLearnerPreview = ({ quizData, onClose }) => {
 
             {/* Footer */}
             {!isFinished && (
-                <footer className="h-16 border-t border-white/[0.05] bg-black/40 backdrop-blur-xl px-4 sm:px-6 flex items-center justify-between relative z-20">
+                <footer className="h-16 border-t border-gray-200 dark:border-white/[0.05] bg-white/80 dark:bg-black/40 backdrop-blur-xl px-4 sm:px-6 flex items-center justify-between relative z-20">
                     <button 
                         onClick={() => setCurrentIdx(Math.max(0, currentIdx - 1))}
                         disabled={currentIdx === 0}
                         className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-bold uppercase tracking-wide transition-all ${
                             currentIdx === 0 
-                                ? 'border-white/5 text-white/20 cursor-not-allowed' 
-                                : 'border-white/10 text-white/50 hover:text-white hover:bg-white/5'
+                                ? 'border-gray-200 dark:border-white/5 text-gray-300 dark:text-white/20 cursor-not-allowed' 
+                                : 'border-gray-200 dark:border-white/10 text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5'
                         }`}
                     >
                         <ChevronLeft size={16} /> Prev
@@ -214,7 +216,7 @@ const QuizLearnerPreview = ({ quizData, onClose }) => {
                     <div className="flex items-center gap-2 sm:gap-3">
                         <button 
                             onClick={() => setCurrentIdx(currentIdx + 1)}
-                            className="px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-white/50 hover:text-white hover:bg-white/5 text-xs font-bold uppercase tracking-wide transition-all"
+                            className="px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-white/[0.04] border border-gray-200 dark:border-white/10 text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/5 text-xs font-bold uppercase tracking-wide transition-all"
                         >
                             Skip
                         </button>
@@ -223,7 +225,7 @@ const QuizLearnerPreview = ({ quizData, onClose }) => {
                             disabled={answers[currentIdx] === undefined}
                             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition-all ${
                                 answers[currentIdx] === undefined
-                                    ? 'bg-white/[0.03] text-white/20 border border-white/5 cursor-not-allowed'
+                                    ? 'bg-gray-100 dark:bg-white/[0.03] text-gray-300 dark:text-white/20 border border-gray-200 dark:border-white/5 cursor-not-allowed'
                                     : 'bg-primary-pink text-white hover:opacity-90 active:scale-[0.98]'
                             }`}
                         >

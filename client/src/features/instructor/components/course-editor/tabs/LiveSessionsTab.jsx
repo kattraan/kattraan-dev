@@ -367,7 +367,7 @@ function ScheduleModal({ open, mode, initial, onClose, onSave, saving }) {
 
           {mode === 'add' && (
             <div className="space-y-2">
-              <div className="rounded-xl border border-gray-200/90 dark:border-white/[0.08] bg-gradient-to-r from-[#FF8C42]/[0.08] to-[#FF3FB4]/[0.08] dark:from-[#FF8C42]/12 dark:to-[#FF3FB4]/12 p-3 sm:p-3.5">
+              <div className="rounded-xl border border-gray-200/90 dark:border-white/[0.08] bg-gradient-to-r from-[#FF8C42]/[0.08] to-[#FF3FB4]/[0.08] dark:from-gradient-start/12 dark:via-gradient-mid/12 dark:to-gradient-end/12 p-3 sm:p-3.5">
                 <div className="flex items-center gap-3">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gray-200 dark:border-white/15 bg-white/80 dark:bg-black/30">
                     <Repeat className="h-5 w-5 text-primary-pink" aria-hidden />
@@ -401,8 +401,8 @@ function ScheduleModal({ open, mode, initial, onClose, onSave, saving }) {
                     }
                     className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${
                       row.recurring
-                        ? 'bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4]'
-                        : 'bg-gray-300 dark:bg-white/20'
+                        ? 'bg-zinc-600 dark:bg-zinc-400'
+                        : 'bg-zinc-200 dark:bg-zinc-700'
                     }`}
                   >
                     <span
@@ -444,7 +444,7 @@ function ScheduleModal({ open, mode, initial, onClose, onSave, saving }) {
                                 onClick={() => toggleRepeatDay(dow)}
                                 className={`h-9 w-9 rounded-full text-xs font-bold transition-colors ${
                                   active
-                                    ? 'bg-gradient-to-br from-[#FF8C42] to-[#FF3FB4] text-white shadow-sm'
+                                    ? 'bg-gradient-to-br from-gradient-start via-gradient-mid to-gradient-end text-white shadow-sm'
                                     : 'border border-gray-200 dark:border-white/15 bg-white/90 dark:bg-black/30 text-gray-600 dark:text-white/55 hover:border-primary-pink/40'
                                 }`}
                               >
@@ -483,8 +483,8 @@ function ScheduleModal({ open, mode, initial, onClose, onSave, saving }) {
                     onClick={() => setRow((r) => ({ ...r, sameLinkForAll: !r.sameLinkForAll }))}
                     className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${
                       row.sameLinkForAll !== false
-                        ? 'bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4]'
-                        : 'bg-gray-300 dark:bg-white/20'
+                        ? 'bg-zinc-600 dark:bg-zinc-400'
+                        : 'bg-zinc-200 dark:bg-zinc-700'
                     }`}
                   >
                     <span
@@ -515,7 +515,7 @@ function ScheduleModal({ open, mode, initial, onClose, onSave, saving }) {
             type="button"
             onClick={submit}
             disabled={saving}
-            className="px-5 py-2 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] hover:opacity-90 transition-opacity shadow-md shadow-pink-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-5 py-2 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end hover:opacity-90 transition-opacity shadow-md shadow-pink-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? 'Saving…' : mode === 'edit' ? 'Save changes' : 'Add session'}
           </button>
@@ -796,13 +796,13 @@ export default function LiveSessionsTab({ courseId, courseDetails, loadCourse })
               onClick={() => setListTab(t.id)}
               className={`relative pb-3 text-sm font-bold transition-colors ${
                 listTab === t.id
-                  ? 'text-transparent bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] bg-clip-text'
+                  ? 'text-transparent bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end bg-clip-text'
                   : 'text-gray-500 dark:text-white/40 hover:text-gray-800 dark:hover:text-white/70'
               }`}
             >
               {t.label}
               {listTab === t.id && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4]" />
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end" />
               )}
             </button>
           ))}
@@ -843,7 +843,7 @@ export default function LiveSessionsTab({ courseId, courseDetails, loadCourse })
         <button
           type="button"
           onClick={openAddModal}
-          className="sm:ml-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] hover:opacity-90 transition-opacity shadow-lg shadow-pink-500/15"
+          className="sm:ml-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end hover:opacity-90 transition-opacity shadow-lg shadow-pink-500/15"
         >
           <Plus size={18} aria-hidden />
           Schedule live session
@@ -853,7 +853,7 @@ export default function LiveSessionsTab({ courseId, courseDetails, loadCourse })
       {/* List */}
       {filteredByTab.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-gray-200 dark:border-white/12 bg-gray-50/50 dark:bg-white/[0.02] px-8 py-16 text-center">
-          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#FF8C42]/20 to-[#FF3FB4]/20 border border-white/10 mb-4">
+          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-gradient-start/20 via-gradient-mid/20 to-gradient-end/20 border border-white/10 mb-4">
             <Video className="w-7 h-7 text-white/70" aria-hidden />
           </div>
           <p className="text-gray-800 dark:text-white font-semibold">
@@ -868,7 +868,7 @@ export default function LiveSessionsTab({ courseId, courseDetails, loadCourse })
             <button
               type="button"
               onClick={openAddModal}
-              className="mt-6 inline-flex items-center gap-2 text-sm font-bold bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] bg-clip-text text-transparent hover:opacity-90"
+              className="mt-6 inline-flex items-center gap-2 text-sm font-bold bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end bg-clip-text text-transparent hover:opacity-90"
             >
               <Plus size={16} />
               Schedule your first session
@@ -903,7 +903,7 @@ export default function LiveSessionsTab({ courseId, courseDetails, loadCourse })
                       className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-sm backdrop-blur-sm dark:border-white/[0.12] dark:bg-white/[0.06] dark:shadow-[0_8px_32px_rgba(0,0,0,0.45)] dark:backdrop-blur-xl sm:flex-row sm:items-stretch sm:p-5"
                     >
                       <div className="flex gap-3 sm:w-[200px] shrink-0">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-gradient-to-br from-[#FF8C42]/15 to-[#FF3FB4]/15 ring-1 ring-gray-200/50 dark:ring-white/[0.08]">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-gradient-to-br from-gradient-start/15 via-gradient-mid/15 to-gradient-end/15 ring-1 ring-gray-200/50 dark:ring-white/[0.08]">
                           <Clock className="w-5 h-5 text-primary-pink/90" aria-hidden />
                         </div>
                         <div>
@@ -961,7 +961,7 @@ export default function LiveSessionsTab({ courseId, courseDetails, loadCourse })
                           onClick={() => copyLink(url)}
                           title="Copy meeting link"
                           aria-label="Copy meeting link"
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-white bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] hover:opacity-90 transition-opacity shadow-sm shadow-pink-500/25"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-white bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end hover:opacity-90 transition-opacity shadow-sm shadow-pink-500/25"
                         >
                           <Link2 size={14} className="shrink-0 opacity-95" aria-hidden />
                         </button>

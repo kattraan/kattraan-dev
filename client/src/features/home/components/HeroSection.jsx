@@ -16,7 +16,7 @@ const HeroSection = () => {
   const startLearningPath = getStartLearningPath(isAuthenticated, user);
 
   return (
-    <section className="relative min-h-[100dvh] sm:min-h-screen w-full overflow-hidden flex flex-col items-center justify-start pt-24 sm:pt-28 md:pt-32 lg:pt-36 xl:pt-44 pb-8">
+    <section className="relative min-h-[100dvh] sm:min-h-screen w-full overflow-x-hidden flex flex-col items-center justify-start pt-24 sm:pt-28 md:pt-32 lg:pt-36 xl:pt-44 pb-8">
       <picture>
         <source media="(max-width: 768px)" srcSet={heroBackgroundSm} type="image/webp" />
         <img

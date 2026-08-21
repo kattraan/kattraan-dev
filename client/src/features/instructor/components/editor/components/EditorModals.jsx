@@ -49,6 +49,7 @@ const EditorModals = React.memo(function EditorModals() {
         onClose={closeQuizModal}
         onSave={handleSaveQuiz}
         chapterId={quizChapterId}
+        courseId={courseDetails?._id || courseDetails?.id}
         initialData={currentEditingQuiz}
         sectionName={quizSectionName}
         chapterName={quizChapterName}

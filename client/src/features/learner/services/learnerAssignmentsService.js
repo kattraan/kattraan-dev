@@ -20,6 +20,24 @@ export async function submitAssignment(contentId, payload) {
   return res?.data?.data ?? res?.data;
 }
 
+/**
+ * POST /api/learner/assignments/:contentId/upload
+ * @param {string} contentId
+ * @param {File} file
+ * @returns {Promise<{ url: string, fileName?: string, id?: string }>}
+ */
+export async function uploadAssignmentFile(contentId, file) {
+  if (!file || !(file instanceof File)) {
+    throw new Error('A valid file is required for upload');
+  }
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await apiClient.post(`/learner/assignments/${contentId}/upload`, formData, {
+    withCredentials: true,
+  });
+  return res?.data?.data ?? res?.data;
+}
+
 /** Loads saved submission for any enrolled quiz content (lesson quiz or graded assignment). */
 export async function getAssignmentRowByContentId(contentId) {
   if (!contentId) return null;

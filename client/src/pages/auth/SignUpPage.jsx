@@ -11,7 +11,7 @@ import heroBackground from "@/assets/hero-background.webp";
 import useGoogleOneTap from '@/hooks/useGoogleOneTap';
 import { validatePasswordStrength } from '@/utils/passwordValidation';
 import { getEmailValidationError } from '@/utils/emailValidation';
-import { hasRole } from '@/features/auth/utils/roleUtils';
+import { hasRole, isApprovedInstructor } from '@/features/auth/utils/roleUtils';
 import { ROUTES } from '@/config/routes';
 
 /**
@@ -42,15 +42,7 @@ const SignUpPage = () => {
       return;
     }
 
-    if (hasRole(user, 'instructor')) {
-      if (user.status === 'pending_enrollment') {
-        navigate(ROUTES.INSTRUCTOR_ENROLLMENT, { replace: true });
-        return;
-      }
-      if (user.status === 'pending_approval') {
-        navigate(ROUTES.WAITING_APPROVAL, { replace: true });
-        return;
-      }
+    if (isApprovedInstructor(user)) {
       navigate(ROUTES.INSTRUCTOR_DASHBOARD, { replace: true });
       return;
     }

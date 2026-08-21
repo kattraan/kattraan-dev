@@ -40,7 +40,7 @@ export default function DateRangeFilterBar({
     >
       <div className="flex flex-wrap items-end gap-x-4 gap-y-3 min-w-0 flex-1">
         <div className="flex items-center gap-2 shrink-0 pb-0.5 sm:pb-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-[#FF8C42]/12 to-[#FF3FB4]/12 text-primary-pink ring-1 ring-gray-200/60 dark:ring-white/[0.1]">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-gradient-start/12 via-gradient-mid/12 to-gradient-end/12 text-primary-pink ring-1 ring-gray-200/60 dark:ring-white/[0.1]">
             <Filter className="w-4 h-4" aria-hidden />
           </div>
           <div className="leading-tight">

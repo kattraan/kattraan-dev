@@ -51,7 +51,7 @@ const Contact = () => {
 
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-tight max-w-4xl">
           We'd Love to <br />
-          <span className="text-gradient-brand bg-clip-text text-transparent bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4]">
+          <span className="text-gradient-brand bg-clip-text text-transparent bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end">
             Hear From You
           </span>
         </h1>
@@ -150,7 +150,7 @@ const Contact = () => {
 
                   <button
                     type="submit"
-                    className="w-full px-8 py-4 rounded-xl font-bold text-sm bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] hover:opacity-95 shadow-lg shadow-pink-500/20 flex items-center justify-center gap-3 group transition-all"
+                    className="w-full px-8 py-4 rounded-xl font-bold text-sm bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end hover:opacity-95 shadow-lg shadow-pink-500/20 flex items-center justify-center gap-3 group transition-all"
                   >
                     <span>Send Message</span>
                     <Send className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />

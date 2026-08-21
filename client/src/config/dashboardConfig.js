@@ -46,6 +46,11 @@ const dashboardConfig = {
         icon: "MessageCircle",
       },
       {
+        label: "Site Content",
+        path: ROUTES.ADMIN_SITE_CONTENT,
+        icon: "FileText",
+      },
+      {
         label: "System Settings",
         path: ROUTES.ADMIN_SETTINGS,
         icon: "Settings",
@@ -99,11 +104,6 @@ const dashboardConfig = {
         icon: "BookOpen",
       },
       { label: "Live Classes", path: ROUTES.DASHBOARD_CLASSES, icon: "Video" },
-      {
-        label: "Assignments",
-        path: ROUTES.DASHBOARD_ASSIGNMENTS,
-        icon: "FileText",
-      },
       {
         label: "Certificates",
         path: ROUTES.DASHBOARD_CERTIFICATES,

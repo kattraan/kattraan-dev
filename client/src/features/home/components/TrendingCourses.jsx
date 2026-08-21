@@ -17,12 +17,12 @@ const TrendingCourses = () => {
           <TrendingUp className="h-6 w-6 text-white" aria-hidden />
         </div>
         <div className="border border-white/20 rounded-[40px] p-5 backdrop-blur-xl bg-white/10 overflow-hidden">
-          <div className="flex gap-4 overflow-hidden px-4 py-5">
+          <div className="flex gap-4 overflow-x-auto overscroll-x-contain scrollbar-hide px-4 py-5">
             {Array.from({ length: 4 }, (_, i) => (
               <CourseCardSkeleton
                 key={i}
                 variant="landing"
-                className="flex-shrink-0 w-full xl:w-[260px] h-[220px]"
+                className="flex-shrink-0 w-[min(78vw,260px)] sm:w-[240px] xl:w-[260px] h-[220px]"
                 showFooter={false}
               />
             ))}
@@ -69,15 +69,16 @@ const TrendingCourses = () => {
       </div>
 
       <div className="border border-white/20 rounded-3xl sm:rounded-[40px] p-4 sm:p-5 backdrop-blur-xl bg-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.1)] overflow-hidden">
-        <div className="flex flex-col sm:grid sm:grid-cols-2 xl:flex xl:flex-row gap-4 sm:gap-4 overflow-hidden xl:overflow-x-auto overscroll-x-contain py-2 sm:py-5 -my-2 sm:-my-5 px-2 sm:px-8 -mx-2 sm:-mx-8 scrollbar-hide items-stretch touch-pan-x">
+        {/* Horizontal scroll on all sizes — avoid touch-pan-x (blocks vertical page scroll on mobile). */}
+        <div className="flex flex-row gap-4 overflow-x-auto overscroll-x-contain py-2 sm:py-5 -my-2 sm:-my-5 px-2 sm:px-8 -mx-2 sm:-mx-8 scrollbar-hide items-stretch snap-x snap-mandatory">
           {courses.map((course) => (
             <Link
               key={course.key}
               to={course.to}
-              className="flex-shrink-0 w-full xl:w-[260px] cursor-pointer group p-1"
+              className="flex-shrink-0 w-[min(78vw,260px)] sm:w-[240px] xl:w-[260px] cursor-pointer group p-1 snap-start"
               aria-label={course.title}
             >
-              <div className="relative h-[260px] sm:h-[240px] xl:h-[220px] border border-white/20 rounded-3xl sm:rounded-[30px] overflow-hidden backdrop-blur-md bg-white/10 transition-all duration-300 group-hover:scale-[1.03] group-hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] will-change-transform transform-gpu">
+              <div className="relative h-[220px] sm:h-[240px] xl:h-[220px] border border-white/20 rounded-3xl sm:rounded-[30px] overflow-hidden backdrop-blur-md bg-white/10 transition-all duration-300 group-hover:scale-[1.03] group-hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] will-change-transform transform-gpu">
                 {course.image ? (
                   <img
                     src={course.image}
@@ -86,7 +87,7 @@ const TrendingCourses = () => {
                     loading="lazy"
                   />
                 ) : (
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#FF8C42]/25 to-[#FF3FB4]/15" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-gradient-start/25 via-gradient-mid/25 to-gradient-end/15" />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/60" />
                 <div className="absolute top-3 right-3 flex items-center gap-1 text-white text-xs font-semibold">
@@ -102,10 +103,10 @@ const TrendingCourses = () => {
 
           <Link
             to={ROUTES.COURSES}
-            className="flex-shrink-0 w-full xl:w-[150px] cursor-pointer group sm:col-span-2 xl:col-span-1 p-1"
+            className="flex-shrink-0 w-[140px] sm:w-[150px] cursor-pointer group p-1 snap-start"
             aria-label="View all courses"
           >
-            <div className="relative h-[200px] sm:h-[220px] xl:h-[220px] border border-white/20 rounded-3xl sm:rounded-[30px] overflow-hidden backdrop-blur-md bg-white/10 transition-all duration-300 group-hover:scale-[1.03] will-change-transform transform-gpu">
+            <div className="relative h-[220px] sm:h-[240px] xl:h-[220px] border border-white/20 rounded-3xl sm:rounded-[30px] overflow-hidden backdrop-blur-md bg-white/10 transition-all duration-300 group-hover:scale-[1.03] will-change-transform transform-gpu">
               <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-black/40" />
               <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
                 <p className="font-bold text-lg mb-3">View all</p>

@@ -17,6 +17,7 @@ const {
   getAuthCookieSameSite,
   getAuthCookieSecure,
 } = require("../../config/authCookies");
+const { effectiveRoleNames, primaryRoleName } = require("../../helpers/instructorAccess");
 
 // Helper to log user activity
 const logAudit = async (userId, action, req, details = {}) => {
@@ -36,31 +37,65 @@ const logAudit = async (userId, action, req, details = {}) => {
 const getSafeProfile = async (user) => {
   const Role = require("../../models/Role");
   const rolesData = await Role.find({ roleId: { $in: user.roles } });
-
-  // Return all roles to support multi-role awareness
-  const roleNames = rolesData.map(r => r.roleName);
+  const roleNames = effectiveRoleNames(rolesData.map((r) => r.roleName), user.status);
 
   return {
     _id: user._id,
     userName: user.userName,
     userEmail: user.userEmail,
     status: user.status,
-    roles: roleNames, // Array of role names
-    role: roleNames.includes('admin') ? 'admin' : (roleNames.includes('instructor') ? 'instructor' : 'learner')
+    instructorApprovedAt: user.instructorApprovedAt || null,
+    enrollmentData: user.enrollmentData || null,
+    roles: roleNames,
+    role: primaryRoleName(roleNames),
   };
 };
 
-/**
- * Admin approval flow: instructors must have status === 'approved' to log in.
- * Returns true if user has instructor role and is not approved (pending_approval or rejected).
- */
-const isInstructorNotApproved = async (user) => {
-  if (!user || !user.roles || user.roles.length === 0) return false;
-  const rolesData = await Role.find({ roleId: { $in: user.roles } });
-  const roleNames = (rolesData || []).map(r => String(r.roleName).toLowerCase());
-  const hasInstructorRole = roleNames.includes('instructor');
-  return hasInstructorRole && user.status !== 'approved';
+const findRoleByName = async (roleName) => Role.findOne({ roleName });
+
+const grantInstructorRole = async (user) => {
+  const instructor = await findRoleByName("instructor");
+  const learner = await findRoleByName("learner");
+  if (!instructor || !learner) {
+    throw new Error("System configuration error");
+  }
+  if (!user.roles.includes(learner.roleId)) {
+    user.roles.push(learner.roleId);
+  }
+  if (!user.roles.includes(instructor.roleId)) {
+    user.roles.push(instructor.roleId);
+  }
+  return instructor;
 };
+
+const revokeInstructorRole = async (user) => {
+  const instructor = await findRoleByName("instructor");
+  const learner = await findRoleByName("learner");
+  if (!instructor || !learner) {
+    throw new Error("System configuration error");
+  }
+  user.roles = (user.roles || []).filter((id) => id !== instructor.roleId);
+  if (!user.roles.includes(learner.roleId)) {
+    user.roles.push(learner.roleId);
+  }
+  return instructor;
+};
+
+/** Strip instructor from accounts that were never admin-approved (legacy bypass). */
+const sanitizeUnapprovedInstructor = async (user) => {
+  if (!user || user.status === "approved") return;
+  const rolesData = await Role.find({ roleId: { $in: user.roles || [] } });
+  const names = rolesData.map((r) => r.roleName);
+  if (names.includes("admin") || !names.includes("instructor")) return;
+  await revokeInstructorRole(user);
+};
+
+/**
+ * Instructors may log in while enrollment/approval is in progress so they can
+ * finish the form and see the waiting page. Instructor-only APIs stay gated
+ * in role middleware until status === 'approved'.
+ * Rejected instructors can still sign in to view the rejection screen.
+ */
 
 const MAX_SESSIONS = 3;
 const OTP_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
@@ -139,12 +174,12 @@ const registerUser = async (req, res) => {
   let finalRoles = [];
   let status = 'active';
 
-  // Check if instructor role is requested (Role ID 2)
+  // Instructor signup stays a learner until admin approval. Never grant the
+  // instructor role at registration — that happens only in adminApproveInstructor.
   if (requestedRoles && (requestedRoles.includes(2) || requestedRoles.includes('2'))) {
-    finalRoles = [instructorRole.roleId];
-    status = 'pending_enrollment'; // Instructors must complete enrollment
+    finalRoles = [learnerRole.roleId];
+    status = 'pending_enrollment';
   } else {
-    // Default is learner
     finalRoles = [learnerRole.roleId];
   }
 
@@ -190,22 +225,65 @@ const registerUser = async (req, res) => {
 // =======================
 const submitEnrollment = async (req, res) => {
   try {
-    const { bio, experience, expertise, linkedin, website } = req.body;
+    const {
+      bio,
+      experience,
+      expertise,
+      linkedin,
+      website,
+      github,
+      languages,
+      resumeName,
+      idProofName,
+    } = req.body;
     const userId = req.user._id;
 
     // Find user
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
-    // Update enrollment data and status
+    // Learners can submit the enrollment form directly; start the application if needed.
+    if (user.status === "active") {
+      await revokeInstructorRole(user);
+      user.status = "pending_enrollment";
+    }
+
+    const canSubmit = ['pending_enrollment', 'pending_approval', 'rejected'].includes(user.status);
+    if (!canSubmit) {
+      return res.status(403).json({
+        success: false,
+        message: "Start an instructor application before submitting enrollment.",
+      });
+    }
+
+    // Update enrollment data and status — still a learner until admin approves
+    const existingEnrollment =
+      user.enrollmentData && typeof user.enrollmentData.toObject === "function"
+        ? user.enrollmentData.toObject()
+        : (user.enrollmentData || {});
     user.enrollmentData = {
-      bio, experience, expertise, linkedin, website,
+      ...existingEnrollment,
+      bio: bio ?? existingEnrollment.bio,
+      experience: experience ?? existingEnrollment.experience,
+      expertise: expertise ?? existingEnrollment.expertise,
+      linkedin: linkedin || existingEnrollment.linkedin,
+      website: website || existingEnrollment.website,
+      github: github || existingEnrollment.github,
+      languages: Array.isArray(languages) ? languages : existingEnrollment.languages,
+      resume: resumeName || existingEnrollment.resume,
+      idProof: idProofName || existingEnrollment.idProof,
       submittedAt: new Date()
     };
     user.status = 'pending_approval';
+    await revokeInstructorRole(user);
     await user.save();
 
-    res.json({ success: true, message: "Enrollment submitted. Awaiting admin approval." });
+    const safeProfile = await getSafeProfile(user);
+    res.json({
+      success: true,
+      message: "Enrollment submitted. Awaiting admin approval.",
+      user: safeProfile,
+    });
   } catch (error) {
     console.error("Enrollment Error:", error);
     res.status(500).json({ success: false, message: "Server error" });
@@ -217,15 +295,21 @@ const submitEnrollment = async (req, res) => {
 // =======================
 const adminApproveInstructor = async (req, res) => {
   try {
-    const { userId, action } = req.body; // action: 'approve' or 'reject'
+    const { userId, action } = req.body; // approve | reject | disapprove
 
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
     if (action === 'approve') {
+      await grantInstructorRole(user);
       user.status = 'approved';
-    } else if (action === 'reject') {
-      user.status = 'rejected';
+      user.instructorApprovedAt = new Date();
+    } else if (action === 'reject' || action === 'disapprove') {
+      await revokeInstructorRole(user);
+      user.instructorApprovedAt = null;
+      user.status = action === 'disapprove' ? 'active' : 'rejected';
+    } else {
+      return res.status(400).json({ success: false, message: "Invalid action" });
     }
 
     await user.save();
@@ -234,21 +318,29 @@ const adminApproveInstructor = async (req, res) => {
     try {
       const notificationService = require("../../services/notification.service");
       const approved = action === "approve";
+      const revoked = action === "disapprove";
       await notificationService.createNotification({
         userId: user._id,
         type: "instructor_approval",
-        title: approved ? "Instructor account approved" : "Instructor application update",
+        title: approved
+          ? "Instructor account approved"
+          : revoked
+            ? "Instructor access revoked"
+            : "Instructor application update",
         body: approved
           ? "Your instructor account was approved. You can start creating courses."
-          : "Your instructor application was not approved. Check your enrollment status for details.",
-        link: approved ? "/instructor-dashboard" : "/waiting-approval",
+          : revoked
+            ? "Your instructor access was revoked by an admin. You can continue as a learner."
+            : "Your instructor application was not approved. Check your enrollment status for details.",
+        link: approved ? "/instructor-dashboard" : "/dashboard",
         meta: { action },
       });
     } catch (e) {
       console.error("[adminApproveInstructor] notification", e.message || e);
     }
 
-    res.json({ success: true, message: `Instructor ${action}d successfully`, user: safeProfile });
+    const verb = action === 'disapprove' ? 'revoked' : `${action}d`;
+    res.json({ success: true, message: `Instructor ${verb} successfully`, user: safeProfile });
   } catch (error) {
     console.error("Approval Error:", error);
     res.status(500).json({ success: false, message: "Server error" });
@@ -327,15 +419,6 @@ const loginUser = async (req, res) => {
       });
     }
 
-    // Admin approval: instructors must be approved to log in
-    if (await isInstructorNotApproved(user)) {
-      await logAudit(user._id, 'LOGIN_FAILED', req, { reason: 'instructor_not_approved' });
-      return res.status(403).json({
-        success: false,
-        message: "Your instructor account is pending approval. You will be able to log in once an admin approves your account.",
-      });
-    }
-
     // --- Session Management ---
     // Remove expired sessions first
     user.sessions = (user.sessions || []).filter(s => s.expiresAt > Date.now());
@@ -347,9 +430,10 @@ const loginUser = async (req, res) => {
     }
 
     // Generate tokens
+    await sanitizeUnapprovedInstructor(user);
     const roleIds = user.roles;
     const rolesData = await Role.find({ roleId: { $in: roleIds } });
-    const roleNames = rolesData.map(r => r.roleName);
+    const roleNames = effectiveRoleNames(rolesData.map(r => r.roleName), user.status);
 
     const accessToken = jwt.sign(
       { _id: user._id, roles: roleIds, roleNames: roleNames },
@@ -458,14 +542,6 @@ const refreshAccessToken = async (req, res) => {
 
     if (!user) return res.status(403).json({ success: false, message: "User not found" });
 
-    // Admin approval: instructors must be approved (re-check on refresh so revoked approval takes effect)
-    if (await isInstructorNotApproved(user)) {
-      return res.status(403).json({
-        success: false,
-        message: "Your instructor account is pending approval or has been rejected.",
-      });
-    }
-
     // Find the session matching this refresh token (current or brief previous grace)
     // so two browser tabs refreshing at once don't invalidate each other.
     let sessionIndex = -1;
@@ -504,9 +580,10 @@ const refreshAccessToken = async (req, res) => {
 
     // If this request still holds the just-rotated previous token, only mint a new
     // access token and re-send the already-current refresh cookie (no second rotation).
+    await sanitizeUnapprovedInstructor(user);
     const roleIds = user.roles;
     const rolesData = await Role.find({ roleId: { $in: roleIds } });
-    const roleNames = rolesData.map(r => r.roleName);
+    const roleNames = effectiveRoleNames(rolesData.map(r => r.roleName), user.status);
 
     const newAccessToken = jwt.sign(
       { _id: user._id, roles: roleIds, roleNames: roleNames },
@@ -587,21 +664,37 @@ const becomeInstructor = async (req, res) => {
         .status(404)
         .json({ success: false, message: "User not found" });
     }
-    const instructor = await Role.findOne({ roleName: "instructor" });
-    if (!instructor) {
-      return res
-        .status(500)
-        .json({ success: false, message: "Instructor role not found" });
-    }
-
-    // Add role UUID if not present
-    if (!user.roles.includes(instructor.roleId)) {
-      user.roles.push(instructor.roleId); // Store UUID
-      user.status = 'pending_enrollment'; // Trigger enrollment flow
+    if (user.status === "approved") {
+      await grantInstructorRole(user);
       await user.save();
+      const safeProfile = await getSafeProfile(user);
+      return res.json({
+        success: true,
+        message: "You are already an approved instructor.",
+        user: safeProfile,
+      });
     }
 
-    res.json({ success: true, message: "Upgraded to instructor. Please complete enrollment." });
+    if (user.status === "pending_approval") {
+      const safeProfile = await getSafeProfile(user);
+      return res.json({
+        success: true,
+        message: "Your instructor application is awaiting admin approval.",
+        user: safeProfile,
+      });
+    }
+
+    // Stay a learner. Admin approval is the only path that grants instructor.
+    await revokeInstructorRole(user);
+    user.status = "pending_enrollment";
+    await user.save();
+
+    const safeProfile = await getSafeProfile(user);
+    res.json({
+      success: true,
+      message: "Application started. Complete enrollment for admin review.",
+      user: safeProfile,
+    });
   } catch (error) {
     console.error("Become Instructor Error:", error);
     res.status(500).json({ success: false, message: "Server error" });
@@ -902,15 +995,11 @@ const googleCallback = async (req, res) => {
       return res.redirect(`${process.env.CLIENT_URL}/login?error=auth_failed`);
     }
 
-    // Admin approval: instructors must be approved to log in
-    if (await isInstructorNotApproved(user)) {
-      return res.redirect(`${process.env.CLIENT_URL}/login?error=instructor_pending_approval`);
-    }
-
     // Extract roles
+    await sanitizeUnapprovedInstructor(user);
     const roleIds = user.roles;
     const rolesData = await Role.find({ roleId: { $in: roleIds } });
-    const roleNames = rolesData.map(r => r.roleName);
+    const roleNames = effectiveRoleNames(rolesData.map(r => r.roleName), user.status);
 
     // 1) Create Access Token
     const accessToken = jwt.sign(
@@ -1028,18 +1117,11 @@ const googleOneTapLogin = async (req, res) => {
       }
     }
 
-    // Admin approval: instructors must be approved to log in
-    if (await isInstructorNotApproved(user)) {
-      return res.status(403).json({
-        success: false,
-        message: "Your instructor account is pending approval. You will be able to log in once an admin approves your account.",
-      });
-    }
-
     // 4. Generate Tokens
+    await sanitizeUnapprovedInstructor(user);
     const roleIds = user.roles;
     const rolesData = await Role.find({ roleId: { $in: roleIds } });
-    const roleNames = rolesData.map(r => r.roleName);
+    const roleNames = effectiveRoleNames(rolesData.map(r => r.roleName), user.status);
 
     const accessToken = jwt.sign(
       { _id: user._id, roles: roleIds, roleNames: roleNames },
@@ -1098,7 +1180,9 @@ const googleOneTapLogin = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Google One Tap login successful"
+      message: "Google One Tap login successful",
+      data: { user: safeProfile },
+      user: safeProfile,
     });
 
   } catch (error) {

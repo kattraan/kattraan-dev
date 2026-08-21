@@ -134,7 +134,7 @@ export default function CertificateViewPage() {
             type="button"
             onClick={handleDownload}
             disabled={!pdfUrl}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] text-white text-xs font-bold disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end text-white text-xs font-bold disabled:opacity-50"
           >
             <Download className="w-4 h-4" />
             Download PDF

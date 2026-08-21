@@ -23,6 +23,7 @@ import { refreshAuthSession } from '@/api/apiClient';
 const LandingPage = lazy(() => import('@/pages/LandingPage'));
 const AboutPage = lazy(() => import('@/components/landing pages/about'));
 const ContactPage = lazy(() => import('@/components/landing pages/contact'));
+const BecomeInstructorPage = lazy(() => import('@/components/landing pages/BecomeInstructor'));
 const PrivacyPolicyPage = lazy(() => import('@/components/landing pages/PrivacyPolicy'));
 const FAQPage = lazy(() => import('@/components/landing pages/FAQ'));
 const TermsPage = lazy(() => import('@/components/landing pages/Terms'));
@@ -43,6 +44,7 @@ const InstructorApprovalsPage = lazy(() => import('@/pages/admin/InstructorAppro
 const CourseReviewPage = lazy(() => import('@/pages/admin/CourseReviewPage'));
 const CourseReviewDetailPage = lazy(() => import('@/pages/admin/CourseReviewDetailPage'));
 const AdminCommunitiesPage = lazy(() => import('@/pages/admin/community/AdminCommunitiesPage'));
+const AdminSiteContentPage = lazy(() => import('@/pages/admin/AdminSiteContentPage'));
 const CommunityHubPage = lazy(() => import('@/pages/community/CommunityHubPage'));
 const CommunityRoomPage = lazy(() => import('@/pages/community/CommunityRoomPage'));
 const CourseDetailsPage = lazy(() => import('@/pages/courses/CourseDetailsPage'));
@@ -109,6 +111,14 @@ function App() {
         <ConfirmDialogProvider>
           <Router>
             <ThemeProvider>
+            <svg width="0" height="0" className="absolute overflow-hidden" aria-hidden>
+              <defs>
+                <linearGradient id="kattraan-brand-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#FF8C42" />
+                  <stop offset="100%" stopColor="#FF3FB4" />
+                </linearGradient>
+              </defs>
+            </svg>
             <ScrollToTop />
           <Suspense fallback={<RouteSkeleton />}>
             <Routes>
@@ -116,6 +126,7 @@ function App() {
             <Route path={ROUTES.HOME} element={<MainLayout><LandingPage /></MainLayout>} />
             <Route path={ROUTES.ABOUT} element={<MainLayout><AboutPage /></MainLayout>} />
             <Route path={ROUTES.CONTACT} element={<MainLayout><ContactPage /></MainLayout>} />
+            <Route path={ROUTES.BECOME_INSTRUCTOR} element={<MainLayout><BecomeInstructorPage /></MainLayout>} />
             <Route path={ROUTES.PRIVACY_POLICY} element={<MainLayout><PrivacyPolicyPage /></MainLayout>} />
             <Route path={ROUTES.FAQ} element={<MainLayout><FAQPage /></MainLayout>} />
             <Route path={ROUTES.TERMS} element={<MainLayout><TermsPage /></MainLayout>} />
@@ -191,6 +202,7 @@ function App() {
                 <Route path={ROUTES.ADMIN_COURSES} element={<CourseReviewPage />} />
                 <Route path={ROUTES.ADMIN_COMMUNITIES} element={<AdminCommunitiesPage />} />
                 <Route path={`${ROUTES.ADMIN_COMMUNITIES}/:id`} element={<CommunityRoomPage />} />
+                <Route path={ROUTES.ADMIN_SITE_CONTENT} element={<AdminSiteContentPage />} />
                 <Route path={ROUTES.ADMIN_SETTINGS} element={<SettingsPage />} />
               </Route>
             </Route>

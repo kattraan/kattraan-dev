@@ -65,6 +65,15 @@ const createCommunity = async (req, res) => {
       return res.status(400).json({ success: false, message: "This course already has a community" });
     }
 
+    // Soft-deleted communities still hold the legacy unique course index — purge them so recreate works.
+    const archived = await Community.find({ course: courseId, isDeleted: true }).select("_id").lean();
+    if (archived.length) {
+      const archivedIds = archived.map((doc) => doc._id);
+      await CommunityMembership.deleteMany({ community: { $in: archivedIds } });
+      await CommunityMessage.deleteMany({ community: { $in: archivedIds } });
+      await Community.deleteMany({ _id: { $in: archivedIds } });
+    }
+
     const community = await Community.create({
       course: courseId,
       name,

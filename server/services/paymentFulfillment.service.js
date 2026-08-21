@@ -3,6 +3,7 @@ const Order = require('../models/Order');
 const LearnerCourses = require('../models/LearnerCourses');
 const Chapter = require('../models/Chapter');
 const User = require('../models/User');
+const { salePriceINR } = require('../helpers/coursePrice');
 
 /**
  * Enroll user and persist Order for a successful Cashfree payment.
@@ -21,6 +22,7 @@ async function fulfillCoursePurchase(params) {
     providerOrderId,
     displayCurrency,
     displayAmount,
+    amountINR: amountINRParam,
   } = params;
 
   const existing = await Order.findOne({ paymentId }).lean();
@@ -63,6 +65,11 @@ async function fulfillCoursePurchase(params) {
     totalLessons,
   };
 
+  const chargedINR =
+    amountINRParam != null && Number(amountINRParam) > 0
+      ? Number(amountINRParam)
+      : salePriceINR(course);
+
   const orderPayload = {
     userId,
     userName,
@@ -78,12 +85,13 @@ async function fulfillCoursePurchase(params) {
     courseImage: course.thumbnail || '',
     courseTitle: course.title || '',
     courseId: course._id.toString(),
-    coursePricing: Number(course.price) || 0,
+    coursePricing: chargedINR || 0,
+    amountINR: chargedINR || 0,
     currency: 'INR',
     displayAmount:
       displayAmount != null && !Number.isNaN(Number(displayAmount))
         ? Number(displayAmount)
-        : Number(course.price) || 0,
+        : chargedINR || 0,
     displayCurrency: displayCurrency || 'INR',
   };
 

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Search, Users, Mail, Shield, CheckCircle, Clock, XCircle } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import adminService from '@/features/admin/services/adminService';
@@ -19,11 +20,20 @@ const roleStyle = {
 };
 
 const AdminUsersPage = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all');
+  const roleFromUrl = searchParams.get('role');
+  const roleFilter = ['learner', 'instructor', 'admin'].includes(roleFromUrl) ? roleFromUrl : 'all';
+
+  const setRoleFilter = (role) => {
+    const next = new URLSearchParams(searchParams);
+    if (role === 'all') next.delete('role');
+    else next.set('role', role);
+    setSearchParams(next, { replace: true });
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -80,9 +90,9 @@ const AdminUsersPage = () => {
                 key={role}
                 type="button"
                 onClick={() => setRoleFilter(role)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
+                className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all select-none ${
                   roleFilter === role
-                    ? 'bg-primary-pink text-white'
+                    ? 'bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end text-white'
                     : 'bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-white/40 hover:bg-gray-200 dark:hover:bg-white/10'
                 }`}
               >
@@ -144,8 +154,8 @@ const AdminUsersPage = () => {
                       </td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full ${statusStyle[user.status] || statusStyle.active}`}>
-                          {user.status === 'pending_approval' ? <Clock size={10} /> : user.status === 'rejected' ? <XCircle size={10} /> : <CheckCircle size={10} />}
-                          {user.status?.replace('_', ' ')}
+                          {user.status === 'pending_approval' || user.status === 'pending_enrollment' ? <Clock size={10} /> : user.status === 'rejected' ? <XCircle size={10} /> : <CheckCircle size={10} />}
+                          {user.status?.replaceAll('_', ' ')}
                         </span>
                       </td>
                       <td className="px-6 py-4">

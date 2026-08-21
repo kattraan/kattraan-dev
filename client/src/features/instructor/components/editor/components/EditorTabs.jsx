@@ -44,13 +44,13 @@ function TabButton({ item, activeTab, onTabChange, compact = false }) {
         key={item.value}
         type="button"
         onClick={() => onTabChange(item.value)}
-        className={`flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+        className={`sidebar-nav-link flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap select-none ${
           isActive
-            ? "bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] text-white shadow-md"
+            ? "inner-nav-active text-white"
             : "bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-white/60 hover:bg-gray-200 dark:hover:bg-white/10"
         }`}
       >
-        <item.icon size={14} />
+        <item.icon size={14} className={isActive ? "text-white" : ""} />
         {item.shortLabel || item.label}
         {item.badge && (
           <span className="text-[8px] font-black uppercase tracking-wider opacity-80">
@@ -66,9 +66,9 @@ function TabButton({ item, activeTab, onTabChange, compact = false }) {
       key={item.value}
       type="button"
       onClick={() => onTabChange(item.value)}
-      className={`w-full flex items-center justify-between px-4 py-3 mb-1 transition-all group rounded-2xl ${
+      className={`sidebar-nav-link w-full flex items-center justify-between px-4 py-3 mb-1 group rounded-2xl select-none ${
         isActive
-          ? "bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] shadow-[0_10px_20px_rgba(255,63,180,0.3)]"
+          ? "inner-nav-active text-white"
           : "hover:bg-gray-100 dark:hover:bg-white/5"
       }`}
     >
@@ -76,11 +76,11 @@ function TabButton({ item, activeTab, onTabChange, compact = false }) {
         <div
           className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors flex-shrink-0 ${
             isActive
-              ? "bg-white text-primary-pink"
+              ? "bg-white/20 text-white"
               : "bg-gray-100 dark:bg-[#3A3A3A] text-gray-500 dark:text-white/70"
           }`}
         >
-          <item.icon size={18} />
+          <item.icon size={18} className={isActive ? "text-white" : ""} />
         </div>
         <span
           className={`text-[14px] font-bold truncate ${
@@ -93,7 +93,7 @@ function TabButton({ item, activeTab, onTabChange, compact = false }) {
       <ChevronRight
         size={16}
         className={
-          isActive ? "text-white flex-shrink-0" : "text-gray-300 dark:text-white/20 flex-shrink-0"
+          isActive ? "flex-shrink-0 text-white" : "text-gray-300 dark:text-white/20 flex-shrink-0"
         }
       />
     </button>

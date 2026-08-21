@@ -1,27 +1,34 @@
 import { useMemo } from 'react';
-import { useGetPublicCoursesQuery } from '@/features/courses/api/coursesApi';
+import { useGetLandingCoursesQuery } from '@/features/courses/api/coursesApi';
 import { mapPublicCourseToLandingCard } from '@/features/home/utils/mapLandingCourse';
 
 /**
  * Public courses for the landing page.
- * Never returns placeholder/fallback courses — while loading, lists are empty
- * and `isLoading` is true so UI can show skeletons instead of flashing dummy cards.
+ * Trending / Popular use admin placements when those lists are saved;
+ * otherwise they fall back to recency / ratings.
  */
 export function useLandingPublicCourses() {
-  // Small + lite payload for the homepage (skips heavy duration aggregation on the API).
-  const { data: raw = [], isLoading, isFetching, isError } = useGetPublicCoursesQuery({
-    page: 1,
-    limit: 8,
-    lite: true,
+  const { data, isLoading, isFetching, isError } = useGetLandingCoursesQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
   });
 
   const courses = useMemo(
-    () => (Array.isArray(raw) ? raw : []).map(mapPublicCourseToLandingCard),
-    [raw],
+    () => (Array.isArray(data?.courses) ? data.courses : []).map(mapPublicCourseToLandingCard),
+    [data],
   );
 
-  // Prefer real ratings when present; otherwise popularity (enrollments).
-  const topRated = useMemo(
+  const featuredTrending = useMemo(
+    () => (Array.isArray(data?.trending) ? data.trending : []).map(mapPublicCourseToLandingCard),
+    [data],
+  );
+  const featuredPopular = useMemo(
+    () => (Array.isArray(data?.popular) ? data.popular : []).map(mapPublicCourseToLandingCard),
+    [data],
+  );
+
+  const autoTopRated = useMemo(
     () =>
       [...courses]
         .sort((a, b) => {
@@ -45,10 +52,11 @@ export function useLandingPublicCourses() {
     [courses],
   );
 
-  const trending = useMemo(() => courses.slice(0, 4), [courses]);
+  const autoTrending = useMemo(() => courses.slice(0, 4), [courses]);
+  const trending = data?.trendingManual || featuredTrending.length > 0 ? featuredTrending : autoTrending;
+  const topRated = data?.popularManual || featuredPopular.length > 0 ? featuredPopular : autoTopRated;
 
-  // Treat initial fetch as loading so callers never briefly paint empty→fallback→real.
-  const loading = isLoading || (isFetching && courses.length === 0);
+  const loading = isLoading || (isFetching && courses.length === 0 && featuredTrending.length === 0);
 
   return {
     courses,
@@ -57,6 +65,6 @@ export function useLandingPublicCourses() {
     trending,
     isLoading: loading,
     isError,
-    hasApiCourses: courses.length > 0,
+    hasApiCourses: courses.length > 0 || trending.length > 0 || topRated.length > 0,
   };
 }

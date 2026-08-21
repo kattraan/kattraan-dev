@@ -1,4 +1,24 @@
 import apiClient from '@/api/apiClient';
+import { isTransientApiError } from '@/utils/apiErrorMessages';
+
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Retry when the Vite proxy/API is briefly down (nodemon restart, 502). */
+async function withTransientRetry(fn, attempts = 3, delayMs = 600) {
+    let lastError;
+    for (let i = 0; i < attempts; i++) {
+        try {
+            return await fn();
+        } catch (error) {
+            lastError = error;
+            if (!isTransientApiError(error) || i === attempts - 1) throw error;
+            await sleep(delayMs * (i + 1));
+        }
+    }
+    throw lastError;
+}
 
 /**
  * Authentication Service Layer
@@ -7,7 +27,9 @@ import apiClient from '@/api/apiClient';
 const authService = {
     login: async (email, password) => {
         // Map frontend "email" to backend "userEmail"
-        const response = await apiClient.post('/auth/login', { userEmail: email, password });
+        const response = await withTransientRetry(() =>
+            apiClient.post('/auth/login', { userEmail: email, password }),
+        );
         // Token is set as HTTP-only cookie
         return response.data;
     },
@@ -105,7 +127,9 @@ const authService = {
     },
 
     googleOneTapLogin: async (idToken) => {
-        const response = await apiClient.post('/auth/google/one-tap', { id_token: idToken });
+        const response = await withTransientRetry(() =>
+            apiClient.post('/auth/google/one-tap', { id_token: idToken }),
+        );
         return response.data;
     }
 };

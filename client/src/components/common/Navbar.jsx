@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 
-import { ChevronDown, Menu, X, User, ShoppingCart } from "lucide-react";
+import { Menu, X, User, ShoppingCart } from "lucide-react";
 
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
@@ -12,7 +12,7 @@ import navDecoration from "@/assets/nav-decoration.png";
 
 import { logout } from "@/features/auth/store/authSlice";
 
-import { hasRole } from "@/features/auth/utils/roleUtils";
+import { hasRole, isApprovedInstructor } from "@/features/auth/utils/roleUtils";
 
 import { ROUTES } from "@/config/routes";
 
@@ -36,6 +36,8 @@ const DARK_LANDING_PATHS = [
 
   ROUTES.CONTACT,
 
+  ROUTES.BECOME_INSTRUCTOR,
+
   ROUTES.PRIVACY_POLICY,
 
   ROUTES.TERMS,
@@ -51,8 +53,6 @@ const DARK_LANDING_PATHS = [
 const Navbar = () => {
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-
-  const [isExploreOpen, setIsExploreOpen] = useState(false);
 
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -156,16 +156,20 @@ const Navbar = () => {
 
   const getNavItems = () => {
 
-    // Guests: Courses/Explore hit protected /courses → login, then return to catalog
+    const contactUs = { name: "Contact Us", path: ROUTES.CONTACT };
+
+    // Guests: Courses hits protected /courses → login, then return to catalog
     if (!isAuthenticated) {
 
       return [
 
-        { name: "Explore", hasDropdown: true, path: ROUTES.COURSES },
-
-        { name: "Home", hasDropdown: false, path: ROUTES.HOME },
+        { name: "Home", path: ROUTES.HOME },
 
         { name: "Courses", hasDecoration: true, path: ROUTES.COURSES },
+
+        { name: "Become Instructor", path: ROUTES.BECOME_INSTRUCTOR },
+
+        contactUs,
 
       ];
 
@@ -173,25 +177,23 @@ const Navbar = () => {
 
 
 
-    if (hasRole(user, "instructor")) {
+    if (isApprovedInstructor(user)) {
 
       return [
 
-        { name: "Explore", hasDropdown: true, path: ROUTES.COURSES },
-
-        { name: "Home", hasDropdown: false, path: ROUTES.HOME },
+        { name: "Home", path: ROUTES.HOME },
 
         { name: "Courses", hasDecoration: true, path: ROUTES.COURSES },
 
         {
 
-          name: "Dashboard",
-
-          hasDropdown: false,
+          name: "My Dashboard",
 
           path: ROUTES.INSTRUCTOR_DASHBOARD,
 
         },
+
+        contactUs,
 
       ];
 
@@ -203,9 +205,7 @@ const Navbar = () => {
 
       return [
 
-        { name: "Explore", hasDropdown: true, path: ROUTES.COURSES },
-
-        { name: "Home", hasDropdown: false, path: ROUTES.HOME },
+        { name: "Home", path: ROUTES.HOME },
 
         { name: "Courses", hasDecoration: true, path: ROUTES.COURSES },
 
@@ -213,11 +213,11 @@ const Navbar = () => {
 
           name: "Admin Panel",
 
-          hasDropdown: false,
-
           path: ROUTES.ADMIN_DASHBOARD,
 
         },
+
+        contactUs,
 
       ];
 
@@ -227,9 +227,7 @@ const Navbar = () => {
 
     const learnerItems = [
 
-      { name: "Explore", hasDropdown: true, path: ROUTES.COURSES },
-
-      { name: "Home", hasDropdown: false, path: ROUTES.HOME },
+      { name: "Home", path: ROUTES.HOME },
 
       { name: "Courses", hasDecoration: true, path: ROUTES.COURSES },
 
@@ -241,15 +239,23 @@ const Navbar = () => {
 
       learnerItems.push({
 
-        name: "Dashboard",
-
-        hasDropdown: false,
+        name: "My Learning",
 
         path: ROUTES.DASHBOARD,
 
       });
 
     }
+
+
+
+    learnerItems.push(
+
+      { name: "Become Instructor", path: ROUTES.BECOME_INSTRUCTOR },
+
+      contactUs,
+
+    );
 
 
 
@@ -295,7 +301,7 @@ const Navbar = () => {
 
     <nav
 
-      className={`fixed top-0 left-0 right-0 z-50 transition-[background-color,box-shadow,padding,border-color,backdrop-filter] duration-500 ease-out ${
+      className={`fixed top-0 left-0 right-0 z-50 transition-[background-color,box-shadow,border-color,backdrop-filter,padding] duration-300 ease-out ${
 
         navScrolled
 
@@ -307,9 +313,9 @@ const Navbar = () => {
 
           : isDarkNavChrome
 
-            ? "bg-white/[0.03] backdrop-blur-xl backdrop-saturate-150 border-b border-white/[0.06] pt-3 sm:pt-4 lg:pt-5 pb-2 sm:pb-3"
+            ? "bg-transparent border-b border-transparent pt-3 sm:pt-4 lg:pt-5 pb-2 sm:pb-3"
 
-            : "bg-white/25 dark:bg-white/[0.03] backdrop-blur-xl backdrop-saturate-150 border-b border-gray-200/30 dark:border-white/[0.06] pt-3 sm:pt-4 lg:pt-5 pb-2 sm:pb-3"
+            : "bg-transparent dark:bg-transparent border-b border-transparent pt-3 sm:pt-4 lg:pt-5 pb-2 sm:pb-3"
 
       }`}
 
@@ -325,7 +331,7 @@ const Navbar = () => {
 
         <div
 
-          className={`hidden lg:flex items-center justify-between px-1.5 py-1.5 absolute left-1/2 -translate-x-1/2 z-10 w-max max-w-[calc(100%-20rem)] rounded-full transition-[background,backdrop-filter,border-color,box-shadow] duration-500 ease-out ${
+          className={`hidden lg:flex items-center px-1 py-1 absolute left-1/2 -translate-x-1/2 z-10 w-max max-w-[calc(100%-20rem)] rounded-full transition-[background,backdrop-filter,border-color,box-shadow] duration-500 ease-out ${
 
             isDarkNavChrome
 
@@ -345,11 +351,11 @@ const Navbar = () => {
 
         >
 
-          <div className="flex items-center gap-4 xl:gap-6 pl-0.5 text-sm xl:text-base font-normal">
+          <div className="flex items-center gap-1 xl:gap-1.5 text-sm xl:text-base font-normal">
 
             {navItems.map((item) => {
 
-              const isExplore = item.name === "Explore";
+              const isCourses = item.name === "Courses";
 
 
 
@@ -361,35 +367,23 @@ const Navbar = () => {
 
                   className="relative group"
 
-                  onMouseEnter={() =>
-
-                    item.hasDropdown && setIsExploreOpen(true)
-
-                  }
-
-                  onMouseLeave={() =>
-
-                    item.hasDropdown && setIsExploreOpen(false)
-
-                  }
-
                 >
 
                   <Link
 
                     to={item.path}
 
-                    className={`flex items-center justify-between whitespace-nowrap transition-all duration-300 relative tracking-wide ${
+                    className={`flex items-center whitespace-nowrap transition-all duration-300 relative tracking-wide select-none ${
 
-                      isExplore
+                      isCourses
 
-                        ? "bg-[#131313] text-white rounded-full px-4 xl:px-5 py-2 min-w-[96px] xl:min-w-[110px] shadow-lg flex items-center gap-2 xl:gap-3 hover:bg-black dark:bg-[#131313]"
+                        ? "bg-[#131313] text-white rounded-full px-3 py-1.5 shadow-lg hover:bg-black dark:bg-[#131313] overflow-hidden"
 
                         : isDarkNavChrome
 
-                          ? "text-white hover:text-white/80"
+                          ? "text-white hover:text-white/80 px-2.5 py-1.5"
 
-                          : "text-gray-900/80 hover:text-gray-900 dark:text-white dark:hover:text-white/80"
+                          : "text-gray-900/80 hover:text-gray-900 dark:text-white dark:hover:text-white/80 px-2.5 py-1.5"
 
                     }`}
 
@@ -407,23 +401,7 @@ const Navbar = () => {
 
                         alt=""
 
-                        className="absolute -top-1.5 -right-3 h-3.5 w-2.5"
-
-                      />
-
-                    )}
-
-
-
-                    {item.hasDropdown && (
-
-                      <ChevronDown
-
-                        className={`h-4 w-4 ${
-
-                          isDarkNavChrome ? "text-white" : "text-gray-900 dark:text-white"
-
-                        } ${isExplore ? "opacity-100" : "opacity-60"}`}
+                        className="absolute top-[4px] right-[6px] h-3 w-2.5 pointer-events-none"
 
                       />
 
@@ -505,7 +483,7 @@ const Navbar = () => {
 
                 to={ROUTES.SIGNUP}
 
-                className="flex items-center gap-2 bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] text-white px-5 xl:px-6 py-2 rounded-full font-medium text-sm hover:opacity-90 transition-all shadow-lg shadow-pink-500/20"
+                className="flex items-center gap-2 bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end text-white px-5 xl:px-6 py-2 rounded-full font-medium text-sm hover:opacity-90 transition-all shadow-lg shadow-pink-500/20"
 
               >
 
@@ -695,7 +673,7 @@ const Navbar = () => {
 
                   onClick={() => setIsMenuOpen(false)}
 
-                  className={`text-base font-medium py-3 px-3 rounded-xl transition-colors ${mobileLinkClass} ${isDarkNavChrome ? "hover:bg-white/5" : "hover:bg-gray-100 dark:hover:bg-white/5"}`}
+                  className={`text-base font-medium py-3 px-3 rounded-xl transition-colors select-none ${mobileLinkClass} ${isDarkNavChrome ? "hover:bg-white/5" : "hover:bg-gray-100 dark:hover:bg-white/5"}`}
 
                 >
 
@@ -733,7 +711,7 @@ const Navbar = () => {
 
                       onClick={() => setIsMenuOpen(false)}
 
-                      className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] text-white px-6 py-3 rounded-full font-medium text-sm"
+                      className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end text-white px-6 py-3 rounded-full font-medium text-sm"
 
                     >
 

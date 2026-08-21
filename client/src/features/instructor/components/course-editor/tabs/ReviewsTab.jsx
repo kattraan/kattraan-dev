@@ -280,7 +280,7 @@ const ReviewsTab = ({ courseId }) => {
                   <div key={b.stars} className="flex items-center gap-3">
                     <span className="w-10 text-xs text-gray-600 dark:text-white/65">{b.stars}★</span>
                     <div className="flex-1 h-2 rounded-full bg-gray-200 dark:bg-white/10 overflow-hidden">
-                      <div className="h-full bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4]" style={{ width: `${b.percent || 0}%` }} />
+                      <div className="h-full bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end" style={{ width: `${b.percent || 0}%` }} />
                     </div>
                     <span className="w-12 text-right text-xs text-gray-500 dark:text-white/40">{b.count}</span>
                   </div>
@@ -322,7 +322,7 @@ const ReviewsTab = ({ courseId }) => {
                         {trend.map((t, i) => {
                           const x = trend.length === 1 ? 50 : (i / (trend.length - 1)) * 100;
                           const y = 100 - Math.min(100, Math.max(0, (Number(t.averageRating || 0) / 5) * 100));
-                          return <circle key={t.month} cx={x} cy={y} r="2.5" fill="#FF3FB4" />;
+                          return <circle key={t.month} cx={x} cy={y} r="2.5" fill="#9e30ff" />;
                         })}
                       </svg>
                     </div>
@@ -441,7 +441,7 @@ const ReviewsTab = ({ courseId }) => {
                           type="button"
                           disabled={busyId === r.id}
                           onClick={() => saveMeta(r.id, { reply: draftReply })}
-                          className="inline-flex items-center gap-1 rounded-xl bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] px-3 py-2 text-xs font-semibold text-white disabled:opacity-60"
+                          className="inline-flex items-center gap-1 rounded-xl bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end px-3 py-2 text-xs font-semibold text-white disabled:opacity-60"
                         >
                           {busyId === r.id ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
                           Save

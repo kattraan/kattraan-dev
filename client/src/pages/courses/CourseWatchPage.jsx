@@ -690,7 +690,7 @@ export default function CourseWatchPage() {
           <button
             type="button"
             onClick={() => navigate(`${ROUTES.CHECKOUT}/${courseId}`)}
-            className="w-auto px-5 py-2.5 rounded-lg bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] text-white font-bold hover:opacity-90 transition-opacity"
+            className="w-auto px-5 py-2.5 rounded-lg bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end text-white font-bold hover:opacity-90 transition-opacity"
           >
             Enroll & Pay
           </button>
@@ -894,7 +894,7 @@ export default function CourseWatchPage() {
                             cy="22"
                             r="18"
                             fill="none"
-                            stroke="#FF3FB4"
+                            stroke="#9e30ff"
                             strokeWidth="3"
                             strokeLinecap="round"
                             strokeDasharray={`${2 * Math.PI * 18}`}

@@ -45,21 +45,15 @@ const AnalyticsOverview = () => {
     const totalLearners = statsData?.totalLearners || 0;
     const totalReviews = statsData?.totalReviews || 0;
 
-    // Percentage of courses that are live (acts as overall publishing/enrollment readiness indicator).
+    // Percentage of courses that are live.
     const enrollmentRate =
       totalCourses > 0
-        ? Math.round((publishedCourses / totalCourses) * 1000) / 10
+        ? Math.round((publishedCourses / totalCourses) * 100)
         : 0;
 
-    // Lightweight completion proxy for this overview page:
-    // published share + learner breadth, capped at 100.
-    const completionScore = Math.min(
-      100,
-      Math.round(
-        (publishedCourses / Math.max(1, totalCourses)) * 70 +
-          Math.min(30, totalLearners / Math.max(1, totalCourses)),
-      ),
-    );
+    const completionScore = Number.isFinite(Number(statsData?.avgCompletionPercent))
+      ? Math.max(0, Math.min(100, Math.round(Number(statsData.avgCompletionPercent))))
+      : 0;
 
     const avgWatchMins = Number.isFinite(Number(statsData?.avgWatchMinutes))
       ? Math.max(0, Number(statsData?.avgWatchMinutes))
@@ -81,7 +75,7 @@ const AnalyticsOverview = () => {
         value: `${completionScore}%`,
         icon: BarChart3,
         color: "text-primary-pink",
-        trend: `${totalLearners} learners`,
+        trend: `${totalLearners} learners · from watch progress`,
       },
       {
         label: "Avg Watch Time",

@@ -11,7 +11,6 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { ROUTES } from '@/config/routes';
-import { hasRole } from '@/features/auth/utils/roleUtils';
 import { logout } from '@/features/auth/store/authSlice';
 
 const ACCOUNT_CARDS = [
@@ -68,7 +67,8 @@ export default function MyAccountPage() {
   const getCardPath = (card) => {
     if (card.path) return card.path;
     if (card.title === 'Settings') {
-      return hasRole(user, 'instructor') ? ROUTES.INSTRUCTOR_SETTINGS : ROUTES.DASHBOARD_SETTINGS;
+      // Stay in the learner dashboard. Dual-role users must not be switched into instructor mode.
+      return ROUTES.DASHBOARD_SETTINGS;
     }
     return null;
   };
@@ -138,7 +138,7 @@ export default function MyAccountPage() {
         <button
           type="button"
           onClick={handleLogout}
-          className="w-full sm:w-auto px-8 py-3 rounded-xl bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] text-white text-sm font-bold shadow-lg shadow-primary-pink/20 hover:opacity-90 transition-all"
+          className="w-full sm:w-auto px-8 py-3 rounded-xl bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end text-white text-sm font-bold shadow-lg shadow-primary-pink/20 hover:opacity-90 transition-all"
         >
           Logout
         </button>

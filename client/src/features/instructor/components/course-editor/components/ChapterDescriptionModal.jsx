@@ -56,7 +56,7 @@ const ChapterDescriptionModal = ({ isOpen, onClose, content, onSave, isSaving })
               type="button"
               onClick={handleSave}
               disabled={isSaving}
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] hover:opacity-95 disabled:opacity-50 text-white text-[13px] font-bold transition-all shadow-lg shadow-primary-pink/20"
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end hover:opacity-95 disabled:opacity-50 text-white text-[13px] font-bold transition-all shadow-lg shadow-primary-pink/20"
             >
               {isSaving ? 'Saving…' : 'Save'}
             </button>

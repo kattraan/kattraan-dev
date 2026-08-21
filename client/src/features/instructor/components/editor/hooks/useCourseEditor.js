@@ -939,6 +939,26 @@ export function useCourseEditor() {
           correctAnswers: q.type === "multiple" ? q.correctAnswers : undefined,
           marks: q.marks || 1,
           image: q.questionImage || null,
+          instructions: q.instructions || "",
+          submissionFormats: Array.isArray(q.submissionFormats)
+            ? q.submissionFormats
+            : [],
+          attachments: Array.isArray(q.attachments)
+            ? q.attachments
+                .filter((a) => a?.label?.trim() || a?.url?.trim())
+                .map((a) => ({
+                  label: a.label || "",
+                  url: a.url || "",
+                }))
+            : [],
+          evaluationCriteria: Array.isArray(q.evaluationCriteria)
+            ? q.evaluationCriteria
+                .filter((c) => c?.label?.trim())
+                .map((c) => ({
+                  label: c.label || "",
+                  description: c.description || "",
+                }))
+            : [],
         }));
 
         const payload = {
@@ -954,6 +974,10 @@ export function useCourseEditor() {
             allowRetake: quizData.allowRetake,
             assessmentMode:
               quizData.assessmentMode === "assignment" ? "assignment" : "quiz",
+            dueDate:
+              quizData.assessmentMode === "assignment" && quizData.dueDate
+                ? quizData.dueDate
+                : null,
             questionCount: formattedQuestions.length,
             totalMarks: quizData.questions.reduce((sum, q) => sum + q.marks, 0),
           },
@@ -973,11 +997,16 @@ export function useCourseEditor() {
         if (response.success && response.data)
           setCurrentEditingQuiz(response.data);
         await loadCourse();
+        const isAssignment = quizData.assessmentMode === "assignment";
         toast.success(
           "Success",
           currentEditingQuiz
-            ? "Quiz updated successfully!"
-            : "Quiz created successfully!",
+            ? isAssignment
+              ? "Assignment updated successfully!"
+              : "Quiz updated successfully!"
+            : isAssignment
+              ? "Assignment created successfully!"
+              : "Quiz created successfully!",
         );
         return response.data;
       } catch (error) {

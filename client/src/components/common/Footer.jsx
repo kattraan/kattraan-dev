@@ -31,6 +31,7 @@ const Footer = () => {
     ],
     company: [
       { name: 'About Us', href: ROUTES?.ABOUT },
+      { name: 'Become Instructor', href: ROUTES?.BECOME_INSTRUCTOR },
       { name: 'Privacy Policy', href: ROUTES?.PRIVACY_POLICY },
       { name: 'Terms of Use', href: ROUTES?.TERMS },
       { name: 'Shipping and Delivery Policy', href: ROUTES?.SHIPPING_DELIVERY },

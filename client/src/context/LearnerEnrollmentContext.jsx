@@ -7,7 +7,7 @@ import React, {
   useState,
 } from 'react';
 import { useSelector } from 'react-redux';
-import { hasRole } from '@/features/auth/utils/roleUtils';
+import { hasRole, isApprovedInstructor } from '@/features/auth/utils/roleUtils';
 import {
   ENROLLMENT_CHANGED_EVENT,
   getMyEnrolledCourses,
@@ -22,7 +22,7 @@ export function LearnerEnrollmentProvider({ children }) {
 
   const isLearner =
     isAuthenticated &&
-    !hasRole(user, 'instructor') &&
+    !isApprovedInstructor(user) &&
     !hasRole(user, 'admin');
 
   const refreshEnrollments = useCallback(async () => {

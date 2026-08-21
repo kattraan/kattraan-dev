@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
-import { hasRole } from "@/features/auth/utils/roleUtils";
+import { hasRole, isApprovedInstructor } from "@/features/auth/utils/roleUtils";
 import { ROUTES } from "@/config/routes";
 import { logout } from "@/features/auth/store/authSlice";
 import { useCart } from "@/context/CartContext";
@@ -67,11 +67,11 @@ const LearnerHeader = () => {
 
       <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
         {/* Role Switcher - Compact & Professional Toggle */}
-        {hasRole(user, "instructor") && (
+        {isApprovedInstructor(user) && (
           <div className="hidden sm:flex items-center bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-full p-1 group/switcher transition-all hover:bg-gray-200 dark:hover:bg-white/[0.08]">
             <Link
               to="/dashboard"
-              className="w-[70px] text-center py-1.5 rounded-full text-[10px] font-black tracking-[0.15em] transition-all bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] text-white shadow-lg shadow-pink-500/20"
+              className="w-[70px] text-center py-1.5 rounded-full text-[10px] font-black tracking-[0.15em] transition-all bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end text-white shadow-lg shadow-pink-500/20"
             >
               Learner
             </Link>
@@ -123,7 +123,7 @@ const LearnerHeader = () => {
                 loading="lazy"
               />
             ) : (
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FF8C42] to-[#FF3FB4] shadow-lg shadow-pink-500/20 border border-white/20 flex items-center justify-center text-white font-black text-base italic">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gradient-start via-gradient-mid to-gradient-end shadow-lg shadow-pink-500/20 border border-white/20 flex items-center justify-center text-white font-black text-base italic">
                 {(user?.name || user?.userName || user?.user_name || user?.full_name || user?.email || "K")[0].toUpperCase()}
               </div>
             )}

@@ -154,7 +154,7 @@ const CTACarousel = () => {
              <div 
                ref={scrollRef}
                onScroll={handleScroll}
-               className="flex w-full overflow-x-auto overscroll-x-contain scrollbar-hide snap-x snap-mandatory touch-pan-x"
+               className="flex w-full overflow-x-auto overscroll-x-contain scrollbar-hide snap-x snap-mandatory"
              >
                 {slides.map((slide, index) => (
                   <div key={`${slide.id}-${index}`} className="w-full flex-shrink-0 snap-center p-2">

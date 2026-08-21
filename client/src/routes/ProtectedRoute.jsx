@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { hasRole } from '@/features/auth/utils/roleUtils';
+import { hasRole, isApprovedInstructor, hasEffectiveRole, getInstructorOnboardingPath } from '@/features/auth/utils/roleUtils';
 import { ROUTES } from '@/config/routes';
 import DashboardSkeleton from '@/components/common/DashboardSkeleton';
 
@@ -25,22 +25,27 @@ const ProtectedRoute = ({ allowedRoles = [], redirectLearnersTo = null }) => {
     return <Navigate to={ROUTES.LOGIN} state={{ from: location }} replace />;
   }
 
-  if (allowedRoles.length > 0 && !allowedRoles.some((role) => hasRole(user, role))) {
+  if (allowedRoles.length > 0 && !allowedRoles.some((role) => hasEffectiveRole(user, role))) {
+    const instructorOnly =
+      allowedRoles.includes('instructor') &&
+      !allowedRoles.includes('learner') &&
+      !allowedRoles.includes('admin');
+    if (instructorOnly) {
+      const onboardingPath = getInstructorOnboardingPath(user);
+      if (onboardingPath) {
+        return <Navigate to={onboardingPath} replace />;
+      }
+    }
     return <Navigate to={ROUTES.HOME} replace />;
   }
 
   const isPureLearner =
     hasRole(user, 'learner') &&
-    !hasRole(user, 'instructor') &&
+    !isApprovedInstructor(user) &&
     !hasRole(user, 'admin');
 
   if (redirectLearnersTo && isPureLearner) {
     return <Navigate to={redirectLearnersTo} replace />;
-  }
-
-  if (hasRole(user, 'instructor') && location.pathname.startsWith(ROUTES.INSTRUCTOR_DASHBOARD)) {
-    if (user.status === 'pending_enrollment') return <Navigate to={ROUTES.INSTRUCTOR_ENROLLMENT} replace />;
-    if (user.status === 'pending_approval') return <Navigate to={ROUTES.WAITING_APPROVAL} replace />;
   }
 
   return <Outlet />;

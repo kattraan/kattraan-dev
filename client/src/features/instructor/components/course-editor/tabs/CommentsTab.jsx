@@ -79,7 +79,7 @@ function CommentViewModal({ comment, onClose, onUpdate }) {
             <button
               type="button"
               onClick={handleMarkUnread}
-              className="shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] text-white text-xs font-bold hover:opacity-90 shadow-sm transition-colors"
+              className="shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end text-white text-xs font-bold hover:opacity-90 shadow-sm transition-colors"
             >
               <BookOpen size={14} /> Mark as unread
             </button>
@@ -87,7 +87,7 @@ function CommentViewModal({ comment, onClose, onUpdate }) {
             <button
               type="button"
               onClick={handleMarkRead}
-              className="shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] text-white text-xs font-bold hover:opacity-90 shadow-sm transition-colors"
+              className="shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end text-white text-xs font-bold hover:opacity-90 shadow-sm transition-colors"
             >
               <BookCheck size={14} /> Mark as read
             </button>
@@ -104,7 +104,7 @@ function CommentViewModal({ comment, onClose, onUpdate }) {
               <p className="text-sm font-bold text-gray-900 dark:text-white">{comment.user?.userName || comment.user?.name || '—'}</p>
               <p className="text-xs text-gray-500 dark:text-white/50 flex items-center gap-1.5 mt-0.5">
                 {!isRead && (
-                  <span className="w-2 h-2 rounded-full bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] shrink-0" aria-hidden />
+                  <span className="w-2 h-2 rounded-full bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end shrink-0" aria-hidden />
                 )}
                 {getRelativeTime(comment.createdAt)}
               </p>
@@ -148,7 +148,7 @@ function CommentViewModal({ comment, onClose, onUpdate }) {
             type="button"
             onClick={handleSendReply}
             disabled={!replyText.trim() || submitting}
-            className="p-2.5 rounded-xl bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] text-white hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="p-2.5 rounded-xl bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end text-white hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             aria-label="Send"
           >
             <Send size={18} />
@@ -333,7 +333,7 @@ const CommentsTab = ({ activeCommentStatus, setActiveCommentStatus }) => {
                     onClick={() => setActiveCommentStatus(status)}
                     className={`px-5 py-2 rounded-full text-xs font-black transition-all duration-300 ${
                       activeCommentStatus === status
-                        ? 'bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] text-white shadow-sm shadow-[0_10px_20px_rgba(255,63,180,0.15)]'
+                        ? 'bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end text-white shadow-sm shadow-[0_10px_20px_rgba(255,63,180,0.15)]'
                         : 'bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-white/40 hover:bg-gray-200 dark:hover:bg-white/10'
                     }`}
                   >
@@ -348,7 +348,7 @@ const CommentsTab = ({ activeCommentStatus, setActiveCommentStatus }) => {
                   disabled={!someSelected || bulkUpdating}
                   className={`flex items-center gap-2 text-[11px] font-black uppercase tracking-widest transition-colors rounded-lg px-3 py-2 ${
                     someSelected && !bulkUpdating
-                      ? 'text-primary-pink dark:text-primary-pink bg-gradient-to-r from-[#FF8C42]/10 to-[#FF3FB4]/10 dark:bg-gradient-to-r dark:from-[#FF8C42]/20 dark:to-[#FF3FB4]/20 hover:bg-gradient-to-r hover:from-[#FF8C42]/15 hover:to-[#FF3FB4]/15 dark:hover:bg-gradient-to-r dark:hover:from-[#FF8C42]/25 dark:hover:to-[#FF3FB4]/25'
+                      ? 'text-primary-pink dark:text-primary-pink bg-gradient-to-r from-gradient-start/10 via-gradient-mid/10 to-gradient-end/10 dark:bg-gradient-to-r dark:from-gradient-start/20 dark:via-gradient-mid/20 dark:to-gradient-end/20 hover:bg-gradient-to-r hover:from-gradient-start/15 hover:via-gradient-mid/15 hover:to-gradient-end/15 dark:hover:bg-gradient-to-r dark:hover:from-gradient-start/25 dark:hover:via-gradient-mid/25 dark:hover:to-gradient-end/25'
                       : 'text-gray-400 dark:text-white/30 cursor-not-allowed'
                   }`}
                 >
@@ -407,7 +407,7 @@ const CommentsTab = ({ activeCommentStatus, setActiveCommentStatus }) => {
                   <div
                     key={id}
                     className={`grid grid-cols-7 items-center px-6 py-4 text-sm text-gray-700 dark:text-white/80 gap-2 ${
-                      !c.isRead ? 'bg-gradient-to-r from-[#FF8C42]/10 to-[#FF3FB4]/10 dark:bg-gradient-to-r dark:from-[#FF8C42]/20 dark:to-[#FF3FB4]/20' : ''
+                      !c.isRead ? 'bg-gradient-to-r from-gradient-start/10 via-gradient-mid/10 to-gradient-end/10 dark:bg-gradient-to-r dark:from-gradient-start/20 dark:via-gradient-mid/20 dark:to-gradient-end/20' : ''
                     }`}
                   >
                     <button

@@ -4,12 +4,14 @@ import { logger } from '@/utils/logger';
 const INITIAL_QUIZ_DATA = {
   title: '',
   description: '',
-  passingPercentage: 75,
+  passingPercentage: 40,
   enforcePassingGrade: false,
   enableCountdown: false,
   allowRetake: false,
   /** 'quiz' = in-course instant scoring; 'assignment' = graded via Assignments area */
   assessmentMode: 'quiz',
+  /** ISO date string (YYYY-MM-DD); used for graded assignments */
+  dueDate: '',
   questions: [],
 };
 
@@ -64,10 +66,18 @@ export function useQuizBuilder({
     if (isOpen && !initializedRef.current) {
       if (initialData) {
         const formattedQuestions = formatQuestionsFromInitial(initialData.questions, chapterName);
+        const rawDue =
+          initialData.metadata?.dueDate || initialData.dueDate || '';
+        const dueDate =
+          typeof rawDue === 'string'
+            ? rawDue.slice(0, 10)
+            : rawDue
+              ? new Date(rawDue).toISOString().slice(0, 10)
+              : '';
         setQuizData({
           title: initialData.title || chapterName || '',
           description: initialData.description || '',
-          passingPercentage: initialData.metadata?.passingPercentage ?? 75,
+          passingPercentage: initialData.metadata?.passingPercentage ?? 40,
           enforcePassingGrade: initialData.metadata?.enforcePassingGrade ?? false,
           enableCountdown: initialData.metadata?.enableCountdown ?? false,
           allowRetake: initialData.metadata?.allowRetake ?? false,
@@ -75,6 +85,7 @@ export function useQuizBuilder({
             initialData.metadata?.assessmentMode === 'assignment'
               ? 'assignment'
               : 'quiz',
+          dueDate,
           questions: formattedQuestions,
         });
       } else {
@@ -94,12 +105,21 @@ export function useQuizBuilder({
   const persistQuiz = useCallback(
     async (updatedQuizData, shouldClose = false) => {
       if (isSaving) return;
-        if (!updatedQuizData.title?.trim()) {
-        toast?.error('Validation', 'Please enter an assignment title.');
+      const isAssignment = updatedQuizData.assessmentMode === 'assignment';
+      if (!updatedQuizData.title?.trim()) {
+        toast?.error(
+          'Validation',
+          isAssignment ? 'Please enter an assignment title.' : 'Please enter a quiz title.'
+        );
         return;
       }
       if (updatedQuizData.questions.length === 0) {
-        toast?.error('Validation', 'Please add at least one question.');
+        toast?.error(
+          'Validation',
+          isAssignment
+            ? 'Please add at least one submission task to this assignment.'
+            : 'Please add at least one question to this quiz.'
+        );
         return;
       }
       setIsSaving(true);
@@ -126,8 +146,16 @@ export function useQuizBuilder({
 
   const handleSaveNewQuestion = useCallback(
     async (newQ) => {
+      const isAssignment = quizData.assessmentMode === 'assignment';
       if (!newQ.question?.trim()) {
-        toast?.error('Validation', 'Please enter a question title.');
+        toast?.error(
+          'Validation',
+          isAssignment ? 'Please enter a task title.' : 'Please enter a question title.'
+        );
+        return;
+      }
+      if (isAssignment && !(newQ.submissionFormats || []).length) {
+        toast?.error('Validation', 'Please select at least one submission format.');
         return;
       }
       let newQuestions;
@@ -145,7 +173,7 @@ export function useQuizBuilder({
       setQuizData(updatedData);
       await persistQuiz(updatedData, false);
     },
-    [quizData, editingQuestionId, persistQuiz]
+    [quizData, editingQuestionId, persistQuiz, toast]
   );
 
   const handleDragStart = useCallback((e, index) => {

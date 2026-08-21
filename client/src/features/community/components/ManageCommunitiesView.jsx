@@ -29,8 +29,10 @@ const ManageCommunitiesView = ({ roomBasePath }) => {
     }, [dispatch]);
 
     const availableCourses = useMemo(() => {
-        const taken = new Set(communities.map((c) => c.course?._id || c.course));
-        return (instructorCourses || []).filter((c) => !taken.has(c._id));
+        const taken = new Set(
+            communities.map((c) => String(c.course?._id || c.course || '')).filter(Boolean),
+        );
+        return (instructorCourses || []).filter((c) => !taken.has(String(c._id || c.id)));
     }, [communities, instructorCourses]);
 
     const filteredCommunities = useMemo(() => {
@@ -44,14 +46,18 @@ const ManageCommunitiesView = ({ roomBasePath }) => {
     }, [communities, searchQuery]);
 
     const handleCreate = async (payload) => {
+        if (creating) return;
         setCreating(true);
-        const result = await dispatch(createCommunity(payload));
-        setCreating(false);
-        if (createCommunity.fulfilled.match(result)) {
-            toast.success('Community created', 'Learners can now request to join.');
-            setModalOpen(false);
-        } else {
-            toast.error('Could not create community', result.payload || 'Please try again.');
+        try {
+            const result = await dispatch(createCommunity(payload));
+            if (createCommunity.fulfilled.match(result)) {
+                toast.success('Community created', 'Learners can now request to join.');
+                setModalOpen(false);
+            } else {
+                toast.error('Could not create community', result.payload || 'Please try again.');
+            }
+        } finally {
+            setCreating(false);
         }
     };
 
@@ -63,7 +69,7 @@ const ManageCommunitiesView = ({ roomBasePath }) => {
                 <Button
                     onClick={() => setModalOpen(true)}
                     disabled={availableCourses.length === 0}
-                    className="bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] hover:opacity-90 text-white rounded-xl px-6 shadow-lg transition-all"
+                    className="bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end hover:opacity-90 text-white rounded-xl px-6 shadow-lg transition-all"
                 >
                     <Plus size={18} className="mr-2" /> New Community
                 </Button>

@@ -1,4 +1,4 @@
-import { NavLink, Link, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { logout } from '@/features/auth/store/authSlice';
 import logo from '@/assets/logo.png';
@@ -9,8 +9,8 @@ import {
     BookOpen, 
     Settings, 
     ShieldCheck,
+    FileText,
     ChevronLeft, 
-    ChevronRight,
     LogOut
 } from 'lucide-react';
 import { ROUTES } from '@/config/routes';
@@ -29,6 +29,7 @@ const AdminSidebar = ({ isCollapsed, setIsCollapsed }) => {
         { label: 'Instructor Approvals', icon: ShieldCheck, path: ROUTES.ADMIN_INSTRUCTORS },
         { label: 'Course Approvals', icon: BookOpen, path: ROUTES.ADMIN_COURSES },
         { label: 'User Center', icon: Users, path: ROUTES.ADMIN_USERS },
+        { label: 'Site Content', icon: FileText, path: ROUTES.ADMIN_SITE_CONTENT },
         { label: 'System Settings', icon: Settings, path: ROUTES.ADMIN_SETTINGS },
     ];
 
@@ -38,13 +39,20 @@ const AdminSidebar = ({ isCollapsed, setIsCollapsed }) => {
                 {!isCollapsed ? (
                     <BrandLogo />
                 ) : (
-                    <Link to={ROUTES.HOME}>
-                        <img src={logo} alt="Logo" className="h-8 w-auto" loading="lazy" />
-                    </Link>
+                    <button
+                        type="button"
+                        onClick={() => setIsCollapsed(false)}
+                        className="flex items-center justify-center bg-transparent p-0"
+                        aria-label="Expand sidebar"
+                    >
+                        <img src={logo} alt="Logo" className="h-8 w-8 object-contain hover:scale-105 transition-transform duration-300" loading="lazy" />
+                    </button>
                 )}
-                <button onClick={() => setIsCollapsed(!isCollapsed)} className="p-2 rounded-xl bg-white/5 text-white/40 hover:text-white transition-all">
-                    {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+                {!isCollapsed && (
+                <button onClick={() => setIsCollapsed(!isCollapsed)} className="p-2 rounded-xl bg-white/5 text-white/40 hover:text-white transition-all" aria-label="Collapse sidebar">
+                    <ChevronLeft size={18} />
                 </button>
+                )}
             </div>
 
             <nav className="flex-grow py-8 px-4 space-y-2">
@@ -54,14 +62,18 @@ const AdminSidebar = ({ isCollapsed, setIsCollapsed }) => {
                         to={item.path}
                         end={item.exact}
                         className={({ isActive }) => `
-                            flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all group
+                            sidebar-nav-link flex items-center gap-4 px-4 py-3.5 rounded-xl group select-none
                             ${isActive 
-                                ? 'bg-gradient-to-r from-[#FF8C42]/20 to-[#FF3FB4]/20 text-white border border-primary-pink/30 shadow-lg shadow-pink-500/10' 
-                                : 'text-white/40 hover:bg-white/5 hover:text-white'}
+                                ? 'sidebar-link-active text-white' 
+                                : 'text-white/40 hover:text-white'}
                         `}
                     >
-                        <item.icon size={20} className={`${isCollapsed ? 'mx-auto' : ''} transition-colors group-hover:text-primary-pink`} />
-                        {!isCollapsed && <span className="text-[15px] font-bold">{item.label}</span>}
+                        {({ isActive }) => (
+                            <>
+                                <item.icon size={20} className={`${isCollapsed ? 'mx-auto' : ''} transition-colors ${isActive ? 'text-white' : ''}`} />
+                                {!isCollapsed && <span className="text-[15px] font-bold">{item.label}</span>}
+                            </>
+                        )}
                     </NavLink>
                 ))}
             </nav>

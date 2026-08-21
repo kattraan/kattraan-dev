@@ -3,56 +3,15 @@ import { Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import blogBg from '@/assets/blog.webp';
 import blogBg2 from '@/assets/blog-1.webp';
 
-const TESTIMONIALS = [
-  {
-    id: 1,
-    category: 'Career Switcher',
-    text: 'At 32, I thought it was too late. Kattraan proved me wrong. Built a job portal from scratch. Now earning double as a developer.',
-    author: 'Rajesh Kumar',
-    journey: 'Civil Engineer → Full Stack Developer',
-    date: 'Jan 18, 2025',
-  },
-  {
-    id: 2,
-    category: 'Struggling Fresh Grad',
-    text: "12 rejections broke me. Kattraan's real projects gave me confidence. Cracked interviews at product companies and a startup.",
-    author: 'Aditya Verma, B.Tech',
-    journey: 'Rejections → selection',
-    date: 'Feb 25, 2025',
-  },
-  {
-    id: 3,
-    category: 'Working Professional',
-    text: 'Same job, same salary for 4 years. I felt invisible. Learned automation at Kattraan. Got promoted in 2 months. Finally noticed.',
-    author: 'Priya Menon',
-    journey: 'Manual Tester → Automation Lead',
-    date: 'Dec 12, 2024',
-  },
-  {
-    id: 4,
-    category: 'Career Changer',
-    text: "Switched from teaching to tech at 35. Kattraan's supportive community and structured learning path made the impossible possible.",
-    author: 'Sneha Patel',
-    journey: 'Teacher → Software Engineer',
-    date: 'Apr 05, 2025',
-  },
-  {
-    id: 5,
-    category: 'Freelancer to Corporate',
-    text: 'From freelancing struggles to a stable role. Kattraan taught me not just coding but professional development practices. Landed my target job in 6 months.',
-    author: 'Vikram Singh',
-    journey: 'Freelancer → Product Developer',
-    date: 'May 12, 2025',
-  },
-];
+import siteContentService from '@/features/admin/services/siteContentService';
 
 /** Shared card content — used by both mobile and desktop views */
 function TestimonialCardContent({ testimonial, showFeatured = false }) {
   return (
     <>
-      {showFeatured && (
+      {(showFeatured || testimonial.featured) && (
         <div className="absolute -top-3 right-3 sm:-top-4 sm:-right-4 z-20">
-          <div className="relative px-3 sm:px-4 py-1.5 bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] rounded-full shadow-[0_0_20px_rgba(255,63,180,0.4)] flex items-center gap-2 border border-white/20">
+          <div className="relative px-3 sm:px-4 py-1.5 bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end rounded-full shadow-[0_0_20px_rgba(255,63,180,0.4)] flex items-center gap-2 border border-white/20">
             <div className="w-2 h-2 rounded-full bg-white animate-ping" />
             <span className="text-white text-[10px] sm:text-[11px] font-black tracking-[0.1em] uppercase">
               Featured
@@ -62,7 +21,7 @@ function TestimonialCardContent({ testimonial, showFeatured = false }) {
       )}
 
       <h3 className="text-lg sm:text-2xl font-bold mb-3 tracking-tight pr-16 sm:pr-0">
-        <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4]">
+        <span className="bg-clip-text text-transparent bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end">
           &ldquo;{testimonial.category}&rdquo;
         </span>
       </h3>
@@ -70,7 +29,7 @@ function TestimonialCardContent({ testimonial, showFeatured = false }) {
       <div className="flex gap-1 mb-4">
         {[...Array(5)].map((_, i) => (
           <div key={i} className="bg-white/10 w-6 h-6 rounded-full flex items-center justify-center">
-            <Star className="w-3 h-3 fill-white text-white" />
+            <Star className={`w-3 h-3 ${i < (testimonial.rating || 5) ? 'fill-white text-white' : 'text-white/25'}`} />
           </div>
         ))}
       </div>
@@ -91,9 +50,9 @@ function TestimonialCardContent({ testimonial, showFeatured = false }) {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full p-[1px] bg-gradient-to-tr from-[#FF8C42] to-[#FF3FB4] shrink-0">
+          <div className="w-10 h-10 rounded-full p-[1px] bg-gradient-to-tr from-gradient-start via-gradient-mid to-gradient-end shrink-0">
             <div className="w-full h-full rounded-full bg-[#1a1a1a] flex items-center justify-center text-white text-sm font-bold">
-              {testimonial.author.charAt(0)}
+              {(testimonial.author || '?').charAt(0)}
             </div>
           </div>
           <div className="min-w-0">
@@ -257,8 +216,35 @@ const TestimonialCard = ({ testimonial, position, isCenter, carouselRadius = 460
 const TestimonialsSection = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [testimonials, setTestimonials] = useState([]);
 
-  const testimonials = TESTIMONIALS;
+  useEffect(() => {
+    let cancelled = false;
+    const load = () => {
+      siteContentService
+        .listPublicTestimonials()
+        .then((res) => {
+          if (!cancelled && Array.isArray(res.data)) {
+            setTestimonials(res.data);
+            setCurrentIndex(0);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setTestimonials([]);
+        });
+    };
+    load();
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') load();
+    };
+    window.addEventListener('focus', load);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('focus', load);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, []);
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -271,17 +257,19 @@ const TestimonialsSection = () => {
   }, []);
 
   useEffect(() => {
-    if (!isAutoPlaying) return undefined;
+    if (!isAutoPlaying || testimonials.length === 0) return undefined;
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % TESTIMONIALS.length);
+      setCurrentIndex((prev) => (prev + 1) % testimonials.length);
     }, 5000);
     return () => clearInterval(interval);
-  }, [isAutoPlaying]);
+  }, [isAutoPlaying, testimonials.length]);
 
   const handleManualChange = (newIndex) => {
     setIsAutoPlaying(false);
     setCurrentIndex(newIndex);
   };
+
+  if (!testimonials.length) return null;
 
   return (
     <section className="relative w-full py-12 sm:py-20 px-3 sm:px-4 flex flex-col items-center overflow-hidden font-satoshi bg-[#090C03]">
@@ -290,7 +278,7 @@ const TestimonialsSection = () => {
           <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] to-[#808080]">
             Our Trusted
           </span>{' '}
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4]">
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end">
             Testimonials
           </span>
         </h2>

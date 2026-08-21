@@ -12,6 +12,7 @@ require('../../models/ResourceContent');
 const LearnerCourses = require('../../models/LearnerCourses');
 const createCrudController = require('../common/crud.controller');
 const { signStorageCdnUrl, normalizeStorageCdnUrl } = require('../../helpers/bunnyToken');
+const { getFeaturedDoc, loadPublishedByOrderedIds } = require('../../helpers/homepageFeatured');
 
 const STORAGE_THUMB_TTL_SEC = 60 * 60 * 24 * 7;
 
@@ -521,9 +522,28 @@ module.exports = {
                 };
             });
 
+            let homepageFeatured;
+            if (lite && page === 1) {
+                const featuredDoc = await getFeaturedDoc();
+                const trendingIds = (featuredDoc.trendingCourseIds || []).map((id) => id.toString());
+                const popularIds = (featuredDoc.popularCourseIds || []).map((id) => id.toString());
+                const [trending, popular] = await Promise.all([
+                    loadPublishedByOrderedIds(trendingIds),
+                    loadPublishedByOrderedIds(popularIds),
+                ]);
+                homepageFeatured = {
+                    trending,
+                    popular,
+                    trendingManual: trending.length > 0,
+                    popularManual: popular.length > 0,
+                };
+            }
+
+            res.set('Cache-Control', 'no-store');
             return res.json({
                 success: true,
                 data: enriched,
+                homepageFeatured,
                 pagination: {
                     page,
                     limit,

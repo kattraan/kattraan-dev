@@ -95,12 +95,15 @@ function QuizResultsView({
   sourceQuestions = [],
   /** From current quiz content metadata (stored evaluation can be stale on retake flag). */
   allowRetakeEnabled = false,
+  isAssignment = false,
 }) {
+  const noun = isAssignment ? 'assignment' : 'quiz';
+  const nounTitle = isAssignment ? 'Assignment' : 'Quiz';
   const pct = evaluation?.percentage ?? 0;
   const earned = evaluation?.earnedMarks ?? 0;
   const total = evaluation?.totalMarks ?? 0;
-  const passed = !!evaluation?.passed;
-  const passLine = evaluation?.passingPercentage ?? 0;
+  const passLine = 40;
+  const passed = pct >= passLine;
   const canRetake = !!allowRetakeEnabled;
   const hasSubjective = !!evaluation?.hasSubjective;
   const evaluated = Array.isArray(evaluation?.questions) ? evaluation.questions : [];
@@ -122,7 +125,9 @@ function QuizResultsView({
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-3">
-                <h3 className="text-2xl font-bold tracking-tight sm:text-3xl">Quiz complete</h3>
+                <h3 className="text-2xl font-bold tracking-tight sm:text-3xl">
+                  {nounTitle} complete
+                </h3>
                 <span
                   className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${
                     passed
@@ -169,7 +174,7 @@ function QuizResultsView({
                 className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-sm font-bold text-white btn-gradient shadow-lg shadow-pink-500/15 transition hover:opacity-95"
               >
                 <RotateCcw className="h-4 w-4 shrink-0" aria-hidden />
-                Retake quiz
+                Retake {noun}
               </button>
             </div>
           ) : null}
@@ -183,7 +188,9 @@ function QuizResultsView({
               Written responses may be reviewed by your instructor and are not auto-scored here.
             </p>
           )}
-          <p className="text-[13px] font-semibold text-white/45">Question review</p>
+          <p className="text-[13px] font-semibold text-white/45">
+            {isAssignment ? 'Task review' : 'Question review'}
+          </p>
           <ul className="space-y-4">
             {evaluated.map((q) => {
               const status =
@@ -265,7 +272,9 @@ function QuizResultsView({
       {!canRetake && (
         <div className="shrink-0 border-t border-white/10 bg-black/40 backdrop-blur-sm px-5 py-4 sm:px-8">
           <div className="mx-auto max-w-4xl rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 sm:px-5 sm:py-4">
-            <p className="text-sm font-semibold text-white/75">Retakes are off for this quiz</p>
+            <p className="text-sm font-semibold text-white/75">
+              Retakes are off for this {noun}
+            </p>
             <p className="mt-1 text-sm text-white/45 leading-relaxed">
               Your instructor has not enabled additional attempts. If you need another try, contact them through the course Q&A.
             </p>
@@ -297,6 +306,9 @@ export default function CourseWatchQuizPanel({
   const [submitError, setSubmitError] = useState('');
 
   const quizId = quizContent?._id || quizContent?.id || '';
+  const isAssignment = quizContent?.metadata?.assessmentMode === 'assignment';
+  const noun = isAssignment ? 'assignment' : 'quiz';
+  const nounTitle = isAssignment ? 'Assignment' : 'Quiz';
   const questions = Array.isArray(quizContent?.questions) ? quizContent.questions : [];
   const total = questions.length;
   const current = questions[step];
@@ -427,7 +439,7 @@ export default function CourseWatchQuizPanel({
       }
     } catch (e) {
       const msg =
-        e?.response?.data?.message || e?.message || 'Failed to submit quiz.';
+        e?.response?.data?.message || e?.message || `Failed to submit ${noun}.`;
       setSubmitError(msg);
     } finally {
       setSubmitting(false);
@@ -440,6 +452,7 @@ export default function CourseWatchQuizPanel({
     hasAnswerForStep,
     watchChapterId,
     onQuizSubmitted,
+    noun,
   ]);
 
   const goNext = useCallback(() => {
@@ -468,7 +481,7 @@ export default function CourseWatchQuizPanel({
           aria-live="polite"
         >
           <Loader2 className="h-10 w-10 animate-spin text-white/40" aria-hidden />
-          <p className="mt-4 text-sm font-medium text-white/50">Loading quiz…</p>
+          <p className="mt-4 text-sm font-medium text-white/50">Loading {noun}…</p>
         </div>
       </div>
     );
@@ -479,9 +492,9 @@ export default function CourseWatchQuizPanel({
       <div className="relative flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-4 rounded-none border border-white/10 bg-[#111] px-8 py-16 text-center">
           <ClipboardList className="h-12 w-12 text-white/25" aria-hidden />
           <div>
-            <p className="text-lg font-semibold text-white/90">{chapterTitle || 'Quiz'}</p>
+            <p className="text-lg font-semibold text-white/90">{chapterTitle || nounTitle}</p>
             <p className="mt-2 max-w-md text-sm text-white/45">
-              No questions are available for this quiz yet. Continue with the rest of the course or check back later.
+              No {isAssignment ? 'tasks' : 'questions'} are available for this {noun} yet. Continue with the rest of the course or check back later.
             </p>
           </div>
       </div>
@@ -496,6 +509,7 @@ export default function CourseWatchQuizPanel({
         onRetake={handleRetake}
         sourceQuestions={questions}
         allowRetakeEnabled={!!quizContent?.metadata?.allowRetake}
+        isAssignment={isAssignment}
       />
     );
   }
@@ -519,8 +533,8 @@ export default function CourseWatchQuizPanel({
               <ClipboardList className="h-5 w-5 text-[color:var(--color-gradient-start)]" aria-hidden />
             </div>
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40">Quiz</p>
-              <p className="truncate text-sm font-semibold text-white/95">{chapterTitle || 'Quiz'}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40">{nounTitle}</p>
+              <p className="truncate text-sm font-semibold text-white/95">{chapterTitle || nounTitle}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">

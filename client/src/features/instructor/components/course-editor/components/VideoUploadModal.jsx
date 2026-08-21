@@ -418,7 +418,7 @@ const VideoUploadModal = ({
                             ${
                               (!isEditing && !videoFile) || isSaving
                                 ? "bg-white/5 text-white/20 cursor-not-allowed"
-                                : "bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] text-white shadow-[#FF3FB4]/10 hover:shadow-[#FF3FB4]/20 hover:brightness-105"
+                                : "bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end text-white shadow-[#FF3FB4]/10 hover:shadow-[#FF3FB4]/20 hover:brightness-105"
                             }`}
           >
             {isSaving ? (

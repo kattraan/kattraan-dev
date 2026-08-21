@@ -1,26 +1,35 @@
 const CourseProgress = require('../models/CourseProgress');
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const STREAK_TIMEZONE = 'Asia/Kolkata';
 
-/** Normalize a Date to a UTC calendar-day key (YYYY-MM-DD). */
+/** Normalize a Date to an IST calendar-day key (YYYY-MM-DD). */
 function toDateKey(date) {
   const d = new Date(date);
   if (Number.isNaN(d.getTime())) return null;
-  const y = d.getUTCFullYear();
-  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(d.getUTCDate()).padStart(2, '0');
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: STREAK_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(d);
+  const y = parts.find((p) => p.type === 'year')?.value;
+  const m = parts.find((p) => p.type === 'month')?.value;
+  const day = parts.find((p) => p.type === 'day')?.value;
+  if (!y || !m || !day) return null;
   return `${y}-${m}-${day}`;
 }
 
-/** Shift a UTC date key back by one calendar day. */
+/** Shift an IST date key back by one calendar day. */
 function previousDateKey(dateKey) {
-  const d = new Date(`${dateKey}T00:00:00.000Z`);
-  d.setUTCDate(d.getUTCDate() - 1);
+  const d = new Date(`${dateKey}T12:00:00+05:30`);
+  if (Number.isNaN(d.getTime())) return null;
+  d.setTime(d.getTime() - MS_PER_DAY);
   return toDateKey(d);
 }
 
 /**
- * Collect unique UTC activity dates from all chapter progress rows for a user.
+ * Collect unique IST activity dates from all chapter progress rows for a user.
  * @param {string} userId
  * @returns {Promise<Set<string>>}
  */
@@ -82,8 +91,8 @@ function computeLongestStreak(activityDates) {
   let current = 1;
 
   for (let i = 1; i < sorted.length; i += 1) {
-    const prev = new Date(`${sorted[i - 1]}T00:00:00.000Z`);
-    const curr = new Date(`${sorted[i]}T00:00:00.000Z`);
+    const prev = new Date(`${sorted[i - 1]}T12:00:00+05:30`);
+    const curr = new Date(`${sorted[i]}T12:00:00+05:30`);
     const diffDays = Math.round((curr - prev) / MS_PER_DAY);
     if (diffDays === 1) {
       current += 1;

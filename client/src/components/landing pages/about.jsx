@@ -39,7 +39,7 @@ const About = () => {
         {/* Hero Title */}
         <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight leading-tight max-w-4xl">
           Education Should Create <br />
-          <span className="text-gradient-brand bg-clip-text text-transparent bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4]">
+          <span className="text-gradient-brand bg-clip-text text-transparent bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end">
             Capability
           </span>
         </h1>
@@ -402,7 +402,7 @@ const About = () => {
         <div className="relative z-10 max-w-3xl mx-auto space-y-8">
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-tight">
             Ready to Build Skills <br />
-            <span className="text-gradient-brand bg-clip-text text-transparent bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4]">
+            <span className="text-gradient-brand bg-clip-text text-transparent bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end">
               That Actually Matter?
             </span>
           </h2>
@@ -412,7 +412,7 @@ const About = () => {
           <div className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-4">
             <Link
               to={ROUTES.SIGNUP}
-              className="w-full sm:w-auto px-8 py-3 rounded-full font-bold text-sm bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] hover:opacity-95 shadow-lg shadow-pink-500/20 flex items-center justify-center gap-2 group transition-all"
+              className="w-full sm:w-auto px-8 py-3 rounded-full font-bold text-sm bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end hover:opacity-95 shadow-lg shadow-pink-500/20 flex items-center justify-center gap-2 group transition-all"
             >
               Get Started Now
               <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />

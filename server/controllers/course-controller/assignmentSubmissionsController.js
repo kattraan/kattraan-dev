@@ -120,6 +120,8 @@ async function getSubmissionsForAssignment(req, res) {
           title: content.title,
           chapterTitle: chapter.title,
           questions: content.questions || [],
+          passingPercentage: 40,
+          metadata: content.metadata || {},
         },
         submissions,
       },
@@ -133,6 +135,7 @@ async function getSubmissionsForAssignment(req, res) {
  * PATCH /api/courses/:id/submissions/:submissionId
  * Body: { grade?, instructorFeedback? }
  * Grade a submission. Instructor only.
+ * `grade` is stored as a percentage (0–100).
  */
 async function gradeSubmission(req, res) {
   try {
@@ -147,7 +150,37 @@ async function gradeSubmission(req, res) {
       return res.status(404).json({ success: false, message: "Submission not found" });
     }
 
-    if (grade !== undefined) submission.grade = Number(grade);
+    // Product rule: < 40% = Failed, >= 40% = Passed (ignore stale quiz metadata defaults).
+    const passingPercentage = 40;
+
+    if (grade !== undefined) {
+      const gradeNum = Number(grade);
+      if (!Number.isFinite(gradeNum) || gradeNum < 0 || gradeNum > 100) {
+        return res.status(400).json({
+          success: false,
+          message: "Grade must be a number between 0 and 100",
+        });
+      }
+      submission.grade = gradeNum;
+      submission.passed = gradeNum >= passingPercentage;
+
+      // Keep learner-facing evaluation in sync with the instructor grade.
+      const evalObj =
+        submission.latestEvaluation && typeof submission.latestEvaluation === "object"
+          ? { ...submission.latestEvaluation }
+          : {};
+      const totalMarks = Number(evalObj.totalMarks) || 0;
+      evalObj.percentage = gradeNum;
+      evalObj.passed = submission.passed;
+      evalObj.passingPercentage = passingPercentage;
+      if (totalMarks > 0) {
+        evalObj.earnedMarks = Math.round((gradeNum / 100) * totalMarks);
+        evalObj.totalMarks = totalMarks;
+      }
+      evalObj.instructorGraded = true;
+      submission.latestEvaluation = evalObj;
+      submission.markModified("latestEvaluation");
+    }
     if (instructorFeedback !== undefined) submission.instructorFeedback = instructorFeedback;
     submission.status = "graded";
     submission.gradedAt = new Date();
@@ -163,7 +196,7 @@ async function gradeSubmission(req, res) {
       const assignmentTitle = populated?.content?.title || 'your assignment';
       const gradeLabel =
         submission.grade != null && Number.isFinite(Number(submission.grade))
-          ? ` Grade: ${submission.grade}.`
+          ? ` Grade: ${submission.grade}%.`
           : '';
       const feedbackHint = submission.instructorFeedback
         ? ' Your instructor left feedback.'

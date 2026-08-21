@@ -40,16 +40,32 @@ const CurriculumContentItem = React.memo(function CurriculumContentItem({
   const isUploadComplete = uploadState?.status === 'complete';
 
   if (content.type === 'quiz') {
+    const isAssignment = content.metadata?.assessmentMode === 'assignment';
+    const editType = isAssignment ? 'assignment' : 'quiz';
+    const accentIcon =
+      'bg-gray-200 dark:bg-white/10 text-gray-600 dark:text-white/60 border-gray-300 dark:border-white/15';
+    const hoverBorder = 'hover:border-gray-300 dark:hover:border-white/25';
+    const glow = 'bg-white/5';
+
     return (
-      <div className="bg-gray-50 dark:bg-white/[0.03] backdrop-blur-xl rounded-2xl p-6 border border-gray-200 dark:border-white/10 shadow-sm dark:shadow-lg group/quiz relative overflow-hidden hover:bg-gray-100 dark:hover:bg-white/[0.05] hover:border-primary-pink/30 dark:hover:border-primary-pink/30 transition-all duration-500">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-primary-pink/5 rounded-full blur-3xl pointer-events-none" />
+      <div className={`bg-gray-50 dark:bg-white/[0.03] backdrop-blur-xl rounded-2xl p-6 border border-gray-200 dark:border-white/10 shadow-sm dark:shadow-lg group/quiz relative overflow-hidden hover:bg-gray-100 dark:hover:bg-white/[0.05] ${hoverBorder} transition-all duration-500`}>
+          <div className={`absolute top-0 right-0 w-32 h-32 ${glow} rounded-full blur-3xl pointer-events-none`} />
           <div className="flex items-center justify-between relative z-10">
             <div className="space-y-2">
               <div className="flex items-center gap-2 mb-1">
-                <div className="w-8 h-8 rounded-lg bg-primary-pink/10 dark:bg-primary-pink/20 flex items-center justify-center text-primary-pink border border-primary-pink/20 transition-colors duration-300">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-colors duration-300 ${accentIcon}`}>
                   <FileText size={16} />
                 </div>
-                <h4 className="text-[16px] font-bold text-gray-900 dark:text-white tracking-tight transition-colors duration-300">{content.title || 'Untitled Assignment'}</h4>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-[16px] font-bold text-gray-900 dark:text-white tracking-tight transition-colors duration-300 truncate">
+                      {content.title || (isAssignment ? 'Untitled Assignment' : 'Untitled Quiz')}
+                    </h4>
+                    <span className="shrink-0 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-white/55 border-gray-200 dark:border-white/15">
+                      {isAssignment ? 'Assignment' : 'Quiz'}
+                    </span>
+                  </div>
+                </div>
               </div>
               <div className="flex items-center gap-4 text-gray-500 dark:text-white/40 text-[11px] font-black uppercase tracking-[0.2em] ml-10 transition-colors duration-300">
                 <div className="flex items-center gap-2">
@@ -59,23 +75,25 @@ const CurriculumContentItem = React.memo(function CurriculumContentItem({
                 <div className="w-1 h-1 rounded-full bg-gray-300 dark:bg-white/10 transition-colors duration-300" />
                 <div className="flex items-center gap-2">
                   <span>Total marks:</span>
-                  <span className="text-primary-pink">{content.questions?.reduce((s, q) => s + (q.marks || 1), 0) || 0}</span>
+                  <span className="text-gray-900 dark:text-white">
+                    {content.questions?.reduce((s, q) => s + (q.marks || 1), 0) || 0}
+                  </span>
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={(e) => { e.stopPropagation(); onTriggerContent('quiz', chId); }}
+                onClick={(e) => { e.stopPropagation(); onTriggerContent(editType, chId); }}
                 className="px-6 py-2.5 rounded-xl bg-white dark:bg-white/[0.05] border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10 hover:border-primary-pink/50 text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white transition-all duration-300 flex items-center gap-2 text-[11px] font-black uppercase tracking-widest shadow-sm dark:shadow-2xl group/edit"
-                title="Edit Quiz"
+                title={isAssignment ? 'Edit Assignment' : 'Edit Quiz'}
               >
                 <Edit2 size={14} className="group-hover/edit:text-primary-pink transition-colors" />
-                Edit Assignment
+                {isAssignment ? 'Edit Assignment' : 'Edit Quiz'}
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); onDeleteContent('quiz', content._id); }}
                 className="w-10 h-10 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-transparent flex items-center justify-center text-gray-400 dark:text-white/20 hover:bg-red-50 dark:hover:bg-red-500/20 hover:text-red-500 transition-colors duration-300 shadow-sm dark:shadow-none"
-                title="Delete Quiz"
+                title={isAssignment ? 'Delete Assignment' : 'Delete Quiz'}
               >
                 <Trash2 size={16} />
               </button>
@@ -234,7 +252,7 @@ const CurriculumContentItem = React.memo(function CurriculumContentItem({
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); onOpenResourceUpload(content); }}
-                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] hover:opacity-95 text-white text-[13px] font-medium transition-all shadow-md shadow-primary-pink/20"
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end hover:opacity-95 text-white text-[13px] font-medium transition-all shadow-md shadow-primary-pink/20"
                     >
                       <Upload size={15} /> Upload resources
                     </button>

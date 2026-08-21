@@ -1,24 +1,26 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { submitEnrollment } from '@/features/auth/store/authSlice';
 import { logger } from '@/utils/logger';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import { useToast } from '@/components/ui/Toast';
 import { 
     User, Briefcase, ShieldCheck, Camera, 
-    Globe, Linkedin, Github, ExternalLink, 
-    Upload, Plus, X, Info, Clock, CheckCircle2,
-    ArrowRight, ArrowLeft, Loader2, TrendingUp
+    Globe, Upload, Plus, X, Clock, CheckCircle2,
+    ArrowRight, ArrowLeft,
 } from 'lucide-react';
 import { ROUTES } from '@/config/routes';
 
 const EnrollmentFormFeature = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
-    const { loading } = useSelector((state) => state.auth);
+    const toast = useToast();
     
     const [step, setStep] = useState(1);
+    const [submitting, setSubmitting] = useState(false);
+    const [formError, setFormError] = useState('');
     const [languageInput, setLanguageInput] = useState('');
     const [formData, setFormData] = useState({
         profilePhoto: null,
@@ -68,35 +70,69 @@ const EnrollmentFormFeature = () => {
         }));
     };
 
-    const nextStep = () => setStep(prev => Math.min(prev + 1, 3));
-    const prevStep = () => setStep(prev => Math.max(prev - 1, 1));
+    const nextStep = () => {
+        setFormError('');
+        if (step === 1 && !formData.bio.trim()) {
+            setFormError('Please add a short bio before continuing.');
+            return;
+        }
+        if (step === 2 && !formData.expertise.trim()) {
+            setFormError('Please add your primary skill before continuing.');
+            return;
+        }
+        setStep((prev) => Math.min(prev + 1, 3));
+    };
+    const prevStep = () => {
+        setFormError('');
+        setStep((prev) => Math.max(prev - 1, 1));
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        if (submitting) return;
+
+        if (!formData.bio.trim() || !formData.expertise.trim()) {
+            setFormError('Bio and primary skill are required.');
+            setStep(!formData.bio.trim() ? 1 : 2);
+            return;
+        }
+
         const payload = {
-            ...formData,
-            experience: `${formData.experienceYears}y ${formData.experienceMonths}m`,
+            bio: formData.bio.trim(),
+            expertise: formData.expertise.trim(),
+            experience: `${formData.experienceYears || 0}y ${formData.experienceMonths || 0}m`,
+            languages: formData.languages,
+            linkedin: formData.linkedin.trim() || undefined,
+            github: formData.github.trim() || undefined,
+            website: formData.website.trim() || undefined,
+            resumeName: formData.resume?.name || undefined,
+            idProofName: formData.idProof?.name || undefined,
         };
-        
+
+        setSubmitting(true);
+        setFormError('');
         dispatch(submitEnrollment(payload))
             .unwrap()
             .then(() => {
+                toast.success('Application submitted', 'Your profile is now in the admin review queue.');
                 navigate(ROUTES.WAITING_APPROVAL);
             })
             .catch((err) => {
+                const message = typeof err === 'string' ? err : err?.message || 'Could not submit your application. Please try again.';
                 logger.error("Enrollment failed", err);
+                setFormError(message);
+                toast.error('Submission failed', message);
+            })
+            .finally(() => {
+                setSubmitting(false);
             });
     };
-
-    const InternalTrendingUp = ({ size, className }) => (
-        <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-    );
 
     const Stepper = () => (
         <div className="flex items-center justify-between w-full max-w-2xl mx-auto mb-16 relative">
             <div className="absolute top-1/2 left-0 w-full h-0.5 bg-white/10 -translate-y-1/2 z-0" />
             <div 
-                className="absolute top-1/2 left-0 h-0.5 bg-primary-pink transition-all duration-500 -translate-y-1/2 z-0" 
+                className="absolute top-1/2 left-0 h-0.5 bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end transition-all duration-500 -translate-y-1/2 z-0" 
                 style={{ width: `${((step - 1) / 2) * 100}%` }}
             />
             
@@ -108,7 +144,7 @@ const EnrollmentFormFeature = () => {
                 <div key={s.n} className="relative z-10 flex flex-col items-center gap-3">
                     <div className={`
                         w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300
-                        ${step >= s.n ? 'bg-primary-pink text-white shadow-[0_0_20px_rgba(255,51,102,0.4)] border-transparent' : 'bg-white/5 border border-white/10 text-white/70 backdrop-blur-md'}
+                        ${step >= s.n ? 'bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end text-white shadow-[0_0_20px_rgba(255,63,180,0.4)] border-transparent' : 'bg-white/5 border border-white/10 text-white/70 backdrop-blur-md'}
                     `}>
                         {step > s.n ? <CheckCircle2 size={20} /> : <s.icon size={20} />}
                     </div>
@@ -128,8 +164,13 @@ const EnrollmentFormFeature = () => {
                 style={{ background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%)' }}
             >
                 {/* Internal Glow */}
-                <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-primary-pink/5 blur-[100px] -z-10 rounded-full pointer-events-none" />
-                <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-[#FF8C42]/5 blur-[100px] -z-10 rounded-full pointer-events-none" />
+                <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-gradient-mid/10 blur-[100px] -z-10 rounded-full pointer-events-none" />
+                <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-gradient-start/10 blur-[100px] -z-10 rounded-full pointer-events-none" />
+                {formError && (
+                    <div className="mb-6 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+                        {formError}
+                    </div>
+                )}
                 {step === 1 && (
                     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div>
@@ -178,7 +219,12 @@ const EnrollmentFormFeature = () => {
                                             placeholder="Enter a language" 
                                             value={languageInput}
                                             onChange={(e) => setLanguageInput(e.target.value)}
-                                            onKeyPress={(e) => e.key === 'Enter' && addLanguage()}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    addLanguage();
+                                                }
+                                            }}
                                             className="mb-0"
                                         />
                                         <Button onClick={addLanguage} className="rounded-full px-6">Add</Button>
@@ -186,7 +232,7 @@ const EnrollmentFormFeature = () => {
                                     <div className="flex flex-wrap gap-2">
                                         {formData.languages.map(lang => (
                                             <span key={lang} className="bg-primary-pink/10 border border-primary-pink/20 text-primary-pink px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-2">
-                                                {lang} <button onClick={() => removeLanguage(lang)}><X size={12} /></button>
+                                                {lang} <button type="button" onClick={() => removeLanguage(lang)}><X size={12} /></button>
                                             </span>
                                         ))}
                                     </div>
@@ -223,7 +269,7 @@ const EnrollmentFormFeature = () => {
                             </div>
                         </div>
                         <div className="pt-8 border-t border-white/5 flex justify-between">
-                            <button onClick={prevStep} className="text-white/60 hover:text-white flex items-center gap-2 font-bold uppercase tracking-widest text-[10px]">
+                            <button type="button" onClick={prevStep} className="text-white/60 hover:text-white flex items-center gap-2 font-bold uppercase tracking-widest text-[10px]">
                                 <ArrowLeft size={16} /> Back
                             </button>
                             <Button onClick={nextStep} className="group gap-2 px-8">
@@ -244,22 +290,21 @@ const EnrollmentFormFeature = () => {
                         </div>
                         <div className="bg-white/[0.03] border border-white/5 p-6 rounded-[32px]">
                             <div className="flex items-center gap-6 mb-4">
-                                <div className="w-14 h-14 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500 relative">
+                                <div className="w-14 h-14 rounded-full bg-gradient-start/10 flex items-center justify-center text-gradient-start relative">
                                     <Clock size={24} />
-                                    <div className="absolute inset-0 rounded-full border-2 border-orange-500/20 border-t-orange-500 animate-spin" />
                                 </div>
                                 <div>
-                                    <p className="text-primary-pink font-bold text-lg leading-none">Pending Approval</p>
-                                    <p className="text-white/50 text-xs">Profile will be reviewed by admin</p>
+                                    <p className="text-primary-pink font-bold text-lg leading-none">Ready for review</p>
+                                    <p className="text-white/50 text-xs">Submit to send your profile to the admin approvals queue</p>
                                 </div>
                             </div>
                         </div>
                         <div className="pt-8 border-t border-white/5 flex justify-between items-center">
-                            <button onClick={prevStep} className="text-white/60 hover:text-white flex items-center gap-2 font-bold uppercase tracking-widest text-[10px]">
+                            <button type="button" onClick={prevStep} className="text-white/60 hover:text-white flex items-center gap-2 font-bold uppercase tracking-widest text-[10px]">
                                 <ArrowLeft size={16} /> Back
                             </button>
-                            <Button type="submit" isLoading={loading} className="px-10">
-                                {loading ? <Loader2 className="animate-spin" size={20} /> : "Submit for Review"}
+                            <Button type="submit" isLoading={submitting} className="px-10">
+                                Submit for Review
                             </Button>
                         </div>
                     </form>

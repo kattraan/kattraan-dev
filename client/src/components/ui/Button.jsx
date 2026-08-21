@@ -21,7 +21,7 @@ const Button = ({
 
   const variants = {
     primary:
-      "bg-gradient-to-r from-primary-pink to-[#ff7b3f] text-white hover:brightness-110 shadow-lg shadow-primary-pink/20",
+      "bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end text-white hover:brightness-110 shadow-lg shadow-primary-pink/20",
     secondary:
       "bg-white/10 backdrop-blur-sm text-white border border-white/10 hover:bg-white/20",
     outline:

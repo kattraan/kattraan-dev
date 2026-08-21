@@ -187,7 +187,7 @@ const CurriculumTab = ({
                   <div
                     className={`flex items-center gap-3 rounded-2xl border px-4 py-3 cursor-pointer transition-all duration-300 group/section ${
                       isSectionOpen
-                        ? "bg-gradient-to-r from-[#FF8C42]/5 to-[#FF3FB4]/5 dark:bg-gradient-to-r dark:from-[#FF8C42]/10 dark:to-[#FF3FB4]/10 border-primary-pink/20 dark:border-primary-pink/15 shadow-[0_2px_14px_rgba(255,63,180,0.07)]"
+                        ? "bg-gradient-to-r from-gradient-start/5 via-gradient-mid/5 to-gradient-end/5 dark:bg-gradient-to-r dark:from-gradient-start/10 dark:via-gradient-mid/10 dark:to-gradient-end/10 border-primary-pink/20 dark:border-primary-pink/15 shadow-[0_2px_14px_rgba(255,63,180,0.07)]"
                         : "bg-white dark:bg-[#1A1A1A] border-gray-100 dark:border-white/[0.07] shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:border-gray-200 dark:hover:border-white/10 hover:shadow-[0_2px_10px_rgba(0,0,0,0.06)]"
                     }`}
                     onClick={() =>
@@ -210,7 +210,7 @@ const CurriculumTab = ({
                     <div
                       className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center font-black text-[13px] tabular-nums transition-all duration-300 ${
                         isSectionOpen
-                          ? "bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] text-white shadow-sm shadow-[0_0_20px_rgba(255,63,180,0.25)]"
+                          ? "bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end text-white shadow-sm shadow-[0_0_20px_rgba(255,63,180,0.25)]"
                           : "bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-white/40"
                       }`}
                     >
@@ -272,7 +272,7 @@ const CurriculumTab = ({
                           <span
                             className={`flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold transition-colors duration-300 ${
                               isSectionOpen
-                                ? "bg-gradient-to-r from-[#FF8C42]/10 to-[#FF3FB4]/10 text-white border border-white/10"
+                                ? "bg-gradient-to-r from-gradient-start/10 via-gradient-mid/10 to-gradient-end/10 text-white border border-white/10"
                                 : "bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-white/30 border border-gray-200/60 dark:border-white/[0.06]"
                             }`}
                           >
@@ -492,7 +492,7 @@ const CurriculumTab = ({
                                   }}
                                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all duration-200 border ${
                                     selectionChapterId === chId
-                                      ? "bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] text-white border-transparent shadow-[0_4px_12px_rgba(255,63,180,0.3)]"
+                                      ? "bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end text-white border-transparent shadow-[0_4px_12px_rgba(255,63,180,0.3)]"
                                       : "bg-white dark:bg-white/5 text-gray-600 dark:text-white/70 border-gray-200 dark:border-white/8 hover:border-primary-pink/30 hover:text-primary-pink"
                                   }`}
                                 >
@@ -791,7 +791,7 @@ const CurriculumTab = ({
                             onClick={() =>
                               setNewChapterIsFree(!newChapterIsFree)
                             }
-                            className={`relative w-8 h-4 rounded-full flex-shrink-0 transition-all duration-300 ${newChapterIsFree ? "bg-primary-pink" : "bg-gray-200 dark:bg-white/15"}`}
+                            className={`relative w-8 h-4 rounded-full flex-shrink-0 transition-all duration-300 ${newChapterIsFree ? "bg-zinc-600 dark:bg-zinc-400" : "bg-zinc-200 dark:bg-zinc-700"}`}
                           >
                             <div
                               className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-all duration-300 ${newChapterIsFree ? "left-[calc(100%-14px)]" : "left-0.5"}`}
@@ -808,7 +808,7 @@ const CurriculumTab = ({
                           onClick={() =>
                             setAddingChapterToSection(section._id || section.id)
                           }
-                          className="group/addbtn flex items-center gap-2 text-[12px] font-bold text-transparent bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] bg-clip-text opacity-80 group-hover/addbtn:opacity-100 transition-opacity duration-200 px-2 py-1.5 rounded-lg"
+                          className="group/addbtn flex items-center gap-2 text-[12px] font-bold text-transparent bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end bg-clip-text opacity-80 group-hover/addbtn:opacity-100 transition-opacity duration-200 px-2 py-1.5 rounded-lg"
                         >
                           <div className="w-5 h-5 rounded-md border-2 border-dashed border-primary-pink/40 group-hover/addbtn:border-primary-pink flex items-center justify-center transition-colors duration-200">
                             <Plus size={11} className="text-primary-pink/90" />

@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { registerInstructor, verifyEmail, resendVerificationOtp, becomeInstructor, clearError } from '@/features/auth/store/authSlice';
 import EmailVerificationStep from '@/components/auth/EmailVerificationStep';
-import { hasRole } from '@/features/auth/utils/roleUtils';
+import { isApprovedInstructor } from '@/features/auth/utils/roleUtils';
 import { logger } from '@/utils/logger';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -32,13 +32,14 @@ const InstructorSignUpPage = () => {
   const [step, setStep] = useState('form');
   const [pendingCredentials, setPendingCredentials] = useState(null);
 
-  const isInstructor = hasRole(user, 'instructor');
+  const isApproved = isApprovedInstructor(user);
+  const applicationStatus = user?.status;
 
   useEffect(() => {
-      if (isInstructor && user?.status === 'approved') {
+      if (isApproved) {
           navigate(ROUTES.INSTRUCTOR_DASHBOARD);
       }
-  }, [isInstructor, user, navigate]);
+  }, [isApproved, navigate]);
 
   const [passwordError, setPasswordError] = useState('');
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
@@ -116,7 +117,18 @@ const InstructorSignUpPage = () => {
       if (email) {
           dispatch(becomeInstructor(email))
             .unwrap()
-            .then(() => { navigate(ROUTES.INSTRUCTOR_ENROLLMENT); });
+            .then((result) => {
+              const status = result?.user?.status;
+              if (status === 'pending_approval') {
+                navigate(ROUTES.WAITING_APPROVAL);
+                return;
+              }
+              if (status === 'approved') {
+                navigate(ROUTES.INSTRUCTOR_DASHBOARD);
+                return;
+              }
+              navigate(ROUTES.INSTRUCTOR_ENROLLMENT);
+            });
       }
   };
 
@@ -137,14 +149,14 @@ const InstructorSignUpPage = () => {
         <div className="w-full max-w-[950px] border border-white/10 rounded-2xl sm:rounded-[40px] overflow-hidden shadow-[0_32px_120px_rgba(0,0,0,0.8)] bg-gradient-to-br from-white/[0.05] to-white/[0.01] backdrop-blur-3xl flex flex-col md:flex-row">
           
           {/* Left panel: Info & Branding */}
-          <div className="hidden md:flex bg-gradient-to-br from-[#FF8C42]/20 to-[#FF3FB4]/20 p-8 lg:p-14 flex-col justify-between md:w-[42%] relative overflow-hidden border-r border-white/5">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-[#FF3FB4]/10 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="hidden md:flex bg-gradient-to-br from-gradient-start/20 via-gradient-mid/20 to-gradient-end/20 p-8 lg:p-14 flex-col justify-between md:w-[42%] relative overflow-hidden border-r border-white/5">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-[#9e30ff]/10 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/2" />
                 
                 <div className="relative z-10">
                     <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white mb-8 shadow-xl"> 
                       <Briefcase size={28} /> 
                     </div>
-                    <h2 className="text-4xl font-bold text-white mb-6 leading-tight">Teach on <br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4]">Kattraan</span></h2>
+                    <h2 className="text-4xl font-bold text-white mb-6 leading-tight">Teach on <br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end">Kattraan</span></h2>
                     <p className="text-white/60 text-base leading-relaxed max-w-[280px]">Join our community of expert instructors and share your knowledge with the world.</p>
                 </div>
 
@@ -180,8 +192,18 @@ const InstructorSignUpPage = () => {
                         <p className="text-white font-semibold text-lg">{user?.userName || user?.name}</p>
                         <p className="text-white/50 text-sm">{user?.email || user?.userEmail}</p>
                     </div>
-                    {!isInstructor ? (
-                        <Button onClick={handleUpgrade} isLoading={loading} className="w-full h-14 rounded-2xl text-[16px]">Activate Instructor Account</Button>
+                    {!isApproved && applicationStatus === 'pending_approval' ? (
+                        <Link to={ROUTES.WAITING_APPROVAL}>
+                          <Button className="w-full h-14 rounded-2xl text-[16px]">View Application Status</Button>
+                        </Link>
+                    ) : !isApproved && (applicationStatus === 'pending_enrollment' || applicationStatus === 'rejected') ? (
+                        <Link to={ROUTES.INSTRUCTOR_ENROLLMENT}>
+                          <Button className="w-full h-14 rounded-2xl text-[16px]">
+                            {applicationStatus === 'rejected' ? 'Resubmit Application' : 'Continue Enrollment'}
+                          </Button>
+                        </Link>
+                    ) : !isApproved ? (
+                        <Button onClick={handleUpgrade} isLoading={loading} className="w-full h-14 rounded-2xl text-[16px]">Apply to Teach</Button>
                     ) : (
                         <Link to={ROUTES.INSTRUCTOR_DASHBOARD}> 
                           <Button className="w-full h-14 rounded-2xl text-[16px]">Go to Instructor Dashboard</Button> 
@@ -279,7 +301,7 @@ const InstructorSignUpPage = () => {
                           </div>
                       </div>
                   </div>
-                  <Button type="submit" isLoading={loading} className="w-full h-14 rounded-2xl text-[16px] font-bold bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] shadow-[0_10px_30px_rgba(255,63,180,0.2)] hover:shadow-[0_15px_40px_rgba(255,63,180,0.3)] transition-all mt-6">
+                  <Button type="submit" isLoading={loading} className="w-full h-14 rounded-2xl text-[16px] font-bold bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end shadow-[0_10px_30px_rgba(255,63,180,0.2)] hover:shadow-[0_15px_40px_rgba(255,63,180,0.3)] transition-all mt-6">
                     Start Enrollment <ArrowRight className="ml-2 w-5 h-5" />
                   </Button>
                 </form>

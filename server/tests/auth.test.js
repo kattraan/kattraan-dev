@@ -214,6 +214,27 @@ describe("POST /api/auth/login", () => {
     expect(res.status).toBe(403);
     expect(res.body.requiresVerification).toBe(true);
   });
+
+  it("should allow instructors pending enrollment or approval to log in", async () => {
+    const User = require("../models/User");
+    const Role = require("../models/Role");
+    const instructorRole = await Role.findOne({ roleName: "instructor" });
+    expect(instructorRole).toBeTruthy();
+
+    await User.updateOne(
+      { userEmail: validUser.userEmail.toLowerCase() },
+      { roles: [instructorRole.roleId], status: "pending_approval" }
+    );
+
+    const res = await request(app)
+      .post("/api/auth/login")
+      .send({ userEmail: validUser.userEmail, password: validUser.password })
+      .expect("Content-Type", /json/);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.user?.status || res.body.data?.user?.status).toBe("pending_approval");
+  });
 });
 
 // ---------- JWT verification middleware (protected route: GET /api/auth/check-auth) ----------

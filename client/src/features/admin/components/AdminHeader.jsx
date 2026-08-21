@@ -67,7 +67,7 @@ const AdminHeader = () => {
             aria-expanded={showProfileMenu}
             aria-haspopup="true"
           >
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FF8C42] to-[#FF3FB4] shadow-lg shadow-pink-500/20 border border-gray-200/50 dark:border-white/20 flex items-center justify-center text-white font-black text-base italic">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gradient-start via-gradient-mid to-gradient-end shadow-lg shadow-pink-500/20 border border-gray-200/50 dark:border-white/20 flex items-center justify-center text-white font-black text-base italic">
               {(user?.name || user?.userName || "A")[0].toUpperCase()}
             </div>
             <ChevronDown size={14} className={`text-gray-500 dark:text-white/40 transition-transform ${showProfileMenu ? "rotate-180" : ""}`} />
@@ -87,10 +87,10 @@ const AdminHeader = () => {
                   <span className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight">{displayName}</span>
                 </div>
                 <div className="py-2">
-                  <button type="button" onClick={() => { setShowProfileMenu(false); navigate(ROUTES.DASHBOARD_PROFILE); }} className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-bold text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5 rounded-xl transition-all">
+                  <button type="button" onClick={() => { setShowProfileMenu(false); navigate(`${ROUTES.ADMIN_SETTINGS}?tab=profile`); }} className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-bold text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5 rounded-xl transition-all">
                     <User size={16} /> View profile
                   </button>
-                  <button type="button" onClick={() => { setShowProfileMenu(false); navigate(ROUTES.DASHBOARD_MY_ACCOUNT); }} className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-bold text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5 rounded-xl transition-all">
+                  <button type="button" onClick={() => { setShowProfileMenu(false); navigate(`${ROUTES.ADMIN_SETTINGS}?tab=security`); }} className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-bold text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5 rounded-xl transition-all">
                     <Settings size={16} /> My account
                   </button>
                 </div>

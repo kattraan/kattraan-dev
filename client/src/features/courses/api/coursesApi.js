@@ -67,7 +67,7 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
 export const coursesApi = createApi({
   reducerPath: 'coursesApi',
   baseQuery: baseQueryWithReauth,
-  tagTypes: ['Course', 'CourseList', 'PublicCourses'],
+  tagTypes: ['Course', 'CourseList', 'PublicCourses', 'HomepageFeatured'],
   endpoints: (builder) => ({
     getCourseById: builder.query({
       query: (id) => `/courses/${id}`,
@@ -89,7 +89,31 @@ export const coursesApi = createApi({
       transformResponse: (response) => response?.data ?? [],
       providesTags: ['PublicCourses'],
     }),
+    getHomepageFeatured: builder.query({
+      query: () => '/courses/homepage-featured',
+      transformResponse: (response) => response?.data ?? { trending: [], popular: [] },
+      providesTags: ['HomepageFeatured'],
+      keepUnusedDataFor: 0,
+    }),
+    getLandingCourses: builder.query({
+      query: () => '/courses/public?page=1&limit=8&lite=1',
+      transformResponse: (response) => ({
+        courses: Array.isArray(response?.data) ? response.data : [],
+        trending: response?.homepageFeatured?.trending ?? [],
+        popular: response?.homepageFeatured?.popular ?? [],
+        trendingManual: Boolean(response?.homepageFeatured?.trendingManual),
+        popularManual: Boolean(response?.homepageFeatured?.popularManual),
+      }),
+      providesTags: ['PublicCourses', 'HomepageFeatured'],
+      keepUnusedDataFor: 0,
+    }),
   }),
 });
 
-export const { useGetCourseByIdQuery, useGetInstructorCoursesQuery, useGetPublicCoursesQuery } = coursesApi;
+export const {
+  useGetCourseByIdQuery,
+  useGetInstructorCoursesQuery,
+  useGetPublicCoursesQuery,
+  useGetHomepageFeaturedQuery,
+  useGetLandingCoursesQuery,
+} = coursesApi;

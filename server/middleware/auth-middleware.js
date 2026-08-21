@@ -44,7 +44,7 @@ const authenticate = async (req, res, next) => {
     // Re-load the user from the DB so a deleted/banned account or a demoted
     // admin/instructor loses access immediately instead of after token TTL.
     const profile = await User.findById(userId)
-      .select("userName userEmail email name phoneNumber roles")
+      .select("userName userEmail email name phoneNumber roles status")
       .lean();
 
     if (!profile) {
@@ -60,13 +60,18 @@ const authenticate = async (req, res, next) => {
     req.user.name = profile.name || profile.userName || "";
     req.user.phoneNumber = profile.phoneNumber || "";
     req.user.phone = profile.phoneNumber || "";
+    req.user.status = profile.status;
 
     // Authoritative roles come from the DB, not the (cached) JWT claims.
     const roleIds = Array.isArray(profile.roles) ? profile.roles : [];
     req.user.roles = roleIds;
     try {
+      const { effectiveRoleNames } = require("../helpers/instructorAccess");
       const rolesData = await Role.find({ roleId: { $in: roleIds } }).select("roleName").lean();
-      req.user.roleNames = rolesData.map((r) => r.roleName);
+      req.user.roleNames = effectiveRoleNames(
+        rolesData.map((r) => r.roleName),
+        profile.status,
+      );
     } catch (roleErr) {
       console.warn("Failed to resolve roles from DB", roleErr.message);
       // Fall back to JWT roleNames rather than silently granting nothing.

@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Plus, 
   Search, 
@@ -33,6 +33,18 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
  */
 const MyCoursesFeature = () => {
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const STATUS_FILTER_MAP = {
+        live: 'published',
+        published: 'published',
+        review: 'pending_approval',
+        pending: 'pending_approval',
+        pending_approval: 'pending_approval',
+        draft: 'draft',
+        rejected: 'rejected',
+    };
+    const statusFilter = (searchParams.get('status') || '').toLowerCase();
+    const normalizedStatus = STATUS_FILTER_MAP[statusFilter] || statusFilter;
     const dispatch = useDispatch();
     const toast = useToast();
     const { confirm } = useConfirmDialog();
@@ -106,6 +118,11 @@ const MyCoursesFeature = () => {
         }
     };
 
+    const visibleCourses = useMemo(() => {
+        if (!normalizedStatus) return courses;
+        return courses.filter((course) => String(course.status || '').toLowerCase() === normalizedStatus);
+    }, [courses, normalizedStatus]);
+
     const EmptyView = () => (
         <Card className="flex flex-col items-center justify-center py-20 text-center border-dashed mt-8 bg-gray-50 dark:bg-white/[0.02] border-gray-300 dark:border-white/5 shadow-sm dark:shadow-none transition-colors duration-300">
             <div className="w-20 h-20 bg-gray-200 dark:bg-white/5 rounded-full flex items-center justify-center mb-6 text-gray-400 dark:text-white/20 transition-colors duration-300">
@@ -120,12 +137,24 @@ const MyCoursesFeature = () => {
 
     return (
         <DashboardLayout
-            title="My Courses"
-            subtitle="Build, structure, and publish your courses with complete control."
+            title={
+                normalizedStatus === 'published'
+                    ? 'Live courses'
+                    : normalizedStatus
+                      ? `${statusFilter} courses`
+                      : 'My Courses'
+            }
+            subtitle={
+                normalizedStatus === 'published'
+                    ? `${visibleCourses.length} live course${visibleCourses.length === 1 ? '' : 's'}`
+                    : normalizedStatus
+                      ? `Showing ${visibleCourses.length} ${statusFilter} course${visibleCourses.length === 1 ? '' : 's'}`
+                      : 'Build, structure, and publish your courses with complete control.'
+            }
             headerRight={
                 <Button 
                     onClick={() => setIsModalOpen(true)} 
-                    className="bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] hover:opacity-90 text-white rounded-xl px-4 sm:px-6 shadow-lg transition-all text-sm sm:text-base"
+                    className="bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end hover:opacity-90 text-white rounded-xl px-4 sm:px-6 shadow-lg transition-all text-sm sm:text-base"
                 >
                     <Plus size={18} className="sm:w-5 sm:h-5" /> <span className="hidden xs:inline">Create </span>Course
                 </Button>
@@ -138,9 +167,36 @@ const MyCoursesFeature = () => {
                 </div>
             ) : courses.length === 0 ? (
                 <EmptyView />
+            ) : visibleCourses.length === 0 ? (
+                <Card className="flex flex-col items-center justify-center py-16 text-center mt-8">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                        No {normalizedStatus === 'published' ? 'live' : statusFilter} courses
+                    </h3>
+                    <Button
+                        variant="outline"
+                        onClick={() => setSearchParams({})}
+                        className="mt-2"
+                    >
+                        View all courses
+                    </Button>
+                </Card>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-w-[1280px] mx-auto">
-                    {courses.map((course) => (
+                    {statusFilter && (
+                        <div className="col-span-full flex items-center justify-between">
+                            <p className="text-sm font-semibold text-gray-600 dark:text-white/60">
+                                Showing {visibleCourses.length} {normalizedStatus === 'published' ? 'live' : statusFilter} course{visibleCourses.length === 1 ? '' : 's'}
+                            </p>
+                            <button
+                                type="button"
+                                onClick={() => setSearchParams({})}
+                                className="text-xs font-bold text-primary-pink hover:underline"
+                            >
+                                Clear filter
+                            </button>
+                        </div>
+                    )}
+                    {visibleCourses.map((course) => (
                         <Card 
                             key={course._id} 
                             onClick={() => navigate(`/instructor-dashboard/edit-course/${course._id}`)}
@@ -154,7 +210,7 @@ const MyCoursesFeature = () => {
                             <div className="p-4 flex flex-col flex-grow">
                                 <div className="flex items-center gap-2 mb-2">
                                     <Badge
-                                        className="bg-primary-pink/10 dark:bg-primary-pink/15 border border-primary-pink/20 dark:border-primary-pink/25 text-[10px] px-2 py-0.5 font-semibold transition-colors duration-300 bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] bg-clip-text text-transparent"
+                                        className="bg-primary-pink/10 dark:bg-primary-pink/15 border border-primary-pink/20 dark:border-primary-pink/25 text-[10px] px-2 py-0.5 font-semibold transition-colors duration-300 bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end bg-clip-text text-transparent"
                                     >
                                         {course.status || 'Draft'}
                                     </Badge>

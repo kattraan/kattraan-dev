@@ -44,6 +44,15 @@ function extractServerMessage(data) {
  * Axios "Network Error" usually means the browser never got a readable response
  * (API down, CORS blocked, proxy offline). Map to an actionable message.
  */
+export function isTransientApiError(error) {
+  const status = error?.response?.status;
+  if (!error?.response) {
+    const raw = error?.message || '';
+    return /network error/i.test(raw) || error?.code === 'ERR_NETWORK' || error?.code === 'ECONNABORTED';
+  }
+  return status === 502 || status === 503 || status === 504;
+}
+
 export function getAuthErrorMessage(error) {
   const status = error?.response?.status;
   const data = error?.response?.data;

@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { HelpCircle, X } from 'lucide-react';
+import { HelpCircle, X, ChevronDown } from 'lucide-react';
 import { ROUTES } from '@/config/routes';
 import { updateProfile } from '@/features/auth/store/authSlice';
 import { useToast } from '@/components/ui/Toast';
@@ -35,6 +35,60 @@ function DetailRow({ label, value, onEdit }) {
       <button type="button" onClick={onEdit} className="text-sm font-bold text-primary-pink hover:text-primary-pink/80 transition-colors shrink-0">
         Edit
       </button>
+    </div>
+  );
+}
+
+function ThemeSelect({ value, onChange, options, disabled }) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+  const selected = options.find((o) => o.value === value) || options[0];
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDoc = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [open]);
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3 text-left text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-pink/50 dark:border-white/10 dark:bg-[#161616] dark:text-white"
+      >
+        <span className={selected?.value ? '' : 'text-gray-500 dark:text-white/45'}>{selected?.label}</span>
+        <ChevronDown size={16} className={`text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <ul className="absolute z-30 mt-2 max-h-60 w-full overflow-auto rounded-xl border border-gray-200 bg-white py-1 shadow-xl dark:border-white/10 dark:bg-[#1A1A1A]">
+          {options.map((opt) => {
+            const active = opt.value === value;
+            return (
+              <li key={opt.value || 'empty'}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onChange(opt.value);
+                    setOpen(false);
+                  }}
+                  className={`w-full px-4 py-2.5 text-left text-sm ${
+                    active
+                      ? 'bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end text-white'
+                      : 'text-gray-800 hover:bg-gray-100 dark:text-white dark:hover:bg-white/10'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }
@@ -92,11 +146,7 @@ function InlineEditField({ label, type, value, displayValue, editing, onEdit, on
         </button>
       </div>
       {type === 'select' && options ? (
-        <select value={val} onChange={(e) => setVal(e.target.value)} className="w-full pl-4 pr-10 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-pink/50 appearance-none bg-no-repeat bg-[length:12px] bg-[right_12px_center]" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E\")" }}>
-          {options.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
+        <ThemeSelect value={val} onChange={setVal} options={options} disabled={saving} />
       ) : (
         <input type="date" value={val} onChange={(e) => setVal(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-pink/50 [color-scheme:light]" />
       )}
@@ -210,7 +260,7 @@ export default function PersonalDetailsPage() {
           <div className="bg-white dark:bg-white/[0.03] border border-gray-200 dark:border-white/10 rounded-2xl p-6">
             <div className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-white/5">
               <span className="text-sm font-medium text-gray-900 dark:text-white">Show subscriber count on your profile</span>
-              <button type="button" role="switch" aria-checked={showSubscriberCount} onClick={handleToggleSubscriber} disabled={saving} className={`relative w-11 h-6 rounded-full transition-colors ${showSubscriberCount ? 'bg-primary-pink' : 'bg-gray-200 dark:bg-white/20'}`}>
+              <button type="button" role="switch" aria-checked={showSubscriberCount} onClick={handleToggleSubscriber} disabled={saving} className={`relative w-11 h-6 rounded-full transition-colors ${showSubscriberCount ? 'bg-zinc-600 dark:bg-zinc-400' : 'bg-zinc-200 dark:bg-zinc-700'}`}>
                 <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${showSubscriberCount ? 'translate-x-5' : 'translate-x-0'}`} />
               </button>
             </div>

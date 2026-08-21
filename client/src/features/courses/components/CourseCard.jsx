@@ -132,7 +132,7 @@ const CourseCard = ({ course }) => {
               <span className="text-xs sm:text-[10px] font-medium">{enrolledDisplay}</span>
             </div>
           </div>
-          <span className="bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] hover:opacity-90 text-white text-xs sm:text-[11px] font-bold px-5 py-2.5 sm:px-4 sm:py-2 rounded-full transition-all self-start sm:self-auto shadow-lg shadow-pink-500/10">
+          <span className="bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end hover:opacity-90 text-white text-xs sm:text-[11px] font-bold px-5 py-2.5 sm:px-4 sm:py-2 rounded-full transition-all self-start sm:self-auto shadow-lg shadow-pink-500/10">
             View details
           </span>
         </div>

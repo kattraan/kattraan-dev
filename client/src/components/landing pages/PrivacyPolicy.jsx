@@ -32,7 +32,7 @@ const PrivacyPolicy = () => {
 
         <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight leading-tight max-w-4xl">
           Privacy{" "}
-          <span className="text-gradient-brand bg-clip-text text-transparent bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4]">
+          <span className="text-gradient-brand bg-clip-text text-transparent bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end">
             Policy
           </span>
         </h1>

@@ -10,7 +10,10 @@ exports.getUsers = async (req, res) => {
     const { status } = req.query;
     const filter = {};
     if (status) {
-      filter.status = status;
+      const raw = Array.isArray(status) ? status : String(status).split(',');
+      const statuses = raw.map((s) => String(s).trim()).filter(Boolean);
+      if (statuses.length === 1) filter.status = statuses[0];
+      else if (statuses.length > 1) filter.status = { $in: statuses };
     }
 
     const users = await User

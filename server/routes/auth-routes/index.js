@@ -178,16 +178,33 @@ router.get("/check-auth", async (req, res) => {
       return res.status(200).json({ success: true, isAuthenticated: false });
     }
 
-    const rolesData = await Role.find({ roleId: { $in: user.roles } });
-    const roleNames = rolesData.map(r => r.roleName);
+    const { effectiveRoleNames, primaryRoleName } = require("../../helpers/instructorAccess");
+    let rolesData = await Role.find({ roleId: { $in: user.roles } });
+    const rawNames = rolesData.map((r) => r.roleName);
+    if (
+      user.status !== "approved" &&
+      rawNames.includes("instructor") &&
+      !rawNames.includes("admin")
+    ) {
+      const instructorRole = rolesData.find((r) => r.roleName === "instructor");
+      const learnerRole = await Role.findOne({ roleName: "learner" });
+      user.roles = (user.roles || []).filter((id) => id !== instructorRole.roleId);
+      if (learnerRole && !user.roles.includes(learnerRole.roleId)) {
+        user.roles.push(learnerRole.roleId);
+      }
+      await user.save();
+      rolesData = await Role.find({ roleId: { $in: user.roles } });
+    }
+    const roleNames = effectiveRoleNames(rolesData.map((r) => r.roleName), user.status);
 
     const safeProfile = {
       _id: user._id,
       userName: user.userName,
       userEmail: user.userEmail,
       status: user.status,
+      instructorApprovedAt: user.instructorApprovedAt || null,
       roles: roleNames,
-      role: roleNames.includes('admin') ? 'admin' : (roleNames.includes('instructor') ? 'instructor' : 'learner'),
+      role: primaryRoleName(roleNames),
     };
 
     return res.status(200).json({

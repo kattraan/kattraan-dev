@@ -10,6 +10,7 @@ export const ROUTES = {
   HELP: "/help",
   ABOUT: "/about",
   CONTACT: "/contact",
+  BECOME_INSTRUCTOR: "/become-instructor",
   PRIVACY_POLICY: "/privacy-policy",
   FAQ: "/faq",
   TERMS: "/terms",
@@ -60,6 +61,7 @@ export const ROUTES = {
   ADMIN_COURSE_REVIEW: "/admin-dashboard/courses/review",
   ADMIN_USERS: "/admin-dashboard/users",
   ADMIN_COMMUNITIES: "/admin-dashboard/communities",
+  ADMIN_SITE_CONTENT: "/admin-dashboard/site-content",
 
   // Cart & Checkout
   CART: "/cart",

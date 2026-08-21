@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 // Images
 import blogBg from '@/assets/blog.webp';
 import blogBg2 from '@/assets/blog-1.webp';
-import { articles } from '@/data/blogData';
+import { resolveBlogImage } from '@/data/blogData';
+import siteContentService from '@/features/admin/services/siteContentService';
 
 const BlogCard = ({ article, alignment = 'left', variant = 'large' }) => {
   const isCentered = alignment === 'center';
@@ -12,7 +13,7 @@ const BlogCard = ({ article, alignment = 'left', variant = 'large' }) => {
   const navigate = useNavigate();
 
   const handleReadArticle = () => {
-    navigate(`/blog/${article.id}`, { state: { article } });
+    navigate(`/blog/${article.id}`, { state: { article: { ...article, image: resolveBlogImage(article) } } });
   };
 
   return (
@@ -24,7 +25,7 @@ const BlogCard = ({ article, alignment = 'left', variant = 'large' }) => {
       {/* Article Image with Badge Overlay */}
       <div className={`relative w-full ${isLarge ? 'h-[220px] sm:h-[200px]' : 'h-[160px] sm:h-[130px]'} rounded-2xl sm:rounded-[24px] overflow-hidden mb-4 shrink-0`}>
         <img 
-          src={article.image} 
+          src={resolveBlogImage(article)} 
           alt={article.title}
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
           loading="lazy"
@@ -56,7 +57,7 @@ const BlogCard = ({ article, alignment = 'left', variant = 'large' }) => {
         
         <button 
           onClick={handleReadArticle}
-          className="bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] hover:opacity-90 text-white text-[12px] font-bold py-2.5 px-8 rounded-[12px] transition-all shadow-lg shadow-pink-500/20"
+          className="bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end hover:opacity-90 text-white text-[12px] font-bold py-2.5 px-8 rounded-[12px] transition-all shadow-lg shadow-pink-500/20"
         >
           Read Article
         </button>
@@ -66,13 +67,41 @@ const BlogCard = ({ article, alignment = 'left', variant = 'large' }) => {
 };
 
 const BlogSection = () => {
-  // Column Distribution for Masonry-like effect
-  // Col 1: Big, Small
-  // Col 2: Small, Big (Centered)
-  // Col 3: Big, Small
-  const col1 = [articles[0], articles[3]];
-  const col2 = [articles[1], articles[4]];
-  const col3 = [articles[2], articles[5]];
+  const [articles, setArticles] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = () => {
+      siteContentService
+        .listPublicBlogs()
+        .then((res) => {
+          if (!cancelled && Array.isArray(res.data)) {
+            setArticles(res.data);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setArticles([]);
+        });
+    };
+
+    load();
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') load();
+    };
+    window.addEventListener('focus', load);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('focus', load);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, []);
+
+  const col1 = [articles[0], articles[3]].filter(Boolean);
+  const col2 = [articles[1], articles[4]].filter(Boolean);
+  const col3 = [articles[2], articles[5]].filter(Boolean);
+  const extra = articles.slice(6);
 
   return (
     <section className="relative w-full pt-8 sm:pt-10 pb-16 sm:pb-20 px-3 sm:px-4 flex justify-center bg-transparent border-none">
@@ -104,7 +133,7 @@ const BlogSection = () => {
         {/* Header */}
         <div className="relative z-10 text-center mb-6 sm:mb-8">
           <h2 className="text-2xl sm:text-[28px] lg:text-[32px] font-bold mb-2 tracking-tight">
-            <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] to-[#808080]">Stay ahead of</span> <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4]">What's next</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] to-[#808080]">Stay ahead of</span> <span className="text-transparent bg-clip-text bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end">What's next</span>
           </h2>
           <p className="text-white/50 text-sm md:text-base font-medium tracking-wide">
             Insights on learning, building, and shipping from the Kattraan team.
@@ -115,6 +144,9 @@ const BlogSection = () => {
 
         {/* Blog — mobile: flat list; tablet+: masonry columns */}
         <div className="relative z-10 flex flex-col gap-6 md:hidden">
+          {articles.length === 0 && (
+            <p className="py-10 text-center text-white/40">No articles published yet.</p>
+          )}
           {articles.map((article) => (
             <BlogCard key={article.id} article={article} alignment="left" variant="large" />
           ))}
@@ -123,20 +155,24 @@ const BlogSection = () => {
         <div className="relative z-10 hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 items-start">
           {/* Column 1 - Left Aligned */}
           <div className="flex flex-col gap-8">
-            <BlogCard article={col1[0]} alignment="left" variant="large" />
-            <BlogCard article={col1[1]} alignment="left" variant="compact" />
+            {col1.map((article, idx) => (
+              <BlogCard key={article.id} article={article} alignment="left" variant={idx === 0 ? 'large' : 'compact'} />
+            ))}
           </div>
 
-          {/* Column 2 - Center Aligned */}
           <div className="flex flex-col gap-8">
-            <BlogCard article={col2[0]} alignment="center" variant="compact" />
-            <BlogCard article={col2[1]} alignment="center" variant="large" />
+            {col2.map((article, idx) => (
+              <BlogCard key={article.id} article={article} alignment="center" variant={idx === 0 ? 'compact' : 'large'} />
+            ))}
           </div>
 
-          {/* Column 3 - Left Aligned */}
           <div className="flex flex-col gap-8">
-            <BlogCard article={col3[0]} alignment="left" variant="large" />
-            <BlogCard article={col3[1]} alignment="left" variant="compact" />
+            {col3.map((article, idx) => (
+              <BlogCard key={article.id} article={article} alignment="left" variant={idx === 0 ? 'large' : 'compact'} />
+            ))}
+            {extra.map((article) => (
+              <BlogCard key={article.id} article={article} alignment="left" variant="compact" />
+            ))}
           </div>
         </div>
       </div>

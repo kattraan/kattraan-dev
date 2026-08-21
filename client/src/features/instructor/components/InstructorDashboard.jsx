@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Users, BookOpen, DollarSign, Star, TrendingUp,
   ArrowUpRight, PlusCircle, Clock, CheckCircle,
-  AlertCircle, FileEdit,
+  AlertCircle, ExternalLink, Link2, ChevronDown,
 } from 'lucide-react';
 import { ROUTES } from '@/config/routes';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -13,9 +13,8 @@ import apiClient from '@/api/apiClient';
 // ── helpers ────────────────────────────────────────────────────────────────
 
 function formatCurrency(n) {
-  if (n >= 1_000_000) return `₹${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `₹${(n / 1_000).toFixed(1)}K`;
-  return `₹${n}`;
+  const amount = Math.round(Number(n) || 0);
+  return `₹${amount.toLocaleString('en-IN')}`;
 }
 
 function formatRelative(date) {
@@ -42,9 +41,16 @@ const statusConfig = {
 
 // ── sub-components ────────────────────────────────────────────────────────
 
-function StatCard({ icon: Icon, label, value, sub, iconColor, loading }) {
+function StatCard({ icon: Icon, label, value, sub, iconColor, loading, onClick }) {
+  const className = `relative w-full text-left overflow-hidden rounded-[28px] border border-gray-200 bg-white/95 p-6 shadow-sm backdrop-blur-sm transition-all hover:border-gray-300 dark:border-white/[0.14] dark:bg-white/[0.07] dark:shadow-[0_8px_32px_rgba(0,0,0,0.45)] dark:backdrop-blur-xl dark:hover:border-white/[0.22] dark:hover:bg-white/[0.09] ${onClick ? 'cursor-pointer' : ''}`;
   return (
-    <div className="relative overflow-hidden rounded-[28px] border border-gray-200 bg-white/95 p-6 shadow-sm backdrop-blur-sm transition-all hover:border-gray-300 dark:border-white/[0.14] dark:bg-white/[0.07] dark:shadow-[0_8px_32px_rgba(0,0,0,0.45)] dark:backdrop-blur-xl dark:hover:border-white/[0.22] dark:hover:bg-white/[0.09]">
+    <div
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+      className={className}
+    >
       <div className="mb-4 flex items-start justify-between">
         <div
           className={`rounded-2xl bg-gray-50 p-3 ring-1 ring-gray-100 dark:bg-white/[0.1] dark:ring-white/[0.08] ${iconColor}`}
@@ -80,6 +86,51 @@ function CourseStatusPill({ status }) {
   );
 }
 
+function formatSessionTimeRange(startIso, endIso) {
+  const a = new Date(startIso);
+  const b = new Date(endIso);
+  if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return '—';
+  const opts = { hour: 'numeric', minute: '2-digit' };
+  return `${a.toLocaleTimeString(undefined, opts)} — ${b.toLocaleTimeString(undefined, opts)}`;
+}
+
+function formatSessionDateHeading(iso) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString(undefined, {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).toUpperCase();
+}
+
+function groupLiveSessionsByCourse(sessions) {
+  const now = Date.now();
+  const upcoming = (sessions || []).filter((s) => {
+    const end = new Date(s.scheduledEnd);
+    return !Number.isNaN(end.getTime()) && end.getTime() >= now;
+  });
+  const byCourse = new Map();
+  for (const session of upcoming) {
+    const key = String(session.courseId);
+    if (!byCourse.has(key)) {
+      byCourse.set(key, {
+        courseId: session.courseId,
+        courseTitle: session.courseTitle || 'Untitled course',
+        items: [],
+      });
+    }
+    byCourse.get(key).items.push(session);
+  }
+  return [...byCourse.values()].map((group) => {
+    group.items.sort(
+      (a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime(),
+    );
+    return group;
+  });
+}
+
 // ── main component ────────────────────────────────────────────────────────
 
 const InstructorDashboard = () => {
@@ -87,6 +138,7 @@ const InstructorDashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showLiveBreakdown, setShowLiveBreakdown] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -111,12 +163,24 @@ const InstructorDashboard = () => {
       ].filter((b) => b.count > 0)
     : [];
 
+  const liveCount = stats?.upcomingLiveCount ?? 0;
+  const liveByCourse = useMemo(
+    () => groupLiveSessionsByCourse(stats?.allottedLiveSessions),
+    [stats?.allottedLiveSessions],
+  );
+
+  const copyMeetingLink = (url) => {
+    if (!url) return;
+    navigator.clipboard.writeText(url).catch(() => {});
+  };
+
   const statCards = [
     {
       icon: Users,
       label: 'Total Learners',
       value: stats ? stats.totalLearners.toLocaleString() : '—',
       iconColor: 'text-blue-400',
+      onClick: () => navigate(ROUTES.INSTRUCTOR_LEARNERS),
     },
     {
       icon: BookOpen,
@@ -124,12 +188,7 @@ const InstructorDashboard = () => {
       value: stats ? stats.totalCourses.toLocaleString() : '—',
       sub: stats?.publishedCourses ? `${stats.publishedCourses} live` : null,
       iconColor: 'text-primary-pink',
-    },
-    {
-      icon: DollarSign,
-      label: 'Total Revenue',
-      value: stats ? formatCurrency(stats.totalRevenue) : '—',
-      iconColor: 'text-green-400',
+      onClick: () => navigate(ROUTES.INSTRUCTOR_MY_COURSES),
     },
     {
       icon: Star,
@@ -141,6 +200,14 @@ const InstructorDashboard = () => {
         : '—',
       sub: stats?.totalReviews ? `${stats.totalReviews} reviews` : null,
       iconColor: 'text-primary-purple',
+      onClick: () => navigate(ROUTES.INSTRUCTOR_ANALYTICS),
+    },
+    {
+      icon: DollarSign,
+      label: 'Total Revenue',
+      value: stats ? formatCurrency(stats.totalRevenue) : '—',
+      iconColor: 'text-green-400',
+      onClick: () => navigate(ROUTES.INSTRUCTOR_ANALYTICS),
     },
   ];
 
@@ -166,28 +233,112 @@ const InstructorDashboard = () => {
           ))}
         </div>
 
-        {/* Course breakdown strip */}
-        {!loading && courseBreakdown.length > 0 && (
-          <div className="flex flex-wrap items-center gap-6 rounded-2xl border border-gray-200 bg-white/95 p-5 shadow-sm backdrop-blur-sm dark:border-white/[0.12] dark:bg-white/[0.06] dark:shadow-[0_8px_32px_rgba(0,0,0,0.45)] dark:backdrop-blur-xl">
-            <p className="text-xs font-bold text-gray-400 dark:text-white/30 uppercase tracking-widest">
-              Course breakdown
-            </p>
-            {courseBreakdown.map((b) => (
-              <div key={b.label} className="flex items-center gap-2">
-                <div className={`w-2.5 h-2.5 rounded-full ${b.color}`} />
-                <span className="text-sm font-semibold text-gray-700 dark:text-white/70">
-                  {b.count}
-                </span>
-                <span className="text-xs text-gray-400 dark:text-white/30">{b.label}</span>
-              </div>
-            ))}
+        {/* Course breakdown strip — expands allotted live classes by course */}
+        {!loading && (
+          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white/95 shadow-sm backdrop-blur-sm dark:border-white/[0.12] dark:bg-white/[0.06] dark:shadow-[0_8px_32px_rgba(0,0,0,0.45)] dark:backdrop-blur-xl">
             <button
               type="button"
-              onClick={() => navigate('/instructor-dashboard/courses')}
-              className="ml-auto text-xs font-bold text-primary-pink flex items-center gap-1 hover:underline"
+              onClick={() => setShowLiveBreakdown((open) => !open)}
+              className="flex w-full flex-wrap items-center gap-4 p-5 text-left"
+              aria-expanded={showLiveBreakdown}
             >
-              View all <ArrowUpRight size={12} />
+              <p className="text-xs font-bold uppercase tracking-widest text-transparent bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end bg-clip-text">
+                Course breakdown
+              </p>
+              <span className="flex items-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-full bg-green-500" />
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">{liveCount}</span>
+                <span className="text-xs text-gray-400 dark:text-white/40">Live</span>
+              </span>
+              {courseBreakdown.filter((b) => b.label !== 'Live').map((b) => (
+                <span key={b.label} className="flex items-center gap-2">
+                  <span className={`h-2.5 w-2.5 rounded-full ${b.color}`} />
+                  <span className="text-sm font-semibold text-gray-700 dark:text-white/70">{b.count}</span>
+                  <span className="text-xs text-gray-400 dark:text-white/30">{b.label}</span>
+                </span>
+              ))}
+              <span className="ml-auto inline-flex items-center gap-1 text-xs font-bold bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end bg-clip-text text-transparent">
+                {showLiveBreakdown ? 'Hide schedule' : 'View all'}
+                <ChevronDown
+                  size={14}
+                  className={`text-[#9e30ff] transition-transform ${showLiveBreakdown ? 'rotate-180' : ''}`}
+                />
+              </span>
             </button>
+
+            {showLiveBreakdown && (
+              <div className="space-y-8 border-t border-gray-200 px-5 py-5 dark:border-white/[0.08]">
+                {liveByCourse.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-gray-500 dark:text-white/40">
+                    No allotted live classes yet. Schedule sessions from a course to see them here.
+                  </p>
+                ) : (
+                  liveByCourse.map((courseGroup) => (
+                    <div key={String(courseGroup.courseId)} className="space-y-3">
+                      <p className="text-sm font-bold text-gray-900 dark:text-white">{courseGroup.courseTitle}</p>
+                      {courseGroup.items.map((session) => {
+                        const start = new Date(session.scheduledAt);
+                        const end = new Date(session.scheduledEnd);
+                        const canJoin = Date.now() >= start.getTime() - 15 * 60_000 && Date.now() <= end.getTime();
+                        return (
+                          <div key={session._id || `${session.courseId}-${session.scheduledAt}`}>
+                            <div className="mb-2 rounded-lg border border-gray-200/90 bg-gray-100/90 px-4 py-2 dark:border-white/[0.12] dark:bg-white/[0.05]">
+                              <p className="text-[11px] font-bold uppercase tracking-wider text-gray-600 dark:text-white/55">
+                                {formatSessionDateHeading(session.scheduledAt)}
+                              </p>
+                            </div>
+                            <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white/95 p-4 dark:border-white/[0.12] dark:bg-white/[0.06] sm:flex-row sm:items-center sm:p-5">
+                              <div className="flex min-w-0 flex-1 items-start gap-3">
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-gradient-start/20 via-gradient-mid/20 to-gradient-end/20">
+                                  <Clock className="h-5 w-5 text-[#9e30ff]" aria-hidden />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-sm font-bold tabular-nums text-gray-900 dark:text-white">
+                                    {formatSessionTimeRange(session.scheduledAt, session.scheduledEnd)}
+                                  </p>
+                                  <p className="mt-0.5 text-[11px] text-gray-500 dark:text-white/40">
+                                    {session.durationMinutes} min
+                                  </p>
+                                </div>
+                                <p className="truncate text-sm font-semibold text-gray-900 dark:text-white sm:pl-4">
+                                  {session.title}
+                                </p>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
+                                {canJoin && session.meetingUrl ? (
+                                  <a
+                                    href={session.meetingUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 px-3 py-2 text-xs font-bold text-gray-800 dark:border-white/15 dark:text-white/90"
+                                  >
+                                    <ExternalLink size={14} />
+                                    Join as host
+                                  </a>
+                                ) : (
+                                  <span className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-xl border border-gray-200 px-3 py-2 text-xs font-bold text-gray-400 opacity-80 dark:border-white/10 dark:text-white/35">
+                                    <ExternalLink size={14} />
+                                    Join as host
+                                  </span>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => copyMeetingLink(session.meetingUrl)}
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end text-white"
+                                  aria-label="Copy meeting link"
+                                >
+                                  <Link2 size={14} />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -202,7 +353,7 @@ const InstructorDashboard = () => {
               </h2>
               <button
                 type="button"
-                onClick={() => navigate('/instructor-dashboard/courses')}
+                onClick={() => navigate(ROUTES.INSTRUCTOR_MY_COURSES)}
                 className="text-primary-pink text-xs font-bold uppercase tracking-widest hover:underline flex items-center gap-1"
               >
                 View all <ArrowUpRight size={13} />

@@ -10,6 +10,7 @@ import {
   Download,
 } from "lucide-react";
 import { formatDuration, formatDurationHuman } from "@/utils/videoUtils";
+import { getChapterAssessmentKind } from "@/features/courses/utils/chapterAssessment";
 
 /** Seconds for a chapter: progress override, else sum of all video content durations. */
 function getChapterDuration(chapter, progressByChapter = {}) {
@@ -40,17 +41,6 @@ function getSectionTotalSeconds(section, progressByChapter) {
   return total;
 }
 
-function getOrderedChapterIds(sections = []) {
-  const ids = [];
-  sections.forEach((section) => {
-    (section?.chapters || []).forEach((chapter) => {
-      const id = chapter?._id || chapter?.id;
-      if (id != null) ids.push(String(id));
-    });
-  });
-  return ids;
-}
-
 const CourseViewPreviewSidebar = forwardRef(function CourseViewPreviewSidebar(
   {
     courseData,
@@ -70,8 +60,6 @@ const CourseViewPreviewSidebar = forwardRef(function CourseViewPreviewSidebar(
   },
   ref,
 ) {
-  const orderedChapterIds = getOrderedChapterIds(courseData?.sections || []);
-
   return (
     <aside
       className={`${
@@ -95,8 +83,8 @@ const CourseViewPreviewSidebar = forwardRef(function CourseViewPreviewSidebar(
         <h3 className="text-lg sm:text-[22px] font-black tracking-tight text-gray-900 dark:text-white truncate">
           Content
         </h3>
-        <span className="inline-flex items-center rounded-md px-2 py-1 bg-gradient-to-r from-[#FF8C42]/12 to-[#FF3FB4]/12 ring-1 ring-inset ring-[#FF8C42]/25 dark:ring-[#FF3FB4]/30">
-          <span className="text-[10px] font-black bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] bg-clip-text text-transparent">
+        <span className="inline-flex items-center rounded-md px-2 py-1 bg-gradient-to-r from-gradient-start/12 via-gradient-mid/12 to-gradient-end/12 ring-1 ring-inset ring-[#FF8C42]/25 dark:ring-[#FF3FB4]/30">
+          <span className="text-[10px] font-black bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end bg-clip-text text-transparent">
             {Math.round(overallPercentage)}% COMPLETE
           </span>
         </span>
@@ -163,51 +151,28 @@ const CourseViewPreviewSidebar = forwardRef(function CourseViewPreviewSidebar(
                   {section.chapters?.map((chapter, cIdx) => {
                     const chId = chapter._id || chapter.id;
                     const chKey = chId != null ? String(chId) : "";
-                    const orderIdx = orderedChapterIds.indexOf(chKey);
-                    const prevChKey =
-                      orderIdx > 0 ? orderedChapterIds[orderIdx - 1] : null;
                     const isActive =
                       activeChapter?._id === chId || activeChapter?.id === chId;
-                    const isCompleted = !!progressByChapter[chKey]?.completed;
-                    const chapterProgress = progressByChapter[chKey];
-                    const hasWatchProgress =
-                      isCompleted ||
-                      Number(chapterProgress?.maxWatchedTime) > 0 ||
-                      Number(chapterProgress?.watchedPercentage) > 0 ||
-                      Number(chapterProgress?.currentTime) > 0;
-                    const activeKey = String(
-                      activeChapter?._id || activeChapter?.id || "",
+                    const assessmentKind = getChapterAssessmentKind(chapter);
+                    const hasVideo = chapter.contents?.some(
+                      (c) => c.type === "video",
                     );
-                    const activeOrderIdx = orderedChapterIds.indexOf(activeKey);
-                    // Allow replay of any lesson at/before the current one, or any already watched
-                    const isReachedOrEarlier =
-                      activeOrderIdx >= 0 &&
-                      orderIdx >= 0 &&
-                      orderIdx <= activeOrderIdx;
-                    const prevCompleted =
-                      prevChKey == null ||
-                      !!progressByChapter[prevChKey]?.completed;
-                    const isLocked =
-                      !isActive &&
-                      !hasWatchProgress &&
-                      !isReachedOrEarlier &&
-                      !prevCompleted;
+                    const isCompleted = hasVideo
+                      ? !!progressByChapter[chKey]?.completed
+                      : !!quizChapterSummaries[chKey]?.attempted;
                     const durationSec = getChapterDuration(
                       chapter,
                       progressByChapter,
                     );
-                    const hasVideo = chapter.contents?.some(
-                      (c) => c.type === "video",
-                    );
                     const hasQuizOnlyDuration =
-                      !hasVideo &&
-                      chapter.contents?.some((c) => c.type === "quiz");
-                    const durationStr =
-                      durationSec != null
+                      !hasVideo && Boolean(assessmentKind);
+                    const assessmentNoun =
+                      assessmentKind === "assignment" ? "Assignment" : "Quiz";
+                    const durationStr = hasQuizOnlyDuration
+                      ? assessmentNoun
+                      : durationSec != null
                         ? formatDuration(durationSec)
-                        : hasQuizOnlyDuration
-                          ? "Quiz"
-                          : "—";
+                        : "—";
                     const titleTrimmed = chapter.title?.trim();
                     const displayTitle = titleTrimmed
                       ? titleTrimmed
@@ -220,16 +185,12 @@ const CourseViewPreviewSidebar = forwardRef(function CourseViewPreviewSidebar(
                         key={chId}
                         ref={isActive ? ref : undefined}
                         type="button"
-                        onClick={() => {
-                          if (isLocked) return;
-                          setActiveChapter(chapter);
-                        }}
-                        className={`w-full flex items-start gap-3 py-3.5 pl-4 pr-4 transition-all text-left group relative ${isLocked ? "opacity-70 cursor-not-allowed" : "hover:bg-gray-200/50 dark:hover:bg-white/[0.06]"} ${isActive ? "bg-gradient-to-r from-[#FF8C42]/10 to-[#FF3FB4]/10 dark:from-[#FF8C42]/[0.08] dark:to-[#FF3FB4]/[0.12]" : ""}`}
-                        aria-disabled={isLocked}
+                        onClick={() => setActiveChapter(chapter)}
+                        className={`w-full flex items-start gap-3 py-3.5 pl-4 pr-4 transition-all text-left group relative hover:bg-gray-200/50 dark:hover:bg-white/[0.06] ${isActive ? "bg-gradient-to-r from-gradient-start/10 via-gradient-mid/10 to-gradient-end/10 dark:from-[#FF8C42]/[0.08] dark:to-[#FF3FB4]/[0.12]" : ""}`}
                       >
                         {isActive && (
                           <div
-                            className="absolute left-0 top-0 bottom-0 w-1 rounded-full bg-gradient-to-b from-[#FF8C42] to-[#FF3FB4] shadow-[0_0_12px_rgba(255,63,180,0.45)]"
+                            className="absolute left-0 top-0 bottom-0 w-1 rounded-full bg-gradient-to-b from-gradient-start via-gradient-mid to-gradient-end shadow-[0_0_12px_rgba(255,63,180,0.45)]"
                             aria-hidden
                           />
                         )}
@@ -238,7 +199,7 @@ const CourseViewPreviewSidebar = forwardRef(function CourseViewPreviewSidebar(
                         >
                           {isCompleted ? (
                             <CheckCircle2 size={16} aria-hidden />
-                          ) : chapter.type === "quiz" ? (
+                          ) : assessmentKind ? (
                             <FileText
                               size={16}
                               stroke={isActive ? "url(#coursePreviewBrandGrad)" : undefined}
@@ -261,7 +222,7 @@ const CourseViewPreviewSidebar = forwardRef(function CourseViewPreviewSidebar(
                           <div className="flex items-center justify-between w-full">
                             <div className="flex items-center gap-3">
                               <div className="flex items-center gap-1.5 text-gray-400 dark:text-white/40 grayscale">
-                                {chapter.type === "quiz" ? (
+                                {hasQuizOnlyDuration ? (
                                   <FileText size={10} aria-hidden />
                                 ) : (
                                   <PlayCircle size={10} aria-hidden />
@@ -276,26 +237,15 @@ const CourseViewPreviewSidebar = forwardRef(function CourseViewPreviewSidebar(
                                 </span>
                               )}
                             </div>
-                            <div
-                              className={`flex flex-col gap-0.5 shrink-0 ${
-                                isLocked
-                                  ? "min-w-8 items-center text-center"
-                                  : "items-end text-right"
-                              }`}
-                            >
-                              {isLocked && (
-                                <span
-                                  className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-gray-300/80 dark:border-white/20 bg-white dark:bg-white/[0.06] text-gray-600 dark:text-white/70 shadow-sm"
-                                  title="Locked"
-                                  aria-label="Locked chapter"
-                                >
-                                  <Lock size={12} strokeWidth={2.25} aria-hidden />
-                                </span>
-                              )}
+                            <div className="flex flex-col gap-0.5 shrink-0 items-end text-right">
                               {isActive && (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-black animate-pulse bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] bg-clip-text text-transparent">
+                                <span className="inline-flex items-center gap-1 text-[10px] font-black animate-pulse bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end bg-clip-text text-transparent">
                                   <PlayCircle size={10} className="text-[#FF8C42]" aria-hidden />
-                                  {hasQuizOnlyDuration ? "Current quiz" : "PLAYING"}
+                                  {hasQuizOnlyDuration
+                                    ? assessmentKind === "assignment"
+                                      ? "Current assignment"
+                                      : "Current quiz"
+                                    : "PLAYING"}
                                 </span>
                               )}
                               {isActive &&
@@ -380,7 +330,7 @@ const CourseViewPreviewSidebar = forwardRef(function CourseViewPreviewSidebar(
               <button
                 type="button"
                 onClick={() => onCertificateDownload?.()}
-                className="w-full flex items-center justify-center gap-2 rounded-xl py-3 px-4 text-xs font-black uppercase tracking-wider bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] text-white hover:opacity-95 transition-opacity shadow-md shadow-[#FF3FB4]/20"
+                className="w-full flex items-center justify-center gap-2 rounded-xl py-3 px-4 text-xs font-black uppercase tracking-wider bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end text-white hover:opacity-95 transition-opacity shadow-md shadow-[#FF3FB4]/20"
               >
                 <Download size={16} aria-hidden />
                 View certificate

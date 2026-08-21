@@ -57,12 +57,23 @@ const CourseListPage = () => {
   };
 
   return (
-    <div className="dark pt-24 md:pt-32 pb-20 min-h-screen w-full bg-black text-white">
+    <div className="dark pt-24 md:pt-32 pb-20 min-h-screen w-full bg-black text-white font-satoshi">
       <div className="max-w-[1440px] mx-auto w-full px-4 md:px-6 lg:px-12">
         <header className="mb-12 md:mb-16">
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 md:mb-4">
-            Courses
+          <p className="text-[11px] md:text-xs font-bold uppercase tracking-[0.22em] text-primary-pink mb-3">
+            Catalog
+          </p>
+          <h1 className="text-3xl sm:text-4xl md:text-[44px] lg:text-5xl font-bold tracking-tight leading-[1.1] mb-3 md:mb-4">
+            <span className="text-transparent bg-clip-text bg-gradient-to-b from-white to-[#808080]">
+              Explore
+            </span>{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end">
+              Courses
+            </span>
           </h1>
+          <p className="text-[15px] text-white/60 max-w-xl mb-6 md:mb-8 leading-relaxed">
+            Browse curated programs across development, design, marketing, and more.
+          </p>
           <div className="relative w-full max-w-md">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
             <input

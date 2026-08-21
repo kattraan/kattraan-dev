@@ -7,7 +7,7 @@ import courseService from '@/features/courses/services/courseService';
 import adminService from '@/features/admin/services/adminService';
 import { useToast } from '@/components/ui/Toast';
 import { ROUTES } from '@/config/routes';
-import { hasRole } from '@/features/auth/utils/roleUtils';
+import { hasRole, isApprovedInstructor } from '@/features/auth/utils/roleUtils';
 import {
   isCourseDescriptionHtml,
   sanitizeCourseDescriptionHtml,
@@ -61,7 +61,7 @@ export default function ViewCoursePage() {
   const toast = useToast();
   const user = useSelector((state) => state.auth?.user);
   const isAdmin = hasRole(user, 'admin');
-  const isInstructor = hasRole(user, 'instructor');
+  const isInstructor = isApprovedInstructor(user);
   const isStaffPreview = isAdmin || isInstructor;
 
   const [course, setCourse] = useState(null);
@@ -277,7 +277,7 @@ export default function ViewCoursePage() {
         {/* Admin: Approve / Reject */}
         {isAdmin && isPending && (
           <div className="flex flex-wrap items-center gap-3 pt-6 border-t border-gray-200 dark:border-white/10">
-            <Button onClick={handleApprove} disabled={approving} className="flex items-center gap-2 bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] hover:opacity-90 text-white border-0 shadow-sm">
+            <Button onClick={handleApprove} disabled={approving} className="flex items-center gap-2 bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end hover:opacity-90 text-white border-0 shadow-sm">
               <CheckCircle size={18} /> {approving ? 'Approving…' : 'Approve course'}
             </Button>
             <Button onClick={() => setRejectModalOpen(true)} disabled={rejecting} className="flex items-center gap-2 border border-gray-300 dark:border-white/20 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-white/90">

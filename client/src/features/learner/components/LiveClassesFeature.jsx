@@ -102,7 +102,7 @@ function SessionCard({ cls, listTab }) {
             }}
             className={`w-full md:w-auto px-6 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all border ${
               canJoin
-                ? 'bg-gradient-to-r from-primary-pink to-[#ff7b3f] text-white border-transparent hover:brightness-105 shadow-md shadow-primary-pink/20 cursor-pointer'
+                ? 'bg-gradient-to-r from-primary-pink to-[#ff8c42] text-white border-transparent hover:brightness-105 shadow-md shadow-primary-pink/20 cursor-pointer'
                 : 'bg-gray-100 dark:bg-white/[0.06] text-gray-400 dark:text-white/35 border-gray-200 dark:border-white/10 cursor-not-allowed opacity-80'
             }`}
           >
@@ -259,7 +259,7 @@ const LiveClassesFeature = () => {
                 onClick={() => setListTab('upcoming')}
                 className={`flex-1 sm:flex-none px-4 sm:px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${
                   listTab === 'upcoming'
-                    ? 'bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] text-white shadow-md shadow-[#FF3FB4]/20'
+                    ? 'bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end text-white shadow-md shadow-[#FF3FB4]/20'
                     : 'text-gray-600 dark:text-white/55 hover:text-gray-900 dark:hover:text-white'
                 }`}
               >
@@ -279,7 +279,7 @@ const LiveClassesFeature = () => {
                 onClick={() => setListTab('completed')}
                 className={`flex-1 sm:flex-none px-4 sm:px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${
                   listTab === 'completed'
-                    ? 'bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] text-white shadow-md shadow-[#FF3FB4]/20'
+                    ? 'bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end text-white shadow-md shadow-[#FF3FB4]/20'
                     : 'text-gray-600 dark:text-white/55 hover:text-gray-900 dark:hover:text-white'
                 }`}
               >

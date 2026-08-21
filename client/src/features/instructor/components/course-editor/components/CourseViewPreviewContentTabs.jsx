@@ -8,7 +8,7 @@ import { useToast } from '@/components/ui/Toast';
 const TAB_OPTIONS = ['Description', 'Resources', 'QnA', 'Comments'];
 /** Brand gradient fill for preview accents (matches CTAs: orange → pink). */
 const PREVIEW_GRADIENT_TEXT =
-  'bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] bg-clip-text text-transparent';
+  'bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end bg-clip-text text-transparent';
 const TITLE_MAX_LENGTH = 150;
 const ALLOWED = { TAGS: ['p', 'br', 'strong', 'em', 'u', 'a', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'blockquote', 'span', 'div'], ATTR: ['href', 'target', 'rel'] };
 
@@ -109,7 +109,7 @@ function AskQuestionForm({ onBack, onSubmit, title, onTitleChange, description, 
         className="group flex items-center gap-2 text-sm font-semibold text-gray-600 dark:text-white/70 mb-6"
       >
         <ArrowLeft size={18} className="shrink-0 transition-colors group-hover:text-[#FF8C42]" aria-hidden />
-        <span className="transition-all group-hover:bg-gradient-to-r group-hover:from-[#FF8C42] group-hover:to-[#FF3FB4] group-hover:bg-clip-text group-hover:text-transparent">
+        <span className="transition-all group-hover:bg-gradient-to-r group-hover:from-gradient-start group-hover:via-gradient-mid group-hover:to-gradient-end group-hover:bg-clip-text group-hover:text-transparent">
           Back to All Questions
         </span>
       </button>
@@ -198,7 +198,7 @@ function AskQuestionForm({ onBack, onSubmit, title, onTitleChange, description, 
           type="button"
           onClick={onSubmit}
           disabled={isSubmitting}
-          className="px-6 py-3 rounded-xl bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] text-white text-sm font-bold shadow-sm hover:opacity-90 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+          className="px-6 py-3 rounded-xl bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end text-white text-sm font-bold shadow-sm hover:opacity-90 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {isSubmitting ? 'Submitting…' : 'Submit'}
         </button>
@@ -230,10 +230,14 @@ export default function CourseViewPreviewContentTabs({ activeChapter, activeTab,
   const videoPlayable = hasPlayableVideoInChapter(activeChapter);
   const isQuizOnlyLesson = Boolean(quizBlock && !videoPlayable);
   const questionCount = Array.isArray(quizBlock?.questions) ? quizBlock.questions.length : 0;
+  const isAssignmentLesson =
+    quizBlock?.metadata?.assessmentMode === 'assignment';
+  const assessmentWord = isAssignmentLesson ? 'Assignment' : 'Quiz';
+  const itemWord = isAssignmentLesson ? 'task' : 'question';
   const lessonSubtitle = isQuizOnlyLesson
     ? (questionCount > 0
-        ? `Assessment • ${questionCount} question${questionCount !== 1 ? 's' : ''}`
-        : 'Assessment')
+        ? `${assessmentWord} • ${questionCount} ${itemWord}${questionCount !== 1 ? 's' : ''}`
+        : assessmentWord)
     : 'Lesson • Duration shown in player';
   const [saved, setSaved] = useState(false);
   const [showShareTooltip, setShowShareTooltip] = useState(false);
@@ -517,7 +521,7 @@ export default function CourseViewPreviewContentTabs({ activeChapter, activeTab,
           {TAB_OPTIONS.map((tab) => (
             <button key={tab} type="button" role="tab" aria-selected={activeTab === tab} onClick={() => setActiveTab(tab)} className={`pb-4 text-sm font-bold transition-all relative ${activeTab === tab ? '' : 'text-gray-400 dark:text-white/30 hover:text-gray-600 dark:hover:text-white/60'}`}>
               <span className={activeTab === tab ? PREVIEW_GRADIENT_TEXT : undefined}>{tab}</span>
-              {activeTab === tab && <div className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] shadow-[0_0_12px_rgba(255,140,66,0.35)]" aria-hidden />}
+              {activeTab === tab && <div className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end shadow-[0_0_12px_rgba(255,140,66,0.35)]" aria-hidden />}
             </button>
           ))}
         </div>
@@ -633,7 +637,7 @@ export default function CourseViewPreviewContentTabs({ activeChapter, activeTab,
                     <button
                       type="button"
                       onClick={() => setShowAskForm(true)}
-                      className="mt-6 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] text-white text-xs font-black uppercase tracking-widest hover:opacity-90 transition-all shadow-sm"
+                      className="mt-6 px-6 py-2.5 rounded-xl bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end text-white text-xs font-black uppercase tracking-widest hover:opacity-90 transition-all shadow-sm"
                     >
                       Ask a question
                     </button>
@@ -645,7 +649,7 @@ export default function CourseViewPreviewContentTabs({ activeChapter, activeTab,
                       <button
                         type="button"
                         onClick={() => setShowAskForm(true)}
-                        className="px-4 py-2 rounded-full bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] text-white text-xs font-semibold hover:opacity-90 transition-all shadow-sm"
+                        className="px-4 py-2 rounded-full bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end text-white text-xs font-semibold hover:opacity-90 transition-all shadow-sm"
                       >
                         Ask a question
                       </button>
@@ -851,7 +855,7 @@ export default function CourseViewPreviewContentTabs({ activeChapter, activeTab,
                               <button
                                 type="button"
                                 onClick={() => setReplyingTo({ commentId: cId, userName: commenterName })}
-                                className="text-gray-500 dark:text-white/50 text-sm font-medium transition-all hover:bg-gradient-to-r hover:from-[#FF8C42] hover:to-[#FF3FB4] hover:bg-clip-text hover:text-transparent"
+                                className="text-gray-500 dark:text-white/50 text-sm font-medium transition-all hover:bg-gradient-to-r hover:from-gradient-start hover:via-gradient-mid hover:to-gradient-end hover:bg-clip-text hover:text-transparent"
                               >
                                 Reply · {formatTimeAgo(c.createdAt)}
                               </button>
@@ -929,7 +933,7 @@ export default function CourseViewPreviewContentTabs({ activeChapter, activeTab,
                                       <button
                                         type="button"
                                         onClick={() => setReplyingTo({ commentId: cId, userName: replierName })}
-                                        className="mt-1 text-gray-500 dark:text-white/50 text-sm font-medium transition-all hover:bg-gradient-to-r hover:from-[#FF8C42] hover:to-[#FF3FB4] hover:bg-clip-text hover:text-transparent"
+                                        className="mt-1 text-gray-500 dark:text-white/50 text-sm font-medium transition-all hover:bg-gradient-to-r hover:from-gradient-start hover:via-gradient-mid hover:to-gradient-end hover:bg-clip-text hover:text-transparent"
                                       >
                                         Reply · {formatTimeAgo(r.createdAt)}
                                       </button>

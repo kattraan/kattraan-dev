@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Upload, Globe, Lock, Save } from 'lucide-react';
-import { Card, ContentCard } from '@/components/ui';
+import { Card, ContentCard, Switch } from '@/components/ui';
 import CourseDescriptionRichEditor from '../components/CourseDescriptionRichEditor';
 import {
   courseDescriptionPlainLength,
@@ -49,7 +49,7 @@ const InformationTab = ({
                         type="button"
                         onClick={() => handleSave && handleSave()}
                         disabled={isSaving}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#FF8C42] to-[#FF3FB4] text-white font-semibold text-sm hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-300 shadow-sm"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end text-white font-semibold text-sm hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-300 shadow-sm"
                     >
                         <Save size={18} />
                         {isSaving ? 'Saving…' : 'Save'}
@@ -302,7 +302,7 @@ const InformationTab = ({
                         {(() => {
                             const isPublicSelected = courseDetails?.visibility === 'public' || (courseDetails?.visibility !== 'private' && courseDetails?.status === 'published');
                             const isPrivateSelected = courseDetails?.visibility === 'private' || (courseDetails?.visibility !== 'public' && courseDetails?.status !== 'published');
-                            const selectedStyle = 'bg-gradient-to-r from-[#FF8C42]/10 to-[#FF3FB4]/10 dark:from-[#FF8C42]/20 dark:to-[#FF3FB4]/20 border-2 border-primary-pink shadow-md';
+                            const selectedStyle = 'bg-gradient-to-r from-gradient-start/10 via-gradient-mid/10 to-gradient-end/10 dark:from-gradient-start/20 dark:via-gradient-mid/20 dark:to-gradient-end/20 border-2 border-primary-pink shadow-md';
                             const unselectedStyle = 'bg-gray-50/80 dark:bg-white/[0.02] border-2 border-gray-200 dark:border-white/10 opacity-80 hover:opacity-100';
                             return (
                                 <>
@@ -310,7 +310,7 @@ const InformationTab = ({
                             onClick={() => handleUpdateDetails && handleUpdateDetails({ visibility: 'public' })}
                             className={`cursor-pointer rounded-2xl p-5 flex items-center gap-4 transition-all duration-300 ${isPublicSelected ? selectedStyle : unselectedStyle}`}
                         >
-                            <div className={`p-2 rounded-lg transition-colors duration-300 ${isPublicSelected ? 'bg-[#FF3FB4] shadow-[0_0_15px_rgba(255,63,180,0.5)]' : 'bg-gray-200 dark:bg-white/10'}`}>
+                            <div className={`p-2 rounded-lg transition-colors duration-300 ${isPublicSelected ? 'bg-[#9e30ff] shadow-[0_0_15px_rgba(255,63,180,0.5)]' : 'bg-gray-200 dark:bg-white/10'}`}>
                                 <Globe size={20} className={isPublicSelected ? 'text-white' : 'text-gray-400 dark:text-white/40'} />
                             </div>
                             <div>
@@ -322,7 +322,7 @@ const InformationTab = ({
                             onClick={() => handleUpdateDetails && handleUpdateDetails({ visibility: 'private' })}
                             className={`cursor-pointer rounded-2xl p-5 flex items-center gap-4 transition-all duration-300 ${isPrivateSelected ? selectedStyle : unselectedStyle}`}
                         >
-                            <div className={`p-2 rounded-lg transition-colors duration-300 ${isPrivateSelected ? 'bg-[#FF3FB4] shadow-[0_0_15px_rgba(255,63,180,0.5)]' : 'bg-gray-200 dark:bg-white/10'}`}>
+                            <div className={`p-2 rounded-lg transition-colors duration-300 ${isPrivateSelected ? 'bg-[#9e30ff] shadow-[0_0_15px_rgba(255,63,180,0.5)]' : 'bg-gray-200 dark:bg-white/10'}`}>
                                 <Lock size={20} className={isPrivateSelected ? 'text-white' : 'text-gray-400 dark:text-white/40'} />
                             </div>
                             <div>
@@ -347,12 +347,10 @@ const InformationTab = ({
                         <h3 className="text-sm font-bold text-gray-900 dark:text-white transition-colors duration-300">Validity</h3>
                         <p className="text-xs text-gray-500 dark:text-white/40 mt-0.5 transition-colors duration-300">Select how long your customers can view your course</p>
                     </div>
-                    <div 
-                        onClick={() => setCourseDetails({ ...courseDetails, validity: !courseDetails.validity })}
-                        className={`relative w-12 h-6 rounded-full transition-all duration-300 cursor-pointer ${courseDetails.validity ? 'bg-primary-pink' : 'bg-gray-300 dark:bg-white/20'}`}
-                    >
-                        <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-all shadow-sm ${courseDetails.validity ? 'translate-x-6' : ''}`} />
-                    </div>
+                    <Switch
+                        checked={Boolean(courseDetails.validity)}
+                        onChange={(next) => setCourseDetails({ ...courseDetails, validity: next })}
+                    />
                 </div>
 
                 {/* Show as Locked Toggle */}
@@ -361,12 +359,10 @@ const InformationTab = ({
                         <h3 className="text-sm font-bold text-gray-900 dark:text-white transition-colors duration-300">Show as locked</h3>
                         <p className="text-xs text-gray-500 dark:text-white/40 mt-0.5 transition-colors duration-300">Show this course as locked to customers of other courses</p>
                     </div>
-                    <div 
-                        onClick={() => setCourseDetails({ ...courseDetails, showAsLocked: !courseDetails.showAsLocked })}
-                        className={`relative w-12 h-6 rounded-full transition-all duration-300 cursor-pointer ${courseDetails.showAsLocked ? 'bg-primary-pink' : 'bg-gray-300 dark:bg-white/20'}`}
-                    >
-                        <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-all shadow-sm ${courseDetails.showAsLocked ? 'translate-x-6' : ''}`} />
-                    </div>
+                    <Switch
+                        checked={Boolean(courseDetails.showAsLocked)}
+                        onChange={(next) => setCourseDetails({ ...courseDetails, showAsLocked: next })}
+                    />
                 </div>
                 </div>
 
@@ -380,12 +376,10 @@ const InformationTab = ({
                         <h3 className="text-sm font-bold text-gray-900 dark:text-white transition-colors duration-300">Disable QnA</h3>
                         <p className="text-xs text-gray-500 dark:text-white/40 mt-0.5 transition-colors duration-300">Your customers won't be able to ask questions on your course</p>
                     </div>
-                    <div 
-                        onClick={() => setCourseDetails({ ...courseDetails, disableQnA: !courseDetails.disableQnA })}
-                        className={`relative w-12 h-6 rounded-full transition-all duration-300 cursor-pointer ${courseDetails.disableQnA ? 'bg-primary-pink' : 'bg-gray-300 dark:bg-white/20'}`}
-                    >
-                        <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-all shadow-sm ${courseDetails.disableQnA ? 'translate-x-6' : ''}`} />
-                    </div>
+                    <Switch
+                        checked={Boolean(courseDetails.disableQnA)}
+                        onChange={(next) => setCourseDetails({ ...courseDetails, disableQnA: next })}
+                    />
                 </div>
 
                 {/* Disable Comments Toggle */}
@@ -394,12 +388,10 @@ const InformationTab = ({
                         <h3 className="text-sm font-bold text-gray-900 dark:text-white transition-colors duration-300">Disable comments</h3>
                         <p className="text-xs text-gray-500 dark:text-white/40 mt-0.5 transition-colors duration-300">Your customers won't be able to comment on your course</p>
                     </div>
-                    <div 
-                        onClick={() => setCourseDetails({ ...courseDetails, disableComments: !courseDetails.disableComments })}
-                        className={`relative w-12 h-6 rounded-full transition-all duration-300 cursor-pointer ${courseDetails.disableComments ? 'bg-primary-pink' : 'bg-gray-300 dark:bg-white/20'}`}
-                    >
-                        <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-all shadow-sm ${courseDetails.disableComments ? 'translate-x-6' : ''}`} />
-                    </div>
+                    <Switch
+                        checked={Boolean(courseDetails.disableComments)}
+                        onChange={(next) => setCourseDetails({ ...courseDetails, disableComments: next })}
+                    />
                 </div>
                 </div>
 

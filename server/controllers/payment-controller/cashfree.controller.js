@@ -9,6 +9,7 @@ const {
   resolvePurchaseContext,
   markPendingFulfilled,
 } = require('../../services/cashfreeOrderContext.service');
+const { salePriceINR } = require('../../helpers/coursePrice');
 
 function normalizeBaseUrl(rawValue, fallback) {
   const candidates = String(rawValue || fallback || '')
@@ -181,7 +182,7 @@ async function createOrder(req, res) {
       return res.status(400).json({ success: false, message: 'Course is not available for purchase' });
     }
 
-    const priceINR = Number(course.price) || 0;
+    const priceINR = salePriceINR(course);
     if (priceINR === 0) {
       return res.status(400).json({ success: false, message: 'This course is free — use the enroll endpoint instead' });
     }
@@ -368,6 +369,7 @@ async function verifyPayment(req, res) {
         providerOrderId: paymentSessionId,
         displayCurrency: displayCurrency || pending.displayCurrency,
         displayAmount: displayAmount != null ? displayAmount : pending.displayAmount,
+        amountINR: pending.amountINR,
       });
       await markPendingFulfilled(orderId);
       console.warn('[Cashfree] MOCK verify — enrolled without Cashfree');
@@ -412,7 +414,7 @@ async function verifyPayment(req, res) {
       return res.status(400).json({ success: false, message: 'Course is not available for purchase' });
     }
 
-    const priceINR = Number(course.price) || 0;
+    const priceINR = salePriceINR(course);
     if (priceINR === 0) {
       return res.status(400).json({ success: false, message: 'This course is free — use the enroll endpoint instead' });
     }
@@ -450,6 +452,7 @@ async function verifyPayment(req, res) {
       providerOrderId: paymentSessionId || orderId,
       displayCurrency: displayCurrency || context.displayCurrency,
       displayAmount: displayAmount != null ? displayAmount : context.displayAmount,
+      amountINR: expectedAmount,
     });
 
     await markPendingFulfilled(orderId);
